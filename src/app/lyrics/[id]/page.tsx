@@ -6,7 +6,8 @@ import { db } from "@/db";
 import { songs } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { LyricsCopy } from "@/components/lyrics-copy";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const song = await db.query.songs.findFirst({
     where: eq(songs.id, Number(id)),
   });
-  return { title: song ? `${song.title} — Lyrarium` : "Lyrarium" };
+  return {
+    title: song ? `${song.title} — ${song.artist}` : "Lyrarium",
+  };
 }
 
 function getYouTubeEmbedUrl(url: string | null): string | null {
@@ -41,7 +44,6 @@ export default async function LyricsPage({ params }: Props) {
   const songId = Number(id);
   if (!Number.isInteger(songId)) notFound();
 
-  // FIX: check null SEBELUM akses property
   const song = await db.query.songs.findFirst({ where: eq(songs.id, songId) });
   if (!song) notFound();
 
@@ -49,69 +51,112 @@ export default async function LyricsPage({ params }: Props) {
 
   const all = await db.select().from(songs).orderBy(songs.id);
   const i = all.findIndex((s) => s.id === song.id);
-  const prev = all[i - 1];
-  const next = all[i + 1];
+  const prev = i > 0 ? all[i - 1] : null;
+  const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
+
+  const artistSlug = encodeURIComponent(song.artist.toLowerCase().trim());
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
 
-      {/* 1 — Art-book spread: type kiri, cover square kanan */}
-      <section className="px-8 pt-16 pb-16 lg:pt-24 lg:pb-24">
-        <div className="grid grid-cols-1 gap-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          {/* Type field */}
-          <div className="order-2 lg:order-1">
-            <p className="text-caption uppercase text-muted-foreground">
-              {song.artist}
-            </p>
-            <h1 className="mt-6 max-w-4xl text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
-              {song.title}
-            </h1>
-            <div className="mt-8 flex gap-2">
-              <span className="rounded-pills border border-border px-3 py-2 text-caption uppercase">
-                Lyrics
-              </span>
-              <span className="rounded-pills bg-accent px-3 py-2 text-caption uppercase text-accent-foreground">
-                Archive
-              </span>
+      {/* Back to archive link */}
+      <div className="px-8 pt-8">
+        <Link
+          href="/"
+          className="group inline-flex items-center gap-2 text-caption uppercase text-muted-foreground transition-colors hover:text-accent"
+        >
+          <ArrowLeft
+            size={16}
+            strokeWidth={1}
+            className="transition-transform group-hover:-translate-x-1"
+          />
+          <span>Archive</span>
+        </Link>
+      </div>
+
+      {/* 1 — Integrated Gatefold Hero: Cover & Title Menyatu */}
+      <section className="px-8 pt-6 pb-16 lg:pt-10 lg:pb-20">
+        <div className="border border-border grid grid-cols-1 lg:grid-cols-[400px_1fr] xl:grid-cols-[440px_1fr]">
+          {/* Sisi Kiri: 1:1 Cover Square Utuh murni */}
+          <div className="relative border-b lg:border-b-0 lg:border-r border-border bg-muted/20">
+            <div className="aspect-square w-full">
+              {song.imageUrl ? (
+                <img
+                  src={song.imageUrl}
+                  alt={`${song.title} — ${song.artist}`}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <div className="flex size-full items-end p-8">
+                  <span className="text-display font-light leading-display tracking-[-0.04em]">
+                    {song.title.charAt(0)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Cover square utuh + meta vertikal */}
-          <div className="order-1 flex items-end gap-6 lg:order-2">
-            <span className="hidden shrink-0 rotate-180 text-caption uppercase text-muted-foreground [writing-mode:vertical-rl] lg:block">
-              Cover — {song.artist}
-            </span>
-            {song.imageUrl ? (
-              <img
-                src={song.imageUrl}
-                alt={`${song.title} — ${song.artist}`}
-                className="aspect-square w-full max-w-105 object-cover lg:w-95 lg:max-w-none xl:w-115"
-              />
-            ) : (
-              <div className="flex aspect-square w-full max-w-105 items-end border border-border p-6 lg:w-95 lg:max-w-none xl:w-115">
-                <span className="text-display font-light leading-display tracking-[-0.04em]">
-                  {song.title.charAt(0)}
-                </span>
+          {/* Sisi Kanan: Panel Tipografi & Credits yang Menyatu Erat */}
+          <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
+            <div>
+              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
+                <span>Artist</span>
+                <span>//</span>
+                <Link
+                  href={`/artist/${artistSlug}`}
+                  className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
+                >
+                  {song.artist}
+                </Link>
               </div>
-            )}
+
+              {/* Judul & Credits Berdampingan */}
+              <div className="mt-8 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div>
+                  <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
+                    {song.title}
+                  </h1>
+                </div>
+
+                {song.credits && (
+                  <div className="border-l border-border pl-6 max-w-xs shrink-0 mb-2">
+                    <p className="text-caption uppercase text-muted-foreground mb-2">
+                      Credits
+                    </p>
+                    <p className="whitespace-pre-line text-body-sm leading-snug text-muted-foreground">
+                      {song.credits}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* 2 — Lirik + detail (sticky kanan) */}
-      <section className="px-8 pt-16 pb-24">
+      <section className="px-8 pt-4 pb-24">
         <div className="grid grid-cols-1 gap-16 lg:grid-cols-[minmax(0,1fr)_360px]">
-          {/* Lirik — hairline aksen tema */}
-          <div className="border-l border-accent pl-8">
-            <p className="whitespace-pre-line text-body leading-body text-foreground">
-              {song.lyrics}
-            </p>
+          {/* Kolom lirik */}
+          <div>
+            <div className="mb-6 flex items-center justify-between border-b border-border pb-3">
+              <p className="text-caption uppercase text-muted-foreground">
+                Lyrics
+              </p>
+              <LyricsCopy lyrics={song.lyrics} />
+            </div>
+
+            <div className="border-l border-accent pl-8">
+              <p className="whitespace-pre-line text-body font-normal leading-body text-foreground">
+                {song.lyrics}
+              </p>
+            </div>
           </div>
 
-          {/* Detail — sticky di kanan */}
+          {/* Detail sticky di kanan — bersih */}
           <aside className="flex flex-col gap-12 lg:sticky lg:top-16 lg:self-start">
-            {/* YouTube embed — paling atas */}
+            {/* YouTube embed */}
             {embedUrl && (
               <div>
                 <p className="text-caption uppercase text-muted-foreground">
@@ -128,6 +173,7 @@ export default async function LyricsPage({ params }: Props) {
               </div>
             )}
 
+            {/* About artist */}
             {song.aboutArtist && (
               <div>
                 <p className="text-caption uppercase text-muted-foreground">
@@ -136,17 +182,13 @@ export default async function LyricsPage({ params }: Props) {
                 <p className="mt-4 text-body-sm leading-body-sm text-muted-foreground">
                   {song.aboutArtist}
                 </p>
-              </div>
-            )}
-
-            {song.credits && (
-              <div>
-                <p className="text-caption uppercase text-muted-foreground">
-                  Credits
-                </p>
-                <p className="mt-4 whitespace-pre-line text-body-sm leading-body-sm text-foreground">
-                  {song.credits}
-                </p>
+                <Link
+                  href={`/artist/${artistSlug}`}
+                  className="mt-4 inline-flex items-center gap-1 text-caption uppercase text-foreground transition-colors hover:text-accent"
+                >
+                  <span>Explore artist</span>
+                  <ArrowRight size={16} strokeWidth={1} />
+                </Link>
               </div>
             )}
           </aside>
@@ -180,6 +222,7 @@ export default async function LyricsPage({ params }: Props) {
             aria-hidden
           />
         )}
+
         {next ? (
           <Link
             href={`/lyrics/${next.id}`}
