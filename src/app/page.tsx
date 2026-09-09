@@ -3,9 +3,8 @@ import { X } from "lucide-react";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { songs } from "@/db/schema";
-import { SiteSidebar } from "@/components/site-sidebar";
+import { SiteHeader } from "@/components/site-header";
 import { HeroSearch } from "@/components/hero-search";
-import { Logo } from "@/components/logo";
 import { SiteFooter } from "@/components/site-footer";
 import type { HeroItem } from "@/components/lyric-poster";
 
@@ -60,43 +59,16 @@ export default async function Home({ searchParams }: Props) {
   const hasFilter = Boolean(q || artist);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      {/* 1. Menubar diubah: Vertical Sidebar di sisi kiri */}
-      <SiteSidebar />
+    <main className="min-h-screen bg-background text-foreground">
+      {/* 1. Header sebelumnya lengkap dengan logo, tagline, add song, menu, & ThemeToggle (dark mode) */}
+      <SiteHeader />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Minimalist Top Bar (seperti di foto referensi) */}
-        <header className="flex items-center justify-between px-6 py-4 border-b border-border/40">
-          <div className="flex items-center gap-2">
-            <span className="text-caption uppercase text-muted-foreground tracking-wider hidden sm:inline">
-              Editorial Lyrics Archive
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Logo />
-            <span className="text-subheading font-light tracking-[-0.018em]">
-              Lyrarium
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link
-              href="/add"
-              className="text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
-            >
-              + Add Song
-            </Link>
-          </div>
-        </header>
-
-        {/* 2. Searching Box jadi seperti di foto (dengan animated random lyric heading) */}
-        <HeroSearch
-          items={heroItems}
-          initialQuery={q}
-          artist={artist}
-        />
+      {/* 2. Searching Box jadi seperti di foto (dengan animated random lyric heading) */}
+      <HeroSearch
+        items={heroItems}
+        initialQuery={q}
+        artist={artist}
+      />
 
         {/* 3. Collection */}
         <section id="collection" className="px-8 pt-6">
@@ -237,7 +209,6 @@ export default async function Home({ searchParams }: Props) {
         </section>
 
         <SiteFooter />
-      </main>
-    </div>
+    </main>
   );
 }
