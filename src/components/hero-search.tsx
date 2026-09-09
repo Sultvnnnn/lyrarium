@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Mic, Sparkles, ShieldCheck, X } from "lucide-react";
-import type { HeroItem } from "@/components/lyric-poster";
+import { ArrowUp, Mic, ShieldCheck, X } from "lucide-react";
+import { LyricPoster, type HeroItem } from "@/components/lyric-poster";
 
 type HeroSearchProps = {
   items: HeroItem[];
@@ -13,32 +12,83 @@ type HeroSearchProps = {
 };
 
 export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
-  const [index, setIndex] = useState(0);
   const [query, setQuery] = useState(initialQuery ?? "");
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
 
-  // Rotasi lirik secara random tiap 6 detik
+  // Bersihkan recognition saat unmount
   useEffect(() => {
-    if (items.length < 2) return;
-    const interval = setInterval(() => {
-      setIndex((prev) => {
-        let next = Math.floor(Math.random() * items.length);
-        if (next === prev) next = (next + 1) % items.length;
-        return next;
-      });
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [items.length]);
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
-  const currentItem = items[index];
+  // Fitur Speech-to-Text (Pengenalan Suara untuk Bernyanyi / Mengucap Lirik)
+  const toggleListening = () => {
+    setSpeechError(null);
 
-  const handleRandomLine = () => {
-    if (!items.length) return;
-    const randomPick = items[Math.floor(Math.random() * items.length)];
-    if (inputRef.current) {
-      inputRef.current.value = randomPick.line;
-      setQuery(randomPick.line);
-      inputRef.current.focus();
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setSpeechError("Browser tidak mendukung Speech Recognition.");
+      setTimeout(() => setSpeechError(null), 4000);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "id-ID";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let currentTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        if (inputRef.current) {
+          inputRef.current.value = currentTranscript;
+        }
+        setQuery(currentTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error !== "no-speech") {
+          setSpeechError("Gagal mendengarkan audio atau mikrofon diblokir.");
+          setTimeout(() => setSpeechError(null), 4000);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      setSpeechError("Tidak dapat mengakses mikrofon.");
+      setIsListening(false);
+      setTimeout(() => setSpeechError(null), 4000);
     }
   };
 
@@ -51,35 +101,12 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
 
   return (
     <section className="flex flex-col items-center justify-center pt-8 pb-12 px-4 md:px-8">
-      {/* 1. Animated Heading Lirik Random (Framer Motion) */}
-      <div className="mb-8 min-h-[140px] w-full flex flex-col items-center justify-center text-center">
-        <AnimatePresence mode="wait">
-          {currentItem && (
-            <motion.div
-              key={`${currentItem.id}-${currentItem.line}`}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-2xl"
-            >
-              <Link
-                href={`/lyrics/${currentItem.id}`}
-                className="group inline-block"
-              >
-                <p className="mb-3 text-caption uppercase text-muted-foreground tracking-wider">
-                  {currentItem.title} — {currentItem.artist}
-                </p>
-                <h1 className="pb-1 text-heading-sm md:text-heading font-light leading-heading tracking-[-0.023em] text-foreground transition-colors group-hover:text-accent">
-                  “{currentItem.line}”
-                </h1>
-              </Link>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* 1. Kinetic Typographic Lyric Poster (Out of the box framer-motion animation) */}
+      <div className="mb-10 w-full flex justify-center">
+        <LyricPoster items={items} centered={true} />
       </div>
 
-      {/* 2. Hero Search Box Card (seperti foto referensi) */}
+      {/* 2. Hero Search Box Card (Sesuai foto referensi) */}
       <form
         action="/"
         method="get"
@@ -121,25 +148,49 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
 
           {/* Bottom: Toolbar di dalam search box */}
           <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/50">
-            {/* Left Button: Pill Action (Random Line) */}
-            <button
-              type="button"
-              onClick={handleRandomLine}
-              className="flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-caption uppercase text-foreground hover:border-accent hover:text-accent transition-colors"
-            >
-              <Sparkles size={16} strokeWidth={1} />
-              <span>Random Line</span>
-            </button>
+            {/* Sisi Kiri: Status Speech to Text / Helper text (Random Line telah dihilangkan) */}
+            <div className="flex items-center gap-2 text-caption uppercase">
+              {isListening ? (
+                <span className="flex items-center gap-2 text-accent animate-pulse font-normal">
+                  <span className="inline-block size-1.5 rounded-full bg-accent animate-ping" />
+                  Mendengarkan... Silakan nyanyikan lirik
+                </span>
+              ) : speechError ? (
+                <span className="text-destructive font-normal tracking-wide">
+                  {speechError}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/60 tracking-wider font-normal">
+                  // Nyanyikan atau ketik lirik
+                </span>
+              )}
+            </div>
 
-            {/* Right: Mic & Submit Arrow */}
+            {/* Sisi Kanan: Mic (Speech to Text) & Submit Arrow */}
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Mic input"
-                title="Voice search (simulated)"
-                className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:text-accent transition-colors"
+                onClick={toggleListening}
+                aria-label={
+                  isListening
+                    ? "Hentikan pencarian suara"
+                    : "Cari dengan suara / nyanyikan lirik"
+                }
+                title={
+                  isListening
+                    ? "Klik untuk berhenti mendengarkan"
+                    : "Cari dengan suara: nyanyikan atau ucapkan sepenggal lirik"
+                }
+                className={`relative flex size-9 items-center justify-center rounded-full transition-all ${
+                  isListening
+                    ? "bg-accent text-accent-foreground ring-2 ring-accent/40 animate-pulse"
+                    : "text-muted-foreground hover:text-accent"
+                }`}
               >
                 <Mic size={16} strokeWidth={1} />
+                {isListening && (
+                  <span className="absolute -top-1 -right-1 size-2 rounded-full bg-accent animate-ping" />
+                )}
               </button>
 
               <button
@@ -168,7 +219,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
           </div>
         )}
 
-        {/* Bottom subtle status badge (seperti HIPAA Private di foto) */}
+        {/* Bottom subtle status badge */}
         <div className="mt-8 flex items-center justify-center gap-2 text-caption uppercase text-muted-foreground">
           <ShieldCheck size={14} strokeWidth={1} />
           <span>Archive // Open & Preserved</span>
