@@ -54,6 +54,9 @@ export function LyricPoster({
   };
 
   const words = item.line.split(" ").filter(Boolean);
+  const firstWord = words[0] || "";
+  const lastWord = words[words.length - 1] || "";
+  const middleWords = words.length > 2 ? words.slice(1, -1) : [];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -115,7 +118,7 @@ export function LyricPoster({
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className={`relative w-full max-w-3xl min-h-[170px] md:min-h-[190px] flex flex-col justify-center select-none ${
+      className={`relative w-full max-w-5xl xl:max-w-6xl min-h-[160px] md:min-h-[180px] flex flex-col justify-center select-none px-4 ${
         centered ? "items-center text-center mx-auto" : "items-start text-left"
       }`}
     >
@@ -128,38 +131,61 @@ export function LyricPoster({
           exit="exit"
           className="w-full"
         >
-          {/* Eyebrow / Meta row */}
+          {/* Eyebrow: Hanya Judul & Nama Artis (sesuai permintaan user) */}
           <motion.div
             variants={eyebrowVariants}
-            className={`flex items-center gap-3 mb-3 text-caption uppercase text-muted-foreground ${
-              centered ? "justify-center" : "justify-start"
+            className={`flex items-center mb-3 text-caption uppercase text-muted-foreground ${
+              centered ? "justify-center text-center" : "justify-start text-left"
             }`}
           >
             <span className="tracking-widest font-normal">
               {item.title} — {item.artist}
             </span>
-            <span className="text-border">//</span>
-            <span className="text-[11px] tabular-nums text-muted-foreground/70">
-              {String(index + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
-            </span>
           </motion.div>
 
-          {/* Kinetic Quote Heading with Split-Word Mask */}
+          {/* Kinetic Quote Heading: Lebar luas & tanda kutip menempel dengan kata pertama/terakhir sehingga tidak pernah terpotong sendirian */}
           <Link href={`/lyrics/${item.id}`} className="group block focus:outline-none">
             <h2
-              className={`flex flex-wrap items-center gap-x-[0.26em] gap-y-1 text-heading-sm md:text-heading font-light leading-heading tracking-[-0.023em] text-foreground transition-colors group-hover:text-accent pb-1 ${
+              className={`flex flex-wrap items-center gap-x-[0.28em] gap-y-1 text-heading-sm md:text-heading font-light leading-heading tracking-[-0.023em] text-foreground transition-colors group-hover:text-accent pb-1 [text-wrap:balance] ${
                 centered ? "justify-center" : "justify-start"
               }`}
             >
-              <span className="text-accent/80 font-light select-none mr-0.5">“</span>
-              {words.map((word, i) => (
-                <span key={i} className="inline-block overflow-hidden pb-1">
+              {words.length <= 1 ? (
+                <span className="inline-block overflow-hidden pb-1">
                   <motion.span variants={wordVariants} className="inline-block">
-                    {word}
+                    <span className="text-accent/80 font-light select-none mr-0.5">“</span>
+                    {firstWord}
+                    <span className="text-accent/80 font-light select-none ml-0.5">”</span>
                   </motion.span>
                 </span>
-              ))}
-              <span className="text-accent/80 font-light select-none ml-0.5">”</span>
+              ) : (
+                <>
+                  {/* Kata pertama + kutip buka */}
+                  <span className="inline-block overflow-hidden pb-1">
+                    <motion.span variants={wordVariants} className="inline-block">
+                      <span className="text-accent/80 font-light select-none mr-0.5">“</span>
+                      {firstWord}
+                    </motion.span>
+                  </span>
+
+                  {/* Kata-kata tengah */}
+                  {middleWords.map((word, i) => (
+                    <span key={i} className="inline-block overflow-hidden pb-1">
+                      <motion.span variants={wordVariants} className="inline-block">
+                        {word}
+                      </motion.span>
+                    </span>
+                  ))}
+
+                  {/* Kata terakhir + kutip tutup menempel (tidak akan pernah pindah baris sendirian) */}
+                  <span className="inline-block overflow-hidden pb-1">
+                    <motion.span variants={wordVariants} className="inline-block">
+                      {lastWord}
+                      <span className="text-accent/80 font-light select-none ml-0.5">”</span>
+                    </motion.span>
+                  </span>
+                </>
+              )}
             </h2>
           </Link>
         </motion.div>

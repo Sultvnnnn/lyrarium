@@ -148,7 +148,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
 
           {/* Bottom: Toolbar di dalam search box */}
           <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/50">
-            {/* Sisi Kiri: Status Speech to Text / Helper text (Random Line telah dihilangkan) */}
+            {/* Sisi Kiri: Status Speech to Text (hanya muncul saat mendengarkan atau terjadi error) */}
             <div className="flex items-center gap-2 text-caption uppercase">
               {isListening ? (
                 <span className="flex items-center gap-2 text-accent animate-pulse font-normal">
@@ -159,11 +159,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
                 <span className="text-destructive font-normal tracking-wide">
                   {speechError}
                 </span>
-              ) : (
-                <span className="text-muted-foreground/60 tracking-wider font-normal">
-                  // Nyanyikan atau ketik lirik
-                </span>
-              )}
+              ) : null}
             </div>
 
             {/* Sisi Kanan: Mic (Speech to Text) & Submit Arrow */}
