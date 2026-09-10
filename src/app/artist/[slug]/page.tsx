@@ -4,25 +4,36 @@ import { eq, asc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
-import { songs } from "@/db/schema";
+import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const displayName = decodeURIComponent(slug)
-    .split(" ")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  const normalizedSlug = decodeURIComponent(slug).toLowerCase().trim();
+  const artistRecord = await db.query.artists.findFirst({
+    where: eq(artists.slug, normalizedSlug),
+  });
+  const displayName =
+    artistRecord?.name ??
+    decodeURIComponent(slug)
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
   return { title: `${displayName} — Lyrarium` };
 }
 
 export default async function ArtistPage({ params }: Props) {
   const { slug } = await params;
   const normalizedSlug = decodeURIComponent(slug).toLowerCase().trim();
+
+  // Cari di tabel artists
+  const artistRecord = await db.query.artists.findFirst({
+    where: eq(artists.slug, normalizedSlug),
+  });
 
   // Cari semua lagu dengan artist yang match (case-insensitive)
   const artistSongs = await db
@@ -31,17 +42,15 @@ export default async function ArtistPage({ params }: Props) {
     .where(sql`LOWER(TRIM(${songs.artist})) = ${normalizedSlug}`)
     .orderBy(asc(songs.id));
 
-  if (artistSongs.length === 0) notFound();
+  if (artistSongs.length === 0 && !artistRecord) notFound();
 
-  // Ambil display name dari lagu pertama (original case)
-  const displayName = artistSongs[0].artist.trim();
+  // Ambil display name & about artist
+  const displayName = artistRecord?.name ?? artistSongs[0]?.artist.trim();
   const totalWords = artistSongs.reduce(
     (acc, s) => acc + s.lyrics.split(/\s+/).filter(Boolean).length,
     0,
   );
-
-  // Ambil about artist dari lagu yang punya field ini (kalau ada)
-  const aboutArtist = artistSongs.find((s) => s.aboutArtist)?.aboutArtist;
+  const aboutArtist = artistRecord?.about ?? artistSongs.find((s) => s.aboutArtist)?.aboutArtist;
 
   return (
     <main className="min-h-screen bg-background">
@@ -115,40 +124,55 @@ export default async function ArtistPage({ params }: Props) {
           All songs by {displayName}.
         </h2>
 
-        <div className="mt-16 grid grid-cols-1 gap-x-12 gap-y-16 md:grid-cols-3">
-          {artistSongs.map((song, i) => (
+        {artistSongs.length === 0 ? (
+          <div className="mt-12 border border-border p-8 max-w-md">
+            <p className="text-body-sm text-muted-foreground">
+              No songs archived yet for {displayName}.
+            </p>
             <Link
-              key={song.id}
-              href={`/lyrics/${song.id}`}
-              className="group block"
+              href={`/add?artist=${encodeURIComponent(displayName)}`}
+              className="mt-6 inline-flex items-center gap-2 border border-foreground bg-foreground px-4 py-2.5 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors"
             >
-              <article>
-                <div
-                  className={`flex aspect-square items-end p-6 ${
-                    i % 3 === 1 ? "bg-accent" : "border border-border"
-                  }`}
-                >
-                  <span
-                    className={`text-heading font-light tracking-[-0.023em] ${
-                      i % 3 === 1 ? "text-accent-foreground" : ""
+              <Plus size={16} strokeWidth={1} />
+              <span>Add a song for {displayName}</span>
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-16 grid grid-cols-1 gap-x-12 gap-y-16 md:grid-cols-3">
+            {artistSongs.map((song, i) => (
+              <Link
+                key={song.id}
+                href={`/lyrics/${song.id}`}
+                className="group block"
+              >
+                <article>
+                  <div
+                    className={`flex aspect-square items-end p-6 ${
+                      i % 3 === 1 ? "bg-accent" : "border border-border"
                     }`}
                   >
-                    {song.title.charAt(0)}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-subheading font-light group-hover:text-accent">
-                  {song.title}
-                </h3>
-                <p className="mt-1 text-caption uppercase text-muted-foreground">
-                  {song.artist}
-                </p>
-                <p className="mt-2 line-clamp-3 text-body-sm leading-body-sm text-muted-foreground">
-                  {song.lyrics}
-                </p>
-              </article>
-            </Link>
-          ))}
-        </div>
+                    <span
+                      className={`text-heading font-light tracking-[-0.023em] ${
+                        i % 3 === 1 ? "text-accent-foreground" : ""
+                      }`}
+                    >
+                      {song.title.charAt(0)}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-subheading font-light group-hover:text-accent">
+                    {song.title}
+                  </h3>
+                  <p className="mt-1 text-caption uppercase text-muted-foreground">
+                    {song.artist}
+                  </p>
+                  <p className="mt-2 line-clamp-3 text-body-sm leading-body-sm text-muted-foreground">
+                    {song.lyrics}
+                  </p>
+                </article>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <SiteFooter />

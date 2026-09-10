@@ -11,3 +11,11 @@ export const songs = pgTable("songs", {
   youtubeUrl: text("youtube_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const artists = pgTable("artists", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  about: text("about"),
+  createdAt: timestamp("created_at").defaultNow(),
+});

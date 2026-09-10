@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
-import { songs } from "@/db/schema";
+import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
@@ -55,7 +55,12 @@ export default async function LyricsPage({ params }: Props) {
   const prev = i > 0 ? all[i - 1] : null;
   const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
 
-  const artistSlug = encodeURIComponent(song.artist.toLowerCase().trim());
+  const artistRecord = await db.query.artists.findFirst({
+    where: eq(artists.name, song.artist),
+  });
+  const artistBio = song.aboutArtist || artistRecord?.about || null;
+  const artistSlug =
+    artistRecord?.slug || encodeURIComponent(song.artist.toLowerCase().trim());
   const credits = parseCredits(song.credits);
 
   return (
@@ -124,7 +129,7 @@ export default async function LyricsPage({ params }: Props) {
               {credits.length > 0 && (
                 <div className="mt-10 pt-6 border-t border-border">
                   <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground mb-4">
-                    <Disc size={14} strokeWidth={1} />
+                    <Disc size={16} strokeWidth={1} />
                     <span>Credits</span>
                   </div>
 
@@ -189,13 +194,13 @@ export default async function LyricsPage({ params }: Props) {
             )}
 
             {/* About artist */}
-            {song.aboutArtist && (
+            {artistBio && (
               <div>
                 <p className="text-caption uppercase text-muted-foreground">
                   About the artist
                 </p>
                 <p className="mt-4 text-body-sm leading-body-sm text-muted-foreground">
-                  {song.aboutArtist}
+                  {artistBio}
                 </p>
                 <Link
                   href={`/artist/${artistSlug}`}
