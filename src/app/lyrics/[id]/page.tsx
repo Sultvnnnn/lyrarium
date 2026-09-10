@@ -120,12 +120,12 @@ export default async function LyricsPage({ params }: Props) {
                 </h1>
               </div>
 
-              {/* Structured Personnel & Credits (Album Liner Notes Aesthetic) */}
+              {/* Structured Credits (Album Liner Notes Aesthetic) */}
               {credits.length > 0 && (
                 <div className="mt-10 pt-6 border-t border-border">
                   <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground mb-4">
                     <Disc size={14} strokeWidth={1} />
-                    <span>Personnel & Credits</span>
+                    <span>Credits</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-8 gap-y-5">

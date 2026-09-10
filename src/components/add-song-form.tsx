@@ -227,12 +227,12 @@ export function AddSongForm({ error }: { error?: string }) {
         </div>
       </section>
 
-      {/* SECTION 2: CREDITS & PERSONNEL */}
+      {/* SECTION 2: CREDITS */}
       <section className="flex flex-col gap-6">
         <div className="border-b border-border pb-3 flex items-center justify-between">
           <div>
             <p className="text-caption uppercase text-muted-foreground tracking-widest">
-              02 // Credits & Personnel
+              02 // Credits
             </p>
             <p className="mt-1 text-caption text-muted-foreground">
               Song credits will be rendered as editorial liner notes on the lyrics page.
@@ -336,7 +336,7 @@ export function AddSongForm({ error }: { error?: string }) {
                     onChange={(e) =>
                       updateCustomCreditRow(row.id, "names", e.target.value)
                     }
-                    placeholder="Personnel names (comma separated)"
+                    placeholder="Names (comma separated)"
                     className="w-full border-b border-border bg-transparent px-2 py-1 text-body-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
                   />
                 </div>
