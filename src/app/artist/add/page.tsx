@@ -27,9 +27,7 @@ export default async function AddArtistPage({ searchParams }: Props) {
                 Add an artist.
               </h1>
             </div>
-            <p className="text-body-sm text-muted-foreground leading-relaxed mt-2">
-              Register a new artist profile in the Lyrarium archive with their biographical background.
-            </p>
+
           </aside>
 
           {/* Right Column: Form */}

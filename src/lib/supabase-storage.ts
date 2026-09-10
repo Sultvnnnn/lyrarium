@@ -33,3 +33,6 @@ export async function uploadSongImage(file: File): Promise<string | null> {
     return null;
   }
 }
+
+export const uploadArtistImage = uploadSongImage;
+

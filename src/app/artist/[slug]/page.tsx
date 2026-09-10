@@ -44,79 +44,129 @@ export default async function ArtistPage({ params }: Props) {
 
   if (artistSongs.length === 0 && !artistRecord) notFound();
 
-  // Ambil display name & about artist
+  // Ambil display name & about artist & image
   const displayName = artistRecord?.name ?? artistSongs[0]?.artist.trim();
   const totalWords = artistSongs.reduce(
     (acc, s) => acc + s.lyrics.split(/\s+/).filter(Boolean).length,
     0,
   );
   const aboutArtist = artistRecord?.about ?? artistSongs.find((s) => s.aboutArtist)?.aboutArtist;
+  const artistImage = artistRecord?.imageUrl ?? null;
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
 
-      <section className="px-8 pt-16 pb-16">
+      {/* Back to archive link */}
+      <div className="px-8 pt-8">
         <Link
           href="/"
-          className="group inline-flex items-center gap-2 text-body-sm underline-offset-4 hover:text-accent hover:underline"
+          className="group inline-flex items-center gap-2 text-caption uppercase text-muted-foreground transition-colors hover:text-accent"
         >
           <ArrowLeft
             size={16}
             strokeWidth={1}
             className="transition-colors group-hover:text-accent"
           />
-          All artists
+          <span>All artists</span>
         </Link>
+      </div>
 
-        <p className="mt-12 text-caption uppercase text-muted-foreground">
-          Artist
-        </p>
-        <h1 className="mt-6 text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
-          {displayName}
-        </h1>
+      {/* Artist Hero — Editorial Art-Book Spread */}
+      <section className="px-8 pt-10 pb-16 border-b border-border">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-start">
+          {/* Left Column: Title, Stats, and Bio */}
+          <div className="flex flex-col gap-10">
+            <div>
+              <p className="text-caption uppercase text-muted-foreground tracking-widest">
+                Artist Profile
+              </p>
+              <h1 className="mt-4 text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
+                {displayName}
+              </h1>
+            </div>
 
-        {/* Stats */}
-        <div className="mt-12 grid grid-cols-3 gap-8">
-          <div className="border-l border-accent pl-6">
-            <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
-              {artistSongs.length}
-            </p>
-            <p className="mt-2 text-caption uppercase text-muted-foreground">
-              Songs
-            </p>
+            {/* Stats trio */}
+            <div className="grid grid-cols-3 gap-6 sm:gap-8 max-w-xl">
+              <div className="border-l border-accent pl-5">
+                <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
+                  {artistSongs.length}
+                </p>
+                <p className="mt-2 text-caption uppercase text-muted-foreground">
+                  Songs
+                </p>
+              </div>
+              <div className="border-l border-border pl-5">
+                <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
+                  {totalWords.toLocaleString("id-ID")}
+                </p>
+                <p className="mt-2 text-caption uppercase text-muted-foreground">
+                  Words
+                </p>
+              </div>
+              <div className="border-l border-border pl-5">
+                <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
+                  {new Set(artistSongs.map((s) => s.title)).size}
+                </p>
+                <p className="mt-2 text-caption uppercase text-muted-foreground">
+                  Tracks
+                </p>
+              </div>
+            </div>
+
+            {/* About artist bio */}
+            {aboutArtist && (
+              <div className="border-t border-border pt-8 max-w-2xl">
+                <p className="text-caption uppercase text-muted-foreground tracking-wider mb-3">
+                  About the Artist
+                </p>
+                <p className="text-body leading-relaxed text-muted-foreground whitespace-pre-line">
+                  {aboutArtist}
+                </p>
+              </div>
+            )}
           </div>
-          <div className="border-l border-border pl-6">
-            <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
-              {totalWords.toLocaleString("id-ID")}
-            </p>
-            <p className="mt-2 text-caption uppercase text-muted-foreground">
-              Words
-            </p>
-          </div>
-          <div className="border-l border-border pl-6">
-            <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
-              {new Set(artistSongs.map((s) => s.title)).size}
-            </p>
-            <p className="mt-2 text-caption uppercase text-muted-foreground">
-              Unique tracks
-            </p>
-          </div>
+
+          {/* Right Column: Artist Portrait Art-Book Frame */}
+          {artistImage ? (
+            <div className="flex items-end gap-4 lg:self-start">
+              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border overflow-hidden bg-background">
+                <img
+                  src={artistImage}
+                  alt={displayName}
+                  className="size-full object-cover"
+                />
+              </div>
+              <p
+                className="hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
+                aria-hidden
+              >
+                Portrait — {displayName}
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-end gap-4 lg:self-start">
+              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border bg-muted/20 flex flex-col justify-between p-8">
+                <span className="text-caption uppercase tracking-wider text-muted-foreground">
+                  Archive // Portrait
+                </span>
+                <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
+                  {displayName.charAt(0)}
+                </span>
+              </div>
+              <p
+                className="hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
+                aria-hidden
+              >
+                Profile — {displayName}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* About artist */}
-      {aboutArtist && (
-        <section className="px-8 pb-16">
-          <p className="text-caption uppercase text-muted-foreground">About</p>
-          <p className="mt-4 max-w-2xl text-body leading-body text-muted-foreground">
-            {aboutArtist}
-          </p>
-        </section>
-      )}
-
-      {/* All songs by artist */}
-      <section className="px-8 pb-24">
+      {/* All songs by artist (Discography) */}
+      <section className="px-8 pt-16 pb-24">
         <p className="text-caption uppercase text-muted-foreground">
           Discography
         </p>
@@ -138,7 +188,7 @@ export default async function ArtistPage({ params }: Props) {
             </Link>
           </div>
         ) : (
-          <div className="mt-16 grid grid-cols-1 gap-x-12 gap-y-16 md:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 gap-x-12 gap-y-16 md:grid-cols-3">
             {artistSongs.map((song, i) => (
               <Link
                 key={song.id}
@@ -147,26 +197,39 @@ export default async function ArtistPage({ params }: Props) {
               >
                 <article>
                   <div
-                    className={`flex aspect-square items-end p-6 ${
-                      i % 3 === 1 ? "bg-accent" : "border border-border"
+                    className={`aspect-square ${
+                      i % 3 === 1 ? "border border-accent" : ""
                     }`}
                   >
-                    <span
-                      className={`text-heading font-light tracking-[-0.023em] ${
-                        i % 3 === 1 ? "text-accent-foreground" : ""
-                      }`}
-                    >
-                      {song.title.charAt(0)}
-                    </span>
+                    {song.imageUrl ? (
+                      <img
+                        src={song.imageUrl}
+                        alt={`${song.title} — ${song.artist}`}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`flex size-full items-end p-6 ${
+                          i % 3 === 1
+                            ? "bg-accent"
+                            : "border border-border"
+                        }`}
+                      >
+                        <span
+                          className={`text-heading font-light tracking-[-0.023em] ${
+                            i % 3 === 1 ? "text-accent-foreground" : ""
+                          }`}
+                        >
+                          {song.title.charAt(0)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="mt-4 text-subheading font-light group-hover:text-accent">
+                  <h3 className="mt-4 text-subheading font-light transition-colors group-hover:text-accent">
                     {song.title}
                   </h3>
                   <p className="mt-1 text-caption uppercase text-muted-foreground">
                     {song.artist}
-                  </p>
-                  <p className="mt-2 line-clamp-3 text-body-sm leading-body-sm text-muted-foreground">
-                    {song.lyrics}
                   </p>
                 </article>
               </Link>

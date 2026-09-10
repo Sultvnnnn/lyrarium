@@ -17,5 +17,6 @@ export const artists = pgTable("artists", {
   name: text("name").notNull().unique(),
   slug: text("slug").notNull().unique(),
   about: text("about"),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });

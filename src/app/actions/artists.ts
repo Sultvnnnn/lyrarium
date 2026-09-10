@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { artists } from "@/db/schema";
 
+import { uploadArtistImage } from "@/lib/supabase-storage";
+
 export async function addArtist(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const about = String(formData.get("about") ?? "").trim() || null;
@@ -15,6 +17,19 @@ export async function addArtist(formData: FormData) {
       ? `/artist/add?error=1&returnUrl=${encodeURIComponent(returnUrl)}`
       : `/artist/add?error=1`;
     redirect(errorUrl);
+  }
+
+  // Handle image upload
+  let imageUrl: string | null = null;
+  const imageFile = formData.get("image") as File | null;
+  if (imageFile && imageFile.size > 0) {
+    if (imageFile.size > 5 * 1024 * 1024) {
+      const errorUrl = returnUrl
+        ? `/artist/add?error=large&returnUrl=${encodeURIComponent(returnUrl)}`
+        : `/artist/add?error=large`;
+      redirect(errorUrl);
+    }
+    imageUrl = await uploadArtistImage(imageFile);
   }
 
   const slug = name
@@ -29,10 +44,14 @@ export async function addArtist(formData: FormData) {
         name,
         slug,
         about,
+        imageUrl,
       })
       .onConflictDoUpdate({
         target: artists.name,
-        set: { about },
+        set: {
+          about,
+          ...(imageUrl ? { imageUrl } : {}),
+        },
       });
   } catch (e) {
     console.error("Failed to insert artist:", e);
