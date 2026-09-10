@@ -164,44 +164,48 @@ export default async function ArtistPage({ params }: Props) {
 
           {/* Right Column: Artist Portrait Art-Book Frame with Ambient Graduated Backdrop */}
           <div className="relative isolate flex items-end gap-4 lg:self-start">
-            {/* Ambient graduated photo backdrop */}
-            {backdropImage && (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -inset-10 sm:-inset-16 md:-inset-24 lg:-inset-32 z-0 overflow-hidden select-none"
-              >
+            {/* Portrait Wrapper with Centered Wide-Spreading Ambient Backdrop */}
+            <div className="relative z-10 size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0">
+              {/* Ultra-smooth ambient graduated photo spreading widely */}
+              {backdropImage && (
                 <div
-                  className="size-full bg-cover bg-center opacity-40 dark:opacity-55 filter blur-md sm:blur-xl scale-110"
-                  style={{
-                    backgroundImage: `url(${backdropImage})`,
-                    maskImage:
-                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, rgba(0,0,0,0.6) 50%, transparent 75%)",
-                    WebkitMaskImage:
-                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, rgba(0,0,0,0.6) 50%, transparent 75%)",
-                  }}
-                />
-              </div>
-            )}
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] sm:w-[750px] md:w-[950px] xl:w-[1150px] h-[550px] sm:h-[750px] md:h-[950px] xl:h-[1150px] -z-10 select-none"
+                >
+                  <div
+                    className="size-full bg-cover bg-center opacity-35 dark:opacity-50 filter blur-2xl sm:blur-3xl md:blur-[80px] scale-110"
+                    style={{
+                      backgroundImage: `url(${backdropImage})`,
+                      maskImage:
+                        "radial-gradient(ellipse at center, rgba(0,0,0,1) 10%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.06) 82%, transparent 100%)",
+                      WebkitMaskImage:
+                        "radial-gradient(ellipse at center, rgba(0,0,0,1) 10%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.06) 82%, transparent 100%)",
+                    }}
+                  />
+                </div>
+              )}
 
-            {artistImage ? (
-              <div className="relative z-10 size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border overflow-hidden bg-background">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={artistImage}
-                  alt={displayName}
-                  className="size-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="relative z-10 size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border bg-background flex flex-col justify-between p-8">
-                <span className="text-caption uppercase tracking-wider text-muted-foreground">
-                  Archive // Portrait
-                </span>
-                <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
-                  {displayName.charAt(0)}
-                </span>
-              </div>
-            )}
+              {/* Foreground Portrait Frame */}
+              {artistImage ? (
+                <div className="size-full border border-border overflow-hidden bg-background">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={artistImage}
+                    alt={displayName}
+                    className="size-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="size-full border border-border bg-background flex flex-col justify-between p-8">
+                  <span className="text-caption uppercase tracking-wider text-muted-foreground">
+                    Archive // Portrait
+                  </span>
+                  <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
+                    {displayName.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
 
             <p
               className="relative z-10 hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
