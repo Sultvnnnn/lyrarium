@@ -216,7 +216,7 @@ export function AddSongForm({
               className="inline-flex items-center gap-1.5 text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
             >
               <UserPlus size={16} strokeWidth={1} />
-              <span>+ Add New Artist</span>
+              <span>Add New Artist</span>
             </Link>
           </div>
 

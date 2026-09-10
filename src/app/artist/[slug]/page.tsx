@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, asc } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, asc, or, ilike, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
@@ -13,14 +12,25 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const normalizedSlug = decodeURIComponent(slug).toLowerCase().trim();
+  const decoded = decodeURIComponent(slug).trim();
+  const slugified = decoded
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const unhyphenated = decoded.replace(/-/g, " ").toLowerCase();
+
   const artistRecord = await db.query.artists.findFirst({
-    where: eq(artists.slug, normalizedSlug),
+    where: or(
+      eq(artists.slug, slugified),
+      eq(artists.slug, decoded.toLowerCase()),
+      ilike(artists.name, decoded),
+      ilike(artists.name, unhyphenated)
+    ),
   });
   const displayName =
     artistRecord?.name ??
-    decodeURIComponent(slug)
-      .split(" ")
+    decoded
+      .split(/[- ]+/)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   return { title: `${displayName} — Lyrarium` };
@@ -28,32 +38,55 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArtistPage({ params }: Props) {
   const { slug } = await params;
-  const normalizedSlug = decodeURIComponent(slug).toLowerCase().trim();
+  const decoded = decodeURIComponent(slug).trim();
+  const slugified = decoded
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const unhyphenated = decoded.replace(/-/g, " ").toLowerCase();
 
-  // Cari di tabel artists
+  // Cari di tabel artists dengan slugified, unhyphenated, atau nama
   const artistRecord = await db.query.artists.findFirst({
-    where: eq(artists.slug, normalizedSlug),
+    where: or(
+      eq(artists.slug, slugified),
+      eq(artists.slug, decoded.toLowerCase()),
+      ilike(artists.name, decoded),
+      ilike(artists.name, unhyphenated)
+    ),
   });
+
+  const displayName =
+    artistRecord?.name ??
+    decoded
+      .split(/[- ]+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
 
   // Cari semua lagu dengan artist yang match (case-insensitive)
   const artistSongs = await db
     .select()
     .from(songs)
-    .where(sql`LOWER(TRIM(${songs.artist})) = ${normalizedSlug}`)
+    .where(
+      sql`LOWER(TRIM(${songs.artist})) = ${displayName.toLowerCase()}
+       OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${slugified}
+       OR LOWER(TRIM(${songs.artist})) = ${decoded.toLowerCase()}
+       OR LOWER(TRIM(${songs.artist})) = ${unhyphenated}`
+    )
     .orderBy(asc(songs.id));
 
   if (artistSongs.length === 0 && !artistRecord) notFound();
 
   // Ambil display name & about artist & image
-  const displayName = artistRecord?.name ?? artistSongs[0]?.artist.trim();
   const totalWords = artistSongs.reduce(
     (acc, s) => acc + s.lyrics.split(/\s+/).filter(Boolean).length,
     0,
   );
   const aboutArtist = artistRecord?.about ?? artistSongs.find((s) => s.aboutArtist)?.aboutArtist;
-  const artistImage = artistRecord?.imageUrl ?? null;
-  const backdropImage =
-    artistImage || artistSongs.find((s) => s.imageUrl)?.imageUrl || null;
+  const artistImage =
+    artistRecord?.imageUrl ||
+    artistSongs.find((s) => s.imageUrl)?.imageUrl ||
+    null;
+  const backdropImage = artistImage;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -130,28 +163,29 @@ export default async function ArtistPage({ params }: Props) {
           </div>
 
           {/* Right Column: Artist Portrait Art-Book Frame with Ambient Graduated Backdrop */}
-          <div className="relative flex items-end gap-4 lg:self-start">
+          <div className="relative isolate flex items-end gap-4 lg:self-start">
             {/* Ambient graduated photo backdrop */}
             {backdropImage && (
               <div
                 aria-hidden
-                className="pointer-events-none absolute -inset-12 sm:-inset-20 md:-inset-28 lg:-inset-36 -z-10 overflow-hidden select-none"
+                className="pointer-events-none absolute -inset-10 sm:-inset-16 md:-inset-24 lg:-inset-32 z-0 overflow-hidden select-none"
               >
                 <div
-                  className="size-full bg-cover bg-center opacity-25 dark:opacity-40 filter blur-sm sm:blur-md scale-105"
+                  className="size-full bg-cover bg-center opacity-40 dark:opacity-55 filter blur-md sm:blur-xl scale-110"
                   style={{
                     backgroundImage: `url(${backdropImage})`,
                     maskImage:
-                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0.5) 50%, transparent 72%)",
+                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, rgba(0,0,0,0.6) 50%, transparent 75%)",
                     WebkitMaskImage:
-                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0.5) 50%, transparent 72%)",
+                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 25%, rgba(0,0,0,0.6) 50%, transparent 75%)",
                   }}
                 />
               </div>
             )}
 
             {artistImage ? (
-              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border overflow-hidden bg-background">
+              <div className="relative z-10 size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border overflow-hidden bg-background">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={artistImage}
                   alt={displayName}
@@ -159,7 +193,7 @@ export default async function ArtistPage({ params }: Props) {
                 />
               </div>
             ) : (
-              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border bg-background/90 flex flex-col justify-between p-8">
+              <div className="relative z-10 size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border bg-background flex flex-col justify-between p-8">
                 <span className="text-caption uppercase tracking-wider text-muted-foreground">
                   Archive // Portrait
                 </span>
@@ -170,10 +204,10 @@ export default async function ArtistPage({ params }: Props) {
             )}
 
             <p
-              className="hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
+              className="relative z-10 hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
               aria-hidden
             >
-              {artistImage ? "Portrait" : "Profile"} — {displayName}
+              Portrait — {displayName}
             </p>
           </div>
         </div>

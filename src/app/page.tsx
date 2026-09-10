@@ -164,7 +164,7 @@ export default async function Home({ searchParams }: Props) {
             {artists.map(([name, count]) => (
               <Link
                 key={name}
-                href={`/artist/${encodeURIComponent(name.toLowerCase().trim())}`}
+                href={`/artist/${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
                 className="group flex items-baseline justify-between border-t border-border py-4 transition-all last:border-b hover:pl-4"
               >
                 <span className="text-subheading font-light group-hover:text-accent">
