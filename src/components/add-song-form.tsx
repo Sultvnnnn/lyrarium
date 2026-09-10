@@ -361,7 +361,7 @@ export function AddSongForm({ error }: { error?: string }) {
             className="inline-flex items-center gap-2 border border-dashed border-border px-4 py-2.5 text-caption uppercase text-foreground hover:border-accent hover:text-accent transition-colors"
           >
             <Plus size={14} strokeWidth={1} />
-            <span>+ Add Custom Role</span>
+            <span>Add Custom Role</span>
           </button>
         </div>
       </section>
@@ -381,7 +381,7 @@ export function AddSongForm({ error }: { error?: string }) {
             htmlFor="image"
             className="text-caption uppercase text-muted-foreground"
           >
-            Cover Artwork (1:1 Square)
+            Cover Artwork
           </label>
 
           <div className="flex flex-col sm:flex-row items-start gap-6 border border-border p-6 bg-muted/20">
@@ -397,7 +397,7 @@ export function AddSongForm({ error }: { error?: string }) {
                 <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
                   <Upload size={20} strokeWidth={1} className="mb-2" />
                   <span className="text-[11px] uppercase tracking-wider">
-                    1:1 Square
+                    Upload Image
                   </span>
                 </div>
               )}
