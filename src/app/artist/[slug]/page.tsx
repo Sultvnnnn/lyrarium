@@ -90,140 +90,142 @@ export default async function ArtistPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
+      {/* Top zone wrapping SiteHeader, navigation, and Hero spread to allow ambient photo bleed through header */}
+      <div className="relative overflow-hidden">
+        <SiteHeader />
 
-      {/* Back to archive link */}
-      <div className="px-8 pt-8">
-        <Link
-          href="/"
-          className="group inline-flex items-center gap-2 text-caption uppercase text-muted-foreground transition-colors hover:text-accent"
-        >
-          <ArrowLeft
-            size={16}
-            strokeWidth={1}
-            className="transition-colors group-hover:text-accent"
-          />
-          <span>All artists</span>
-        </Link>
-      </div>
+        {/* Back to archive link */}
+        <div className="relative z-10 px-8 pt-8">
+          <Link
+            href="/"
+            className="group inline-flex items-center gap-2 text-caption uppercase text-muted-foreground transition-colors hover:text-accent"
+          >
+            <ArrowLeft
+              size={16}
+              strokeWidth={1}
+              className="transition-colors group-hover:text-accent"
+            />
+            <span>All artists</span>
+          </Link>
+        </div>
 
-      {/* Artist Hero — Editorial Art-Book Spread */}
-      <section className="relative px-8 pt-10 pb-16 border-b border-border overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-start">
-          {/* Left Column: Title, Stats, and Bio */}
-          <div className="flex flex-col gap-10">
-            <div>
-              <p className="text-caption uppercase text-muted-foreground tracking-widest">
-                Artist Profile
-              </p>
-              <h1 className="mt-4 text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
-                {displayName}
-              </h1>
-            </div>
-
-            {/* Stats trio */}
-            <div className="grid grid-cols-3 gap-6 sm:gap-8 max-w-xl">
-              <div className="border-l border-accent pl-5">
-                <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
-                  {artistSongs.length}
+        {/* Artist Hero — Editorial Art-Book Spread */}
+        <section className="relative px-8 pt-10 pb-16 border-b border-border">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-start">
+            {/* Left Column: Title, Stats, and Bio */}
+            <div className="flex flex-col gap-10">
+              <div>
+                <p className="text-caption uppercase text-muted-foreground tracking-widest">
+                  Artist Profile
                 </p>
-                <p className="mt-2 text-caption uppercase text-muted-foreground">
-                  Songs
-                </p>
+                <h1 className="mt-4 text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
+                  {displayName}
+                </h1>
               </div>
-              <div className="border-l border-border pl-5">
-                <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
-                  {totalWords.toLocaleString("id-ID")}
-                </p>
-                <p className="mt-2 text-caption uppercase text-muted-foreground">
-                  Words
-                </p>
-              </div>
-              <div className="border-l border-border pl-5">
-                <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
-                  {new Set(artistSongs.map((s) => s.title)).size}
-                </p>
-                <p className="mt-2 text-caption uppercase text-muted-foreground">
-                  Tracks
-                </p>
-              </div>
-            </div>
 
-            {/* About artist bio */}
-            {aboutArtist && (
-              <div className="border-t border-border pt-8 max-w-2xl">
-                <p className="text-caption uppercase text-muted-foreground tracking-wider mb-3">
-                  About the Artist
-                </p>
-                <p className="text-body leading-relaxed text-muted-foreground whitespace-pre-line">
-                  {aboutArtist}
-                </p>
+              {/* Stats trio */}
+              <div className="grid grid-cols-3 gap-6 sm:gap-8 max-w-xl">
+                <div className="border-l border-accent pl-5">
+                  <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
+                    {artistSongs.length}
+                  </p>
+                  <p className="mt-2 text-caption uppercase text-muted-foreground">
+                    Songs
+                  </p>
+                </div>
+                <div className="border-l border-border pl-5">
+                  <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
+                    {totalWords.toLocaleString("id-ID")}
+                  </p>
+                  <p className="mt-2 text-caption uppercase text-muted-foreground">
+                    Words
+                  </p>
+                </div>
+                <div className="border-l border-border pl-5">
+                  <p className="text-heading-sm font-light leading-heading-sm tracking-[-0.02em]">
+                    {new Set(artistSongs.map((s) => s.title)).size}
+                  </p>
+                  <p className="mt-2 text-caption uppercase text-muted-foreground">
+                    Tracks
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Right Column: Artist Portrait Art-Book Frame with Ambient Graduated Backdrop */}
-          <div className="relative flex items-end gap-4 lg:self-start">
-            {/* Portrait Wrapper */}
-            <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0">
-              {/* Ultra-smooth ambient graduated photo spreading softly */}
-              {backdropImage && (
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] sm:w-[620px] md:w-[760px] xl:w-[860px] h-[480px] sm:h-[620px] md:h-[760px] xl:h-[860px] select-none"
-                >
-                  <div
-                    className="size-full bg-cover bg-center opacity-30 dark:opacity-45"
-                    style={{
-                      backgroundImage: `url(${backdropImage})`,
-                      filter: "blur(10px)",
-                      maskImage:
-                        "radial-gradient(circle closest-side at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 65%, transparent 85%)",
-                      WebkitMaskImage:
-                        "radial-gradient(circle closest-side at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 65%, transparent 85%)",
-                      maskRepeat: "no-repeat",
-                      WebkitMaskRepeat: "no-repeat",
-                      maskPosition: "center",
-                      WebkitMaskPosition: "center",
-                    }}
-                  />
+              {/* About artist bio */}
+              {aboutArtist && (
+                <div className="border-t border-border pt-8 max-w-2xl">
+                  <p className="text-caption uppercase text-muted-foreground tracking-wider mb-3">
+                    About the Artist
+                  </p>
+                  <p className="text-body leading-relaxed text-muted-foreground whitespace-pre-line">
+                    {aboutArtist}
+                  </p>
                 </div>
               )}
-
-              {/* Foreground Portrait Frame */}
-              <div className="relative z-10 size-full">
-                {artistImage ? (
-                  <div className="size-full border border-border overflow-hidden bg-background">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={artistImage}
-                      alt={displayName}
-                      className="size-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="size-full border border-border bg-background flex flex-col justify-between p-8">
-                    <span className="text-caption uppercase tracking-wider text-muted-foreground">
-                      Archive // Portrait
-                    </span>
-                    <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
-                      {displayName.charAt(0)}
-                    </span>
-                  </div>
-                )}
-              </div>
             </div>
 
-            <p
-              className="relative z-10 hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
-              aria-hidden
-            >
-              Portrait — {displayName}
-            </p>
-          </div>
-        </div>
-      </section>
+            {/* Right Column: Artist Portrait Art-Book Frame with Ambient Graduated Backdrop */}
+            <div className="relative flex items-end gap-4 lg:self-start">
+              {/* Portrait Wrapper */}
+              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0">
+                {/* Ultra-smooth ambient graduated photo spreading softly through SiteHeader */}
+                {backdropImage && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] sm:w-[750px] md:w-[950px] xl:w-[1100px] h-[550px] sm:h-[750px] md:h-[950px] xl:h-[1100px] select-none"
+                  >
+                    <div
+                      className="size-full bg-cover bg-center opacity-30 dark:opacity-45"
+                      style={{
+                        backgroundImage: `url(${backdropImage})`,
+                        filter: "blur(10px)",
+                        maskImage:
+                          "radial-gradient(circle closest-side at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 25%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.2) 72%, transparent 90%)",
+                        WebkitMaskImage:
+                          "radial-gradient(circle closest-side at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 25%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.2) 72%, transparent 90%)",
+                        maskRepeat: "no-repeat",
+                        WebkitMaskRepeat: "no-repeat",
+                        maskPosition: "center",
+                        WebkitMaskPosition: "center",
+                      }}
+                    />
+                  </div>
+                )}
 
+                {/* Foreground Portrait Frame */}
+                <div className="relative z-10 size-full">
+                  {artistImage ? (
+                    <div className="size-full border border-border overflow-hidden bg-background">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={artistImage}
+                        alt={displayName}
+                        className="size-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="size-full border border-border bg-background flex flex-col justify-between p-8">
+                      <span className="text-caption uppercase tracking-wider text-muted-foreground">
+                        Archive // Portrait
+                      </span>
+                      <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
+                        {displayName.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p
+                className="relative z-10 hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
+                aria-hidden
+              >
+                Portrait — {displayName}
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
       {/* All songs by artist (Discography) */}
       <section className="px-8 pt-16 pb-24">
         <p className="text-caption uppercase text-muted-foreground">
