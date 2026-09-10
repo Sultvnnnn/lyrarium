@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
-import { Plus, X, Upload, ArrowRight, Music, Disc, Info } from "lucide-react";
+import { Plus, X, Upload, ArrowRight, Music, Disc } from "lucide-react";
 import { addSong } from "@/app/actions/songs";
 import { serializeCredits, type StructuredCredit } from "@/lib/credits";
 
@@ -79,10 +79,9 @@ export function AddSongForm({ error }: { error?: string }) {
   };
 
   const handleSubmit = (formData: FormData) => {
-    // Kumpulkan seluruh data kredit ke format terstruktur
     const creditsList: StructuredCredit[] = [];
 
-    // Main Artist (opsional disimpan dalam kredit terstruktur jika diinginkan)
+    // Main Artist
     if (artist.trim()) {
       creditsList.push({
         role: "Main Artist",
@@ -144,20 +143,20 @@ export function AddSongForm({ error }: { error?: string }) {
         <div className="border border-accent bg-accent/10 p-4">
           <p className="text-caption uppercase text-accent font-normal">
             {error === "large"
-              ? "File gambar terlalu besar (maksimal 5MB)"
-              : "Semua kolom wajib (Judul, Artis, dan Lirik) harus diisi."}
+              ? "Image file is too large (maximum 5MB)."
+              : "All required fields (Title, Artist, and Lyrics) must be completed."}
           </p>
         </div>
       )}
 
-      {/* SEKSI 1: THE ESSENTIALS */}
+      {/* SECTION 1: THE ESSENTIALS */}
       <section className="flex flex-col gap-6">
         <div className="border-b border-border pb-3 flex items-center justify-between">
           <p className="text-caption uppercase text-muted-foreground tracking-widest">
             01 // The Essentials
           </p>
           <span className="text-caption uppercase text-accent font-normal">
-            * Wajib diisi
+            * Required
           </span>
         </div>
 
@@ -198,7 +197,7 @@ export function AddSongForm({ error }: { error?: string }) {
             placeholder="e.g. Queen"
           />
           <p className="text-caption text-muted-foreground">
-            Nama artis utama yang akan tercatat di index arsip.
+            Primary artist name indexed in the archive.
           </p>
         </div>
 
@@ -212,7 +211,7 @@ export function AddSongForm({ error }: { error?: string }) {
               Lyrics <span className="text-accent">*</span>
             </label>
             <span className="text-caption uppercase text-muted-foreground">
-              {lineCount} baris · {wordCount} kata
+              {lineCount} lines · {wordCount} words
             </span>
           </div>
           <textarea
@@ -223,12 +222,12 @@ export function AddSongForm({ error }: { error?: string }) {
             required
             rows={12}
             className={`${inputCls} font-mono text-body-sm leading-relaxed`}
-            placeholder="Ketik atau tempel lirik lagu lengkap di sini..."
+            placeholder="Type or paste complete song lyrics here..."
           />
         </div>
       </section>
 
-      {/* SEKSI 2: CREDITS & PERSONNEL (Revamped Structured Options) */}
+      {/* SECTION 2: CREDITS & PERSONNEL */}
       <section className="flex flex-col gap-6">
         <div className="border-b border-border pb-3 flex items-center justify-between">
           <div>
@@ -236,7 +235,7 @@ export function AddSongForm({ error }: { error?: string }) {
               02 // Credits & Personnel
             </p>
             <p className="mt-1 text-caption text-muted-foreground">
-              Kredit lagu akan diformat sebagai liner notes editorial di halaman lirik.
+              Song credits will be rendered as editorial liner notes on the lyrics page.
             </p>
           </div>
           <Disc size={16} strokeWidth={1} className="text-muted-foreground" />
@@ -248,14 +247,14 @@ export function AddSongForm({ error }: { error?: string }) {
             htmlFor="credits_writers"
             className="text-caption uppercase text-muted-foreground"
           >
-            Songwriters / Writers (Penulis Lagu / Komposer)
+            Songwriters / Composers
           </label>
           <input
             id="credits_writers"
             value={writers}
             onChange={(e) => setWriters(e.target.value)}
             className={inputCls}
-            placeholder="e.g. Freddie Mercury (pisahkan koma jika lebih dari satu)"
+            placeholder="e.g. Freddie Mercury (separate multiple with commas)"
           />
         </div>
 
@@ -265,7 +264,7 @@ export function AddSongForm({ error }: { error?: string }) {
             htmlFor="credits_producers"
             className="text-caption uppercase text-muted-foreground"
           >
-            Producers (Produser)
+            Producers
           </label>
           <input
             id="credits_producers"
@@ -282,7 +281,7 @@ export function AddSongForm({ error }: { error?: string }) {
             htmlFor="credits_featuring"
             className="text-caption uppercase text-muted-foreground"
           >
-            Featuring Artists (Artis Kolaborator)
+            Featuring Artists
           </label>
           <input
             id="credits_featuring"
@@ -299,7 +298,7 @@ export function AddSongForm({ error }: { error?: string }) {
             htmlFor="credits_engineering"
             className="text-caption uppercase text-muted-foreground"
           >
-            Engineering (Mixing & Mastering)
+            Audio Engineering (Mixing & Mastering)
           </label>
           <input
             id="credits_engineering"
@@ -314,7 +313,7 @@ export function AddSongForm({ error }: { error?: string }) {
         {customCredits.length > 0 && (
           <div className="flex flex-col gap-3 pt-2">
             <p className="text-caption uppercase text-muted-foreground">
-              Peran Kustom Tambahan:
+              Additional Custom Roles:
             </p>
             {customCredits.map((row) => (
               <div
@@ -327,7 +326,7 @@ export function AddSongForm({ error }: { error?: string }) {
                     onChange={(e) =>
                       updateCustomCreditRow(row.id, "role", e.target.value)
                     }
-                    placeholder="Nama Peran (mis. Arranger)"
+                    placeholder="Role Title (e.g. Arranger)"
                     className="w-full border-b border-border bg-transparent px-2 py-1 text-caption uppercase text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
                   />
                 </div>
@@ -337,14 +336,14 @@ export function AddSongForm({ error }: { error?: string }) {
                     onChange={(e) =>
                       updateCustomCreditRow(row.id, "names", e.target.value)
                     }
-                    placeholder="Nama Personel (pisahkan koma)"
+                    placeholder="Personnel names (comma separated)"
                     className="w-full border-b border-border bg-transparent px-2 py-1 text-body-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => removeCustomCreditRow(row.id)}
-                  aria-label="Hapus peran"
+                  aria-label="Remove role"
                   className="flex size-8 shrink-0 items-center justify-center border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors"
                 >
                   <X size={14} strokeWidth={1} />
@@ -354,7 +353,7 @@ export function AddSongForm({ error }: { error?: string }) {
           </div>
         )}
 
-        {/* Tombol Tambah Peran Kustom */}
+        {/* Add Custom Credit Button */}
         <div>
           <button
             type="button"
@@ -362,16 +361,16 @@ export function AddSongForm({ error }: { error?: string }) {
             className="inline-flex items-center gap-2 border border-dashed border-border px-4 py-2.5 text-caption uppercase text-foreground hover:border-accent hover:text-accent transition-colors"
           >
             <Plus size={14} strokeWidth={1} />
-            <span>+ Tambah Peran Kustom</span>
+            <span>+ Add Custom Role</span>
           </button>
         </div>
       </section>
 
-      {/* SEKSI 3: MEDIA & CONTEXT */}
+      {/* SECTION 3: MEDIA & CONTEXT */}
       <section className="flex flex-col gap-6">
         <div className="border-b border-border pb-3 flex items-center justify-between">
           <p className="text-caption uppercase text-muted-foreground tracking-widest">
-            03 // Media & Context (Opsional)
+            03 // Media & Context (Optional)
           </p>
           <Music size={16} strokeWidth={1} className="text-muted-foreground" />
         </div>
@@ -382,7 +381,7 @@ export function AddSongForm({ error }: { error?: string }) {
             htmlFor="image"
             className="text-caption uppercase text-muted-foreground"
           >
-            Cover Artwork (1:1 Persegi)
+            Cover Artwork (1:1 Square)
           </label>
 
           <div className="flex flex-col sm:flex-row items-start gap-6 border border-border p-6 bg-muted/20">
@@ -407,16 +406,16 @@ export function AddSongForm({ error }: { error?: string }) {
             <div className="flex-1 flex flex-col justify-between self-stretch gap-4">
               <div>
                 <p className="text-body-sm text-foreground font-light">
-                  Unggah gambar cover album atau poster lagu.
+                  Upload square cover art or editorial song poster.
                 </p>
                 <p className="mt-1 text-caption text-muted-foreground">
-                  Format yang didukung: JPG, PNG, WebP (maksimal 5MB).
+                  Supported formats: JPG, PNG, WebP (max 5MB).
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
                 <label className="cursor-pointer border border-foreground bg-foreground px-4 py-2 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors">
-                  Pilih File
+                  Choose File
                   <input
                     ref={fileInputRef}
                     id="image"
@@ -434,7 +433,7 @@ export function AddSongForm({ error }: { error?: string }) {
                     onClick={removeImage}
                     className="border border-border px-4 py-2 text-caption uppercase text-muted-foreground hover:border-accent hover:text-accent transition-colors"
                   >
-                    Hapus Foto
+                    Remove Image
                   </button>
                 )}
               </div>
@@ -457,7 +456,7 @@ export function AddSongForm({ error }: { error?: string }) {
             placeholder="https://www.youtube.com/watch?v=..."
           />
           <p className="text-caption text-muted-foreground">
-            Akan disematkan sebagai pemutar video di halaman detail lirik.
+            Will be embedded as a responsive video player on the lyrics page.
           </p>
         </div>
 
@@ -474,18 +473,18 @@ export function AddSongForm({ error }: { error?: string }) {
             name="aboutArtist"
             rows={4}
             className={inputCls}
-            placeholder="Biografi singkat atau informasi latar belakang mengenai artis..."
+            placeholder="Brief biography or background information about the artist..."
           />
         </div>
       </section>
 
-      {/* SEKSI 4: ACTIONS & SUBMIT */}
+      {/* SECTION 4: ACTIONS & SUBMIT */}
       <section className="border-t border-border pt-8 flex flex-wrap items-center justify-between gap-6">
         <Link
           href="/"
           className="text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
         >
-          // Batal & Kembali ke Archive
+          // Cancel & Return to Archive
         </Link>
 
         <button
@@ -493,7 +492,7 @@ export function AddSongForm({ error }: { error?: string }) {
           disabled={isPending}
           className="flex items-center gap-3 border border-foreground bg-foreground px-8 py-4 text-body font-light text-background hover:border-accent hover:bg-accent hover:text-accent-foreground disabled:opacity-50 transition-colors"
         >
-          <span>{isPending ? "Menyimpan Lagu..." : "Simpan Lagu ke Arsip"}</span>
+          <span>{isPending ? "Saving Song..." : "Save Song to Archive"}</span>
           <ArrowRight size={16} strokeWidth={1} />
         </button>
       </section>

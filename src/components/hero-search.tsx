@@ -44,14 +44,14 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setSpeechError("Browser tidak mendukung Speech Recognition.");
+      setSpeechError("Browser does not support Speech Recognition.");
       setTimeout(() => setSpeechError(null), 4000);
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = "id-ID";
+      recognition.lang = "en-US";
       recognition.continuous = false;
       recognition.interimResults = true;
 
@@ -73,7 +73,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
 
       recognition.onerror = (event: any) => {
         if (event.error !== "no-speech") {
-          setSpeechError("Gagal mendengarkan audio atau mikrofon diblokir.");
+          setSpeechError("Audio listening failed or microphone permission denied.");
           setTimeout(() => setSpeechError(null), 4000);
         }
         setIsListening(false);
@@ -86,7 +86,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
       recognitionRef.current = recognition;
       recognition.start();
     } catch {
-      setSpeechError("Tidak dapat mengakses mikrofon.");
+      setSpeechError("Unable to access microphone.");
       setIsListening(false);
       setTimeout(() => setSpeechError(null), 4000);
     }
@@ -153,7 +153,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
               {isListening ? (
                 <span className="flex items-center gap-2 text-accent animate-pulse font-normal">
                   <span className="inline-block size-1.5 rounded-full bg-accent animate-ping" />
-                  Mendengarkan... Silakan nyanyikan lirik
+                  Listening... Sing or speak lyrics
                 </span>
               ) : speechError ? (
                 <span className="text-destructive font-normal tracking-wide">
@@ -169,13 +169,13 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
                 onClick={toggleListening}
                 aria-label={
                   isListening
-                    ? "Hentikan pencarian suara"
-                    : "Cari dengan suara / nyanyikan lirik"
+                    ? "Stop voice search"
+                    : "Search with voice / sing lyrics"
                 }
                 title={
                   isListening
-                    ? "Klik untuk berhenti mendengarkan"
-                    : "Cari dengan suara: nyanyikan atau ucapkan sepenggal lirik"
+                    ? "Click to stop listening"
+                    : "Voice search: sing or speak a snippet of lyrics"
                 }
                 className={`relative flex size-9 items-center justify-center rounded-full transition-all ${
                   isListening
