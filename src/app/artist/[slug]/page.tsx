@@ -163,48 +163,55 @@ export default async function ArtistPage({ params }: Props) {
           </div>
 
           {/* Right Column: Artist Portrait Art-Book Frame with Ambient Graduated Backdrop */}
-          <div className="relative isolate flex items-end gap-4 lg:self-start">
-            {/* Portrait Wrapper with Centered Wide-Spreading Ambient Backdrop */}
-            <div className="relative z-10 size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0">
-              {/* Ultra-smooth ambient graduated photo spreading widely */}
+          <div className="relative flex items-end gap-4 lg:self-start">
+            {/* Portrait Wrapper */}
+            <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0">
+              {/* Ultra-smooth ambient graduated photo spreading softly */}
               {backdropImage && (
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] sm:w-[750px] md:w-[950px] xl:w-[1150px] h-[550px] sm:h-[750px] md:h-[950px] xl:h-[1150px] -z-10 select-none"
+                  className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] sm:w-[620px] md:w-[760px] xl:w-[860px] h-[480px] sm:h-[620px] md:h-[760px] xl:h-[860px] select-none"
                 >
                   <div
-                    className="size-full bg-cover bg-center opacity-35 dark:opacity-50 filter blur-2xl sm:blur-3xl md:blur-[80px] scale-110"
+                    className="size-full bg-cover bg-center opacity-30 dark:opacity-45"
                     style={{
                       backgroundImage: `url(${backdropImage})`,
+                      filter: "blur(10px)",
                       maskImage:
-                        "radial-gradient(ellipse at center, rgba(0,0,0,1) 10%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.06) 82%, transparent 100%)",
+                        "radial-gradient(circle closest-side at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 65%, transparent 85%)",
                       WebkitMaskImage:
-                        "radial-gradient(ellipse at center, rgba(0,0,0,1) 10%, rgba(0,0,0,0.85) 25%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.06) 82%, transparent 100%)",
+                        "radial-gradient(circle closest-side at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.18) 65%, transparent 85%)",
+                      maskRepeat: "no-repeat",
+                      WebkitMaskRepeat: "no-repeat",
+                      maskPosition: "center",
+                      WebkitMaskPosition: "center",
                     }}
                   />
                 </div>
               )}
 
               {/* Foreground Portrait Frame */}
-              {artistImage ? (
-                <div className="size-full border border-border overflow-hidden bg-background">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={artistImage}
-                    alt={displayName}
-                    className="size-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="size-full border border-border bg-background flex flex-col justify-between p-8">
-                  <span className="text-caption uppercase tracking-wider text-muted-foreground">
-                    Archive // Portrait
-                  </span>
-                  <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
-                    {displayName.charAt(0)}
-                  </span>
-                </div>
-              )}
+              <div className="relative z-10 size-full">
+                {artistImage ? (
+                  <div className="size-full border border-border overflow-hidden bg-background">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={artistImage}
+                      alt={displayName}
+                      className="size-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="size-full border border-border bg-background flex flex-col justify-between p-8">
+                    <span className="text-caption uppercase tracking-wider text-muted-foreground">
+                      Archive // Portrait
+                    </span>
+                    <span className="text-display font-light text-muted-foreground/40 leading-none select-none">
+                      {displayName.charAt(0)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <p
