@@ -52,6 +52,8 @@ export default async function ArtistPage({ params }: Props) {
   );
   const aboutArtist = artistRecord?.about ?? artistSongs.find((s) => s.aboutArtist)?.aboutArtist;
   const artistImage = artistRecord?.imageUrl ?? null;
+  const backdropImage =
+    artistImage || artistSongs.find((s) => s.imageUrl)?.imageUrl || null;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -73,7 +75,7 @@ export default async function ArtistPage({ params }: Props) {
       </div>
 
       {/* Artist Hero — Editorial Art-Book Spread */}
-      <section className="px-8 pt-10 pb-16 border-b border-border">
+      <section className="relative px-8 pt-10 pb-16 border-b border-border overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 lg:gap-16 items-start">
           {/* Left Column: Title, Stats, and Bio */}
           <div className="flex flex-col gap-10">
@@ -127,9 +129,28 @@ export default async function ArtistPage({ params }: Props) {
             )}
           </div>
 
-          {/* Right Column: Artist Portrait Art-Book Frame */}
-          {artistImage ? (
-            <div className="flex items-end gap-4 lg:self-start">
+          {/* Right Column: Artist Portrait Art-Book Frame with Ambient Graduated Backdrop */}
+          <div className="relative flex items-end gap-4 lg:self-start">
+            {/* Ambient graduated photo backdrop */}
+            {backdropImage && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -inset-12 sm:-inset-20 md:-inset-28 lg:-inset-36 -z-10 overflow-hidden select-none"
+              >
+                <div
+                  className="size-full bg-cover bg-center opacity-25 dark:opacity-40 filter blur-sm sm:blur-md scale-105"
+                  style={{
+                    backgroundImage: `url(${backdropImage})`,
+                    maskImage:
+                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0.5) 50%, transparent 72%)",
+                    WebkitMaskImage:
+                      "radial-gradient(ellipse at center, rgba(0,0,0,1) 20%, rgba(0,0,0,0.5) 50%, transparent 72%)",
+                  }}
+                />
+              </div>
+            )}
+
+            {artistImage ? (
               <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border overflow-hidden bg-background">
                 <img
                   src={artistImage}
@@ -137,16 +158,8 @@ export default async function ArtistPage({ params }: Props) {
                   className="size-full object-cover"
                 />
               </div>
-              <p
-                className="hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
-                aria-hidden
-              >
-                Portrait — {displayName}
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-end gap-4 lg:self-start">
-              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border bg-muted/20 flex flex-col justify-between p-8">
+            ) : (
+              <div className="relative size-64 sm:size-80 md:size-96 xl:size-[400px] shrink-0 border border-border bg-background/90 flex flex-col justify-between p-8">
                 <span className="text-caption uppercase tracking-wider text-muted-foreground">
                   Archive // Portrait
                 </span>
@@ -154,14 +167,15 @@ export default async function ArtistPage({ params }: Props) {
                   {displayName.charAt(0)}
                 </span>
               </div>
-              <p
-                className="hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
-                aria-hidden
-              >
-                Profile — {displayName}
-              </p>
-            </div>
-          )}
+            )}
+
+            <p
+              className="hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
+              aria-hidden
+            >
+              {artistImage ? "Portrait" : "Profile"} — {displayName}
+            </p>
+          </div>
         </div>
       </section>
 
