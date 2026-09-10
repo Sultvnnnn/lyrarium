@@ -215,13 +215,6 @@ export default async function ArtistPage({ params }: Props) {
                   )}
                 </div>
               </div>
-
-              <p
-                className="relative z-10 hidden sm:block text-caption uppercase tracking-widest text-muted-foreground [writing-mode:vertical-rl] rotate-180 select-none"
-                aria-hidden
-              >
-                Portrait — {displayName}
-              </p>
             </div>
           </div>
         </section>
