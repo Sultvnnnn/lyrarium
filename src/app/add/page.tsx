@@ -38,9 +38,6 @@ export default async function AddPage({ searchParams }: Props) {
                 Add a song.
               </h1>
             </div>
-            <p className="text-body-sm text-muted-foreground leading-relaxed mt-2">
-              Select or register an artist to archive their lyrics and metadata.
-            </p>
           </aside>
 
           {/* Right Column: Structured Form */}

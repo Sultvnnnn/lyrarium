@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const links = [
   { href: "/", label: "Home", num: "01" },
   { href: "/add", label: "Add a song", num: "02" },
+  { href: "/artist/add", label: "Add an artist", num: "03" },
 ];
 
 export function SiteHeader() {
