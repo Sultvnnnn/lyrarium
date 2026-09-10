@@ -7,7 +7,8 @@ import { songs } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Disc } from "lucide-react";
+import { parseCredits } from "@/lib/credits";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -55,6 +56,7 @@ export default async function LyricsPage({ params }: Props) {
   const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
 
   const artistSlug = encodeURIComponent(song.artist.toLowerCase().trim());
+  const credits = parseCredits(song.credits);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -111,25 +113,38 @@ export default async function LyricsPage({ params }: Props) {
                 </Link>
               </div>
 
-              {/* Judul & Credits Berdampingan */}
-              <div className="mt-8 flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div>
-                  <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
-                    {song.title}
-                  </h1>
-                </div>
-
-                {song.credits && (
-                  <div className="border-l border-border pl-6 max-w-xs shrink-0 mb-2">
-                    <p className="text-caption uppercase text-muted-foreground mb-2">
-                      Credits
-                    </p>
-                    <p className="whitespace-pre-line text-body-sm leading-snug text-muted-foreground">
-                      {song.credits}
-                    </p>
-                  </div>
-                )}
+              {/* Judul Display */}
+              <div className="mt-8">
+                <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
+                  {song.title}
+                </h1>
               </div>
+
+              {/* Structured Personnel & Credits (Album Liner Notes Aesthetic) */}
+              {credits.length > 0 && (
+                <div className="mt-10 pt-6 border-t border-border">
+                  <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground mb-4">
+                    <Disc size={14} strokeWidth={1} />
+                    <span>Personnel & Credits</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-8 gap-y-5">
+                    {credits.map((c, idx) => (
+                      <div
+                        key={idx}
+                        className="group border-l border-border hover:border-accent pl-3.5 transition-colors"
+                      >
+                        <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">
+                          {c.role}
+                        </span>
+                        <span className="block mt-0.5 text-body-sm font-light text-foreground group-hover:text-accent transition-colors">
+                          {c.names.join(", ")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

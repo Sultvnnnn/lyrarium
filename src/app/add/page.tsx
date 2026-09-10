@@ -1,8 +1,8 @@
-import { addSong } from "@/app/actions/songs";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { AddSongForm } from "@/components/add-song-form";
 
-const inputCls =
-  "w-full resize-y border border-border bg-transparent px-4 py-3 text-body text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none";
+export const dynamic = "force-dynamic";
 
 export default async function AddPage({
   searchParams,
@@ -12,151 +12,48 @@ export default async function AddPage({
   const { error } = await searchParams;
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
 
-      <section className="max-w-2xl px-8 pt-16 pb-24">
-        <p className="text-caption uppercase text-muted-foreground">
-          New entry
-        </p>
-        <h1 className="mt-6 text-heading font-light leading-heading tracking-[-0.023em]">
-          Add a song
-        </h1>
+      <div className="px-8 pt-10 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-16 xl:gap-24">
+          {/* Kolom Kiri: Editorial Sticky Header */}
+          <aside className="lg:sticky lg:top-24 lg:self-start flex flex-col gap-6">
+            <div>
+              <p className="text-caption uppercase text-muted-foreground tracking-widest">
+                Archive Entry // New
+              </p>
+              <h1 className="mt-4 text-heading-sm md:text-heading font-light leading-heading tracking-[-0.023em]">
+                Add a song.
+              </h1>
+            </div>
 
-        {error && (
-          <p className="mt-8 text-caption uppercase text-accent">
-            {error === "large"
-              ? "File terlalu besar (max 5MB)"
-              : "Semua field wajib diisi"}
-          </p>
-        )}
+            <div className="border-l border-accent pl-6 py-2">
+              <p className="text-body-sm leading-relaxed text-muted-foreground">
+                Setiap bait kata diarsipkan dengan tata letak editorial poster.
+                Lengkapi informasi utama, kredit personel komposer & produser, serta
+                rekaman gambar untuk melengkapi lembar arsip.
+              </p>
+            </div>
 
-        <form action={addSong} className="mt-12 flex flex-col gap-8">
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="title"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              Title
-            </label>
-            <input
-              id="title"
-              name="title"
-              required
-              className={inputCls}
-              placeholder="Bohemian Rhapsody"
-            />
+            <div className="hidden lg:flex flex-col gap-3 pt-6 border-t border-border text-caption text-muted-foreground uppercase">
+              <p>// Pedoman Kurasi</p>
+              <ul className="space-y-2 text-muted-foreground/80 normal-case text-body-sm font-light">
+                <li>• Pastikan ejaan judul dan nama artis akurat.</li>
+                <li>• Pisahkan baris bait lirik dengan spasi baris ganda.</li>
+                <li>• Gambar cover akan otomatis ditampilkan dalam rasio 1:1 persegi.</li>
+              </ul>
+            </div>
+          </aside>
+
+          {/* Kolom Kanan: Form Lengkap Terstruktur */}
+          <div className="max-w-3xl">
+            <AddSongForm error={error} />
           </div>
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="artist"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              Artist
-            </label>
-            <input
-              id="artist"
-              name="artist"
-              required
-              className={inputCls}
-              placeholder="Queen"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="lyrics"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              Lyrics
-            </label>
-            <textarea
-              id="lyrics"
-              name="lyrics"
-              required
-              rows={10}
-              className={inputCls}
-              placeholder="Is this the real life?"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="image"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              Upload image (opsional)
-            </label>
-            <input
-              id="image"
-              name="image"
-              type="file"
-              accept="image/*"
-              className="w-full border border-border bg-transparent px-4 py-3 text-body-sm text-foreground file:mr-4 file:border-0 file:bg-accent file:px-4 file:py-2 file:text-accent-foreground file:text-caption file:uppercase focus:border-accent focus:outline-none"
-            />
-            <p className="text-caption text-muted-foreground">
-              Max 5MB. JPG, PNG, WebP.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="aboutArtist"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              About artist (opsional)
-            </label>
-            <textarea
-              id="aboutArtist"
-              name="aboutArtist"
-              rows={4}
-              className={inputCls}
-              placeholder="Short bio of the artist..."
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="credits"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              Credits (opsional)
-            </label>
-            <textarea
-              id="credits"
-              name="credits"
-              rows={4}
-              className={inputCls}
-              placeholder={"Written by: ...\nProduced by: ..."}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor="youtubeUrl"
-              className="text-caption uppercase text-muted-foreground"
-            >
-              YouTube URL (opsional)
-            </label>
-            <input
-              id="youtubeUrl"
-              name="youtubeUrl"
-              className={inputCls}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              className="rounded-pills bg-foreground px-6 py-3 text-body text-background hover:bg-accent hover:text-accent-foreground"
-            >
-              Simpan
-            </button>
-          </div>
-        </form>
-      </section>
+      <SiteFooter />
     </main>
   );
 }

@@ -11,7 +11,9 @@ export async function addSong(formData: FormData) {
   const artist = String(formData.get("artist") ?? "").trim();
   const lyrics = String(formData.get("lyrics") ?? "").trim();
   const aboutArtist = String(formData.get("aboutArtist") ?? "").trim() || null;
-  const credits = String(formData.get("credits") ?? "").trim() || null;
+  const creditsJson = String(formData.get("credits_json") ?? "").trim();
+  const creditsRaw = String(formData.get("credits") ?? "").trim();
+  const credits = creditsJson || creditsRaw || null;
   const youtubeUrl = String(formData.get("youtubeUrl") ?? "").trim() || null;
 
   if (!title || !artist || !lyrics) redirect("/add?error=1");
