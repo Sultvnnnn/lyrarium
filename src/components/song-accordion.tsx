@@ -95,15 +95,10 @@ export function SongAccordion({ songs }: SongAccordionProps) {
                 }
               }}
               onMouseEnter={() => activateCard(i)}
-              style={{
-                // Explicit width via inline style agar CSS transition berjalan mulus
-                // (Tailwind arbitrary values kadang conflict dengan aspect-ratio dalam flex layout)
-                width: isActive ? undefined : undefined,
-              }}
               className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] ${
                 isActive
-                  ? "md:flex-[460_0_auto] lg:flex-[500_0_auto] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
-                  : "md:flex-[72_0_72px] lg:flex-[84_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+                  ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                  : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
               }`}
             >
               {/* 
