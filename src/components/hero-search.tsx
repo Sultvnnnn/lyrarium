@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, ShieldCheck, X } from "lucide-react";
+import { Mic, Search, ShieldCheck, X } from "lucide-react";
 import { LyricPoster, type HeroItem } from "@/components/lyric-poster";
 
 type HeroSearchProps = {
@@ -15,7 +15,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [isListening, setIsListening] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
   // Bersihkan recognition saat unmount
@@ -95,18 +95,19 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
   const handleClear = () => {
     if (inputRef.current) {
       inputRef.current.value = "";
+      inputRef.current.focus();
     }
     setQuery("");
   };
 
   return (
-    <section className="flex flex-col items-center justify-center pt-8 pb-12 px-4 md:px-8">
+    <section className="flex flex-col items-center justify-center pt-8 pb-10 px-4 md:px-8">
       {/* 1. Kinetic Typographic Lyric Poster (Out of the box framer-motion animation) */}
-      <div className="mb-10 w-full flex justify-center">
+      <div className="mb-8 w-full flex justify-center">
         <LyricPoster items={items} centered={true} />
       </div>
 
-      {/* 2. Hero Search Box Card (Sesuai foto referensi) */}
+      {/* 2. Hero Search Box Card (Compact, highlighted mic, and Search icon) */}
       <form
         action="/"
         method="get"
@@ -114,91 +115,86 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
       >
         {artist && <input type="hidden" name="artist" value={artist} />}
 
-        <div className="rounded-[24px] border border-border bg-muted/30 p-5 transition-all focus-within:border-accent hover:border-accent/60">
-          {/* Top: Textarea Search Input */}
-          <div className="relative">
-            <textarea
-              ref={inputRef}
-              name="q"
-              rows={2}
-              defaultValue={initialQuery ?? ""}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search title, artist, or lyrics..."
-              className="w-full resize-none bg-transparent pr-8 text-body font-light text-foreground placeholder:text-muted-foreground focus:outline-none"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  e.currentTarget.form?.requestSubmit();
-                }
-              }}
-            />
+        <div className="relative flex items-center gap-2 rounded-full border border-border bg-muted/30 py-2 pl-5 pr-2 transition-all focus-within:border-accent hover:border-accent/60">
+          {/* Text Input */}
+          <input
+            ref={inputRef}
+            type="text"
+            name="q"
+            defaultValue={initialQuery ?? ""}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search title, artist, or lyrics..."
+            className="w-full bg-transparent text-body font-light text-foreground placeholder:text-muted-foreground focus:outline-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
+          />
 
-            {/* Tombol Clear jika ada teks */}
-            {query && (
-              <button
-                type="button"
-                onClick={handleClear}
-                aria-label="Clear input"
-                className="absolute top-1 right-1 flex size-6 items-center justify-center text-muted-foreground hover:text-accent transition-colors"
-              >
-                <X size={14} strokeWidth={1} />
-              </button>
+          {/* Tombol Clear jika ada teks */}
+          {query && (
+            <button
+              type="button"
+              onClick={handleClear}
+              aria-label="Clear input"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-accent transition-colors"
+            >
+              <X size={14} strokeWidth={1} />
+            </button>
+          )}
+
+          {/* Tombol Mic (Terhighlight) */}
+          <button
+            type="button"
+            onClick={toggleListening}
+            aria-label={
+              isListening
+                ? "Stop voice search"
+                : "Search with voice / sing lyrics"
+            }
+            title={
+              isListening
+                ? "Click to stop listening"
+                : "Voice search: sing or speak a snippet of lyrics"
+            }
+            className={`relative flex size-9 shrink-0 items-center justify-center rounded-full border transition-all ${
+              isListening
+                ? "border-accent bg-accent text-accent-foreground ring-2 ring-accent/40 animate-pulse"
+                : "border-border/70 bg-muted text-foreground shadow-xs hover:border-accent hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <Mic size={16} strokeWidth={1} />
+            {isListening && (
+              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-accent animate-ping" />
+            )}
+          </button>
+
+          {/* Tombol Submit Pencarian (Search Icon) */}
+          <button
+            type="submit"
+            aria-label="Search"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Search size={16} strokeWidth={1} />
+          </button>
+        </div>
+
+        {/* Listening / Error feedback */}
+        {(isListening || speechError) && (
+          <div className="mt-2.5 flex items-center justify-center px-4 text-caption uppercase">
+            {isListening ? (
+              <span className="flex items-center gap-2 text-accent animate-pulse font-normal">
+                <span className="inline-block size-1.5 rounded-full bg-accent animate-ping" />
+                Listening... Sing or speak lyrics
+              </span>
+            ) : (
+              <span className="text-destructive font-normal tracking-wide">
+                {speechError}
+              </span>
             )}
           </div>
-
-          {/* Bottom: Toolbar di dalam search box */}
-          <div className="mt-3 flex items-center justify-between pt-3 border-t border-border/50">
-            {/* Sisi Kiri: Status Speech to Text (hanya muncul saat mendengarkan atau terjadi error) */}
-            <div className="flex items-center gap-2 text-caption uppercase">
-              {isListening ? (
-                <span className="flex items-center gap-2 text-accent animate-pulse font-normal">
-                  <span className="inline-block size-1.5 rounded-full bg-accent animate-ping" />
-                  Listening... Sing or speak lyrics
-                </span>
-              ) : speechError ? (
-                <span className="text-destructive font-normal tracking-wide">
-                  {speechError}
-                </span>
-              ) : null}
-            </div>
-
-            {/* Sisi Kanan: Mic (Speech to Text) & Submit Arrow */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleListening}
-                aria-label={
-                  isListening
-                    ? "Stop voice search"
-                    : "Search with voice / sing lyrics"
-                }
-                title={
-                  isListening
-                    ? "Click to stop listening"
-                    : "Voice search: sing or speak a snippet of lyrics"
-                }
-                className={`relative flex size-9 items-center justify-center rounded-full transition-all ${
-                  isListening
-                    ? "bg-accent text-accent-foreground ring-2 ring-accent/40 animate-pulse"
-                    : "text-muted-foreground hover:text-accent"
-                }`}
-              >
-                <Mic size={16} strokeWidth={1} />
-                {isListening && (
-                  <span className="absolute -top-1 -right-1 size-2 rounded-full bg-accent animate-ping" />
-                )}
-              </button>
-
-              <button
-                type="submit"
-                aria-label="Search"
-                className="flex size-9 items-center justify-center rounded-full bg-foreground text-background hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <ArrowUp size={16} strokeWidth={1} />
-              </button>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Filter status & Clear filter link */}
         {(initialQuery || artist) && (
@@ -214,12 +210,6 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
             </Link>
           </div>
         )}
-
-        {/* Bottom subtle status badge */}
-        <div className="mt-8 flex items-center justify-center gap-2 text-caption uppercase text-muted-foreground">
-          <ShieldCheck size={14} strokeWidth={1} />
-          <span>Archive // Open & Preserved</span>
-        </div>
       </form>
     </section>
   );
