@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 
 export type AccordionSong = {
@@ -20,39 +20,64 @@ type SongAccordionProps = {
 
 export function SongAccordion({ songs }: SongAccordionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
+
+  // ── Transition lock ──
+  // Saat card berganti, boundary semua card bergeser selama transisi CSS berlangsung.
+  // Jika kursor diam di tempat, batas yang bergeser bisa memicu mouseenter
+  // pada card tetangga → menyebabkan bolak-balik tak terhingga (glitch).
+  // Lock mencegah pergantian card selama transisi berjalan.
+  const lockRef = useRef(false);
+  const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
     };
   }, []);
 
+  const activateCard = useCallback(
+    (i: number) => {
+      if (i === activeIndex) return;
+
+      // Jika sedang dalam masa lock, simpan sebagai pending (akan dieksekusi setelah lock selesai)
+      if (lockRef.current) {
+        pendingRef.current = i;
+        return;
+      }
+
+      // Set active dan lock transisi
+      lockRef.current = true;
+      pendingRef.current = null;
+      setActiveIndex(i);
+
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+      lockTimerRef.current = setTimeout(() => {
+        lockRef.current = false;
+
+        // Jika ada pending hover yang masuk selama lock, eksekusi sekarang
+        if (pendingRef.current !== null && pendingRef.current !== i) {
+          const next = pendingRef.current;
+          pendingRef.current = null;
+          activateCard(next);
+        }
+      }, 420);
+    },
+    [activeIndex],
+  );
+
   if (!songs || songs.length === 0) return null;
 
-  // Hover debounce untuk mencegah fluktuasi / flickering ketika batas card bergeser melewati kursor mouse
-  const handleMouseEnter = (i: number) => {
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => {
-      setActiveIndex(i);
-    }, 45);
-  };
-
-  const handleMouseLeave = () => {
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-    }
-  };
-
   return (
-    <div className="w-full" onMouseLeave={handleMouseLeave}>
+    <div className="w-full">
       {/* 
         Accordion Container:
         - Desktop: Menyamping (flex-row), height 460px (500px di lg).
         - Mobile: Menurun (flex-col).
-        - Active card: strictly 1:1 square (width = height), menjaga gambar tetap persegi utuh tanpa melar/melebar.
-        - Inactive cards: strip ramping dengan lebar pasti (flex-none) tanpa konflik aspect-ratio.
+        - Active card: strictly 1:1 square (width = height via explicit w matching h).
+        - Inactive cards: strip ramping fixed-width (flex-none).
+        - Transition lock mencegah glitch akibat boundary shift selama animasi.
       */}
       <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-x-auto scrollbar-none pb-2">
         {songs.map((song, i) => {
@@ -66,21 +91,25 @@ export function SongAccordion({ songs }: SongAccordionProps) {
                 if (isActive) {
                   router.push(`/lyrics/${song.id}`);
                 } else {
-                  setActiveIndex(i);
+                  activateCard(i);
                 }
               }}
-              onMouseEnter={() => handleMouseEnter(i)}
-              className={`group relative overflow-hidden border bg-muted cursor-pointer will-change-[width,height] transition-[width,height,border-color] duration-500 ease-[0.25,1,0.35,1] ${
+              onMouseEnter={() => activateCard(i)}
+              style={{
+                // Explicit width via inline style agar CSS transition berjalan mulus
+                // (Tailwind arbitrary values kadang conflict dengan aspect-ratio dalam flex layout)
+                width: isActive ? undefined : undefined,
+              }}
+              className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] ${
                 isActive
-                  ? "w-full max-w-[420px] aspect-square mx-auto md:mx-0 md:w-[460px] lg:w-[500px] md:h-full flex-none border-accent z-10"
-                  : "w-full h-14 md:h-full md:w-[72px] lg:w-[84px] flex-none border-border hover:border-accent/60 z-0"
+                  ? "md:flex-[460_0_auto] lg:flex-[500_0_auto] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                  : "md:flex-[72_0_72px] lg:flex-[84_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
               }`}
             >
               {/* 
                 Cover Image Wrapper:
-                Di desktop, wrapper memiliki lebar tetap 460px/500px (ukuran 1:1 penuh).
-                Dengan begini, gambar di dalamnya TIDAK AKAN tertekan/meregang saat card mengecil/membesar.
-                Card cukup bertindak sebagai 'jendela' (overflow-hidden) yang membuka dan menutup dengan mulus.
+                Lebar tetap 1:1 (460/500px = tinggi container) agar gambar
+                tidak meregang. Card bertindak sebagai overflow-hidden window.
               */}
               <div className="absolute inset-0 w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
                 {song.imageUrl ? (
@@ -111,15 +140,15 @@ export function SongAccordion({ songs }: SongAccordionProps) {
                 />
               </div>
 
-              {/* === ACTIVE / EXPANDED VIEW (Fade in/out murni tanpa display:none glitch) === */}
+              {/* === ACTIVE / EXPANDED VIEW === */}
               <div
-                className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-all duration-400 ease-out ${
+                className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
                   isActive
-                    ? "opacity-100 translate-y-0 pointer-events-auto delay-100"
-                    : "opacity-0 translate-y-2 pointer-events-none"
+                    ? "opacity-100 pointer-events-auto delay-150"
+                    : "opacity-0 pointer-events-none"
                 }`}
               >
-                {/* Top: Hanya Nomor Indeks */}
+                {/* Top: Nomor Indeks */}
                 <div className="flex items-center justify-between">
                   <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
                     [{indexNum}]
@@ -151,7 +180,7 @@ export function SongAccordion({ songs }: SongAccordionProps) {
 
               {/* === COLLAPSED VIEW (DESKTOP: Vertical Text Strip) === */}
               <div
-                className={`relative z-10 size-full hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
+                className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
                   !isActive
                     ? "opacity-100 pointer-events-auto delay-100"
                     : "opacity-0 pointer-events-none"
@@ -168,7 +197,7 @@ export function SongAccordion({ songs }: SongAccordionProps) {
 
               {/* === COLLAPSED VIEW (MOBILE: Horizontal Strip Bar) === */}
               <div
-                className={`relative z-10 size-full flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
+                className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
                   !isActive
                     ? "opacity-100 pointer-events-auto"
                     : "opacity-0 pointer-events-none"
