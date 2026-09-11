@@ -115,7 +115,7 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
       >
         {artist && <input type="hidden" name="artist" value={artist} />}
 
-        <div className="relative flex items-center gap-2 rounded-full border border-border bg-muted/30 py-2 pl-5 pr-2 transition-all focus-within:border-accent hover:border-accent/60">
+        <div className="relative flex items-center gap-2 border border-border bg-muted/30 py-2.5 pl-5 pr-2.5 transition-all focus-within:border-accent hover:border-accent/60">
           {/* Text Input */}
           <input
             ref={inputRef}
@@ -138,13 +138,13 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
               type="button"
               onClick={handleClear}
               aria-label="Clear input"
-              className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-accent transition-colors"
+              className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-accent transition-colors"
             >
               <X size={14} strokeWidth={1} />
             </button>
           )}
 
-          {/* Tombol Mic (Terhighlight) */}
+          {/* Tombol Mic (Terhighlight, Sharp Square) */}
           <button
             type="button"
             onClick={toggleListening}
@@ -158,10 +158,10 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
                 ? "Click to stop listening"
                 : "Voice search: sing or speak a snippet of lyrics"
             }
-            className={`relative flex size-9 shrink-0 items-center justify-center rounded-full border transition-all ${
+            className={`relative flex size-9 shrink-0 items-center justify-center border transition-all ${
               isListening
                 ? "border-accent bg-accent text-accent-foreground ring-2 ring-accent/40 animate-pulse"
-                : "border-border/70 bg-muted text-foreground shadow-xs hover:border-accent hover:bg-accent hover:text-accent-foreground"
+                : "border-border bg-muted text-foreground hover:border-accent hover:bg-accent hover:text-accent-foreground"
             }`}
           >
             <Mic size={16} strokeWidth={1} />
@@ -170,11 +170,11 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
             )}
           </button>
 
-          {/* Tombol Submit Pencarian (Search Icon) */}
+          {/* Tombol Submit Pencarian (Search Icon, Sharp Square) */}
           <button
             type="submit"
             aria-label="Search"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="flex size-9 shrink-0 items-center justify-center border border-foreground bg-foreground text-background hover:border-accent hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <Search size={16} strokeWidth={1} />
           </button>
