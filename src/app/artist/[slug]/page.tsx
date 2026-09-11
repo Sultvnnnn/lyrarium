@@ -105,7 +105,7 @@ export default async function ArtistPage({ params }: Props) {
               strokeWidth={1}
               className="transition-colors group-hover:text-accent"
             />
-            <span>All artists</span>
+            <span>Home</span>
           </Link>
         </div>
 
@@ -175,7 +175,7 @@ export default async function ArtistPage({ params }: Props) {
                     className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] sm:w-[750px] md:w-[950px] xl:w-[1100px] h-[550px] sm:h-[750px] md:h-[950px] xl:h-[1100px] select-none"
                   >
                     <div
-                      className="size-full bg-cover bg-center opacity-30 dark:opacity-45"
+                      className="size-full bg-cover bg-center opacity-55 dark:opacity-70"
                       style={{
                         backgroundImage: `url(${backdropImage})`,
                         filter: "blur(10px)",
