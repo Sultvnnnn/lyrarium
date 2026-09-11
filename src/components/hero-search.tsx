@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Mic, Search, ShieldCheck, X } from "lucide-react";
 import { LyricPoster, type HeroItem } from "@/components/lyric-poster";
 
@@ -133,16 +134,22 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
           />
 
           {/* Tombol Clear jika ada teks */}
-          {query && (
-            <button
-              type="button"
-              onClick={handleClear}
-              aria-label="Clear input"
-              className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-accent transition-colors"
-            >
-              <X size={14} strokeWidth={1} />
-            </button>
-          )}
+          <AnimatePresence>
+            {query && (
+              <motion.button
+                type="button"
+                onClick={handleClear}
+                aria-label="Clear input"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-accent transition-colors"
+              >
+                <X size={14} strokeWidth={1} />
+              </motion.button>
+            )}
+          </AnimatePresence>
 
           {/* Tombol Mic (Terhighlight, Sharp Square) */}
           <button
@@ -170,14 +177,22 @@ export function HeroSearch({ items, initialQuery, artist }: HeroSearchProps) {
             )}
           </button>
 
-          {/* Tombol Submit Pencarian (Search Icon, Sharp Square) */}
-          <button
-            type="submit"
-            aria-label="Search"
-            className="flex size-9 shrink-0 items-center justify-center border border-foreground bg-foreground text-background hover:border-accent hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <Search size={16} strokeWidth={1} />
-          </button>
+          {/* Tombol Submit Pencarian (Hanya muncul saat user mengetik teks, dengan animasi Framer Motion) */}
+          <AnimatePresence>
+            {query.trim().length > 0 && (
+              <motion.button
+                type="submit"
+                aria-label="Search"
+                initial={{ opacity: 0, scale: 0.8, x: 6 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.8, x: 6 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="flex size-9 shrink-0 items-center justify-center border border-foreground bg-foreground text-background hover:border-accent hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <Search size={16} strokeWidth={1} />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Listening / Error feedback */}
