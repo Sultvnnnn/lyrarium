@@ -7,7 +7,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type HeroItem = {
   id: number;
-  line: string;
+  lines?: string[];
+  line?: string;
   title: string;
   artist: string;
 };
@@ -53,26 +54,37 @@ export function LyricPoster({
     setProgressKey((k) => k + 1);
   };
 
-  const words = item.line.split(" ").filter(Boolean);
-  const firstWord = words[0] || "";
-  const lastWord = words[words.length - 1] || "";
-  const middleWords = words.length > 2 ? words.slice(1, -1) : [];
+  const displayLines = (
+    item.lines && item.lines.length > 0
+      ? item.lines
+      : (item.line || "").split("\n").filter(Boolean)
+  ).slice(0, 3);
+
+  const lineCount = Math.max(displayLines.length, 1);
+
+  // Font size dinamis sesuai jumlah baris (1 baris = besar, 2 baris = sedang, 3 baris = compact)
+  const fontSizeClass =
+    lineCount === 1
+      ? "text-[26px] sm:text-[38px] md:text-[50px] lg:text-[58px] leading-[1.1] tracking-[-0.03em]"
+      : lineCount === 2
+      ? "text-[19px] sm:text-[26px] md:text-[32px] lg:text-[38px] leading-[1.2] tracking-[-0.024em]"
+      : "text-[15px] sm:text-[20px] md:text-[24px] lg:text-[28px] leading-[1.3] tracking-[-0.016em]";
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.04,
-        delayChildren: 0.08,
+        staggerChildren: 0.035,
+        delayChildren: 0.06,
       },
     },
     exit: {
       opacity: 0,
       transition: {
-        staggerChildren: 0.02,
+        staggerChildren: 0.015,
         staggerDirection: -1,
-        duration: 0.25,
+        duration: 0.22,
       },
     },
   };
@@ -94,7 +106,7 @@ export function LyricPoster({
       y: "-115%",
       opacity: 0,
       transition: {
-        duration: 0.3,
+        duration: 0.28,
         ease: [0.22, 1, 0.36, 1] as const,
       },
     },
@@ -118,20 +130,20 @@ export function LyricPoster({
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className={`relative w-full max-w-5xl xl:max-w-6xl min-h-[160px] md:min-h-[180px] flex flex-col justify-center select-none px-4 ${
+      className={`relative w-full max-w-5xl xl:max-w-6xl min-h-[175px] sm:min-h-[200px] md:min-h-[220px] flex flex-col justify-center select-none px-4 ${
         centered ? "items-center text-center mx-auto" : "items-start text-left"
       }`}
     >
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${item.id}-${item.line}-${index}`}
+          key={`${item.id}-${displayLines.join("-")}-${index}`}
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
           className="w-full"
         >
-          {/* Eyebrow: Hanya Judul & Nama Artis (sesuai permintaan user) */}
+          {/* Eyebrow: Hanya Judul & Nama Artis */}
           <motion.div
             variants={eyebrowVariants}
             className={`flex items-center mb-3 text-caption uppercase text-muted-foreground ${
@@ -143,49 +155,71 @@ export function LyricPoster({
             </span>
           </motion.div>
 
-          {/* Kinetic Quote Heading: Lebar luas & tanda kutip menempel dengan kata pertama/terakhir sehingga tidak pernah terpotong sendirian */}
+          {/* Kinetic Quote Stanza (1, 2, atau 3 baris) */}
           <Link href={`/lyrics/${item.id}`} className="group block focus:outline-none">
-            <h2
-              className={`flex flex-wrap items-center gap-x-[0.28em] gap-y-1 text-heading-sm md:text-heading font-light leading-heading tracking-[-0.023em] text-foreground transition-colors group-hover:text-accent pb-1 [text-wrap:balance] ${
-                centered ? "justify-center" : "justify-start"
-              }`}
-            >
-              {words.length <= 1 ? (
-                <span className="inline-block overflow-hidden pb-1">
-                  <motion.span variants={wordVariants} className="inline-block">
-                    <span className="text-accent/80 font-light select-none mr-0.5">“</span>
-                    {firstWord}
-                    <span className="text-accent/80 font-light select-none ml-0.5">”</span>
-                  </motion.span>
-                </span>
-              ) : (
-                <>
-                  {/* Kata pertama + kutip buka */}
-                  <span className="inline-block overflow-hidden pb-1">
-                    <motion.span variants={wordVariants} className="inline-block">
-                      <span className="text-accent/80 font-light select-none mr-0.5">“</span>
-                      {firstWord}
-                    </motion.span>
-                  </span>
+            <h2 className="flex flex-col items-center gap-1 sm:gap-1.5 w-full">
+              {displayLines.map((lineStr, lineIdx) => {
+                const isFirstLine = lineIdx === 0;
+                const isLastLine = lineIdx === displayLines.length - 1;
+                const words = lineStr.split(" ").filter(Boolean);
+                const firstWord = words[0] || "";
+                const lastWord = words[words.length - 1] || "";
+                const middleWords = words.length > 2 ? words.slice(1, -1) : [];
 
-                  {/* Kata-kata tengah */}
-                  {middleWords.map((word, i) => (
-                    <span key={i} className="inline-block overflow-hidden pb-1">
-                      <motion.span variants={wordVariants} className="inline-block">
-                        {word}
-                      </motion.span>
-                    </span>
-                  ))}
+                return (
+                  <div
+                    key={lineIdx}
+                    className={`flex flex-wrap items-center gap-x-[0.28em] gap-y-0.5 font-light text-foreground transition-colors group-hover:text-accent pb-0.5 [text-wrap:balance] ${fontSizeClass} ${
+                      centered ? "justify-center text-center" : "justify-start text-left"
+                    }`}
+                  >
+                    {words.length <= 1 ? (
+                      <span className="inline-block overflow-hidden pb-1">
+                        <motion.span variants={wordVariants} className="inline-block">
+                          {isFirstLine && (
+                            <span className="text-accent/80 font-light select-none mr-0.5">“</span>
+                          )}
+                          {firstWord}
+                          {isLastLine && (
+                            <span className="text-accent/80 font-light select-none ml-0.5">”</span>
+                          )}
+                        </motion.span>
+                      </span>
+                    ) : (
+                      <>
+                        {/* Kata pertama */}
+                        <span className="inline-block overflow-hidden pb-1">
+                          <motion.span variants={wordVariants} className="inline-block">
+                            {isFirstLine && (
+                              <span className="text-accent/80 font-light select-none mr-0.5">“</span>
+                            )}
+                            {firstWord}
+                          </motion.span>
+                        </span>
 
-                  {/* Kata terakhir + kutip tutup menempel (tidak akan pernah pindah baris sendirian) */}
-                  <span className="inline-block overflow-hidden pb-1">
-                    <motion.span variants={wordVariants} className="inline-block">
-                      {lastWord}
-                      <span className="text-accent/80 font-light select-none ml-0.5">”</span>
-                    </motion.span>
-                  </span>
-                </>
-              )}
+                        {/* Kata-kata tengah */}
+                        {middleWords.map((word, wIdx) => (
+                          <span key={wIdx} className="inline-block overflow-hidden pb-1">
+                            <motion.span variants={wordVariants} className="inline-block">
+                              {word}
+                            </motion.span>
+                          </span>
+                        ))}
+
+                        {/* Kata terakhir */}
+                        <span className="inline-block overflow-hidden pb-1">
+                          <motion.span variants={wordVariants} className="inline-block">
+                            {lastWord}
+                            {isLastLine && (
+                              <span className="text-accent/80 font-light select-none ml-0.5">”</span>
+                            )}
+                          </motion.span>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </h2>
           </Link>
         </motion.div>

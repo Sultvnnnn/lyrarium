@@ -21,17 +21,72 @@ export default async function Home({ searchParams }: Props) {
   const all = await db.select().from(songs).orderBy(desc(songs.id));
   const allDbArtists = await db.select().from(artistsTable).orderBy(asc(artistsTable.name));
 
-  const pool: HeroItem[] = [];
+  const pool1: HeroItem[] = [];
+  const pool2: HeroItem[] = [];
+  const pool3: HeroItem[] = [];
+
   for (const s of all) {
-    const lines = s.lyrics
+    const rawLines = s.lyrics
       .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length >= 15 && l.length <= 70);
-    for (const line of lines) {
-      pool.push({ id: s.id, title: s.title, artist: s.artist, line });
+      .map((l) => l.trim().replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, ""))
+      .filter((l) => l.length > 0 && !l.startsWith("[") && !l.endsWith("]"));
+
+    for (let i = 0; i < rawLines.length; i++) {
+      const l1 = rawLines[i];
+
+      // 1 baris
+      if (l1.length >= 15 && l1.length <= 75) {
+        pool1.push({
+          id: s.id,
+          title: s.title,
+          artist: s.artist,
+          lines: [l1],
+          line: l1,
+        });
+      }
+
+      // 2 baris berurutan
+      if (i + 1 < rawLines.length) {
+        const l2 = rawLines[i + 1];
+        if (l1.length >= 10 && l1.length <= 60 && l2.length >= 10 && l2.length <= 60) {
+          pool2.push({
+            id: s.id,
+            title: s.title,
+            artist: s.artist,
+            lines: [l1, l2],
+            line: `${l1} / ${l2}`,
+          });
+        }
+      }
+
+      // 3 baris berurutan
+      if (i + 2 < rawLines.length) {
+        const l2 = rawLines[i + 1];
+        const l3 = rawLines[i + 2];
+        if (
+          l1.length >= 8 && l1.length <= 50 &&
+          l2.length >= 8 && l2.length <= 50 &&
+          l3.length >= 8 && l3.length <= 50
+        ) {
+          pool3.push({
+            id: s.id,
+            title: s.title,
+            artist: s.artist,
+            lines: [l1, l2, l3],
+            line: `${l1} / ${l2} / ${l3}`,
+          });
+        }
+      }
     }
   }
-  const heroItems = pool.sort(() => Math.random() - 0.5).slice(0, 10);
+
+  // Ambil sampling variatif 1, 2, dan 3 baris
+  const shuffled1 = pool1.sort(() => Math.random() - 0.5).slice(0, 5);
+  const shuffled2 = pool2.sort(() => Math.random() - 0.5).slice(0, 5);
+  const shuffled3 = pool3.sort(() => Math.random() - 0.5).slice(0, 5);
+
+  const heroItems: HeroItem[] = [...shuffled1, ...shuffled2, ...shuffled3]
+    .sort(() => Math.random() - 0.5);
 
   const totalArtists = new Set(all.map((s) => s.artist.trim().toLowerCase()))
     .size;
