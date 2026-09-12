@@ -134,7 +134,7 @@ export default async function LyricsPage({ params }: Props) {
                   href="#lyrics"
                   className="group inline-flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
                 >
-                  <span>Scroll to lyrics</span>
+                  <span>Read lyrics</span>
                   <ArrowDown
                     size={16}
                     strokeWidth={1}
