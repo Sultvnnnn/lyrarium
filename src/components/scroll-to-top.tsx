@@ -37,17 +37,13 @@ export function ScrollToTop() {
     <button
       type="button"
       onClick={scrollToTop}
-      aria-label={`Scroll back to top (${Math.round(progress)}%)`}
-      className={`group fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 flex items-center justify-center gap-2.5 border border-border bg-background px-3.5 py-2 text-caption uppercase tracking-widest text-foreground transition-all duration-300 ease-out hover:border-accent hover:text-accent active:scale-95 overflow-hidden ${
+      aria-label="Scroll back to top"
+      className={`group fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 flex size-10 sm:size-11 items-center justify-center border border-border bg-background text-foreground transition-all duration-300 ease-out hover:border-accent hover:text-accent active:scale-95 overflow-hidden ${
         visible
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-3 pointer-events-none"
       }`}
     >
-      <span className="font-mono text-[11px] text-muted-foreground group-hover:text-accent transition-colors select-none">
-        {Math.round(progress)}%
-      </span>
-      <span className="hidden sm:inline select-none">Top</span>
       <ArrowUp
         size={16}
         strokeWidth={1}
