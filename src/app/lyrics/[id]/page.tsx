@@ -84,91 +84,63 @@ export default async function LyricsPage({ params }: Props) {
 
       {/* 1 — Integrated Gatefold Hero: Cover & Title Menyatu */}
       <section className="px-8 pt-6 pb-16 lg:pt-10 lg:pb-20">
-        <div className="border border-border">
-          {/* Top Panel: Cover & Title */}
-          <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] xl:grid-cols-[440px_1fr]">
-            {/* Sisi Kiri: 1:1 Cover Square Utuh murni */}
-            <div className="relative border-b lg:border-b-0 lg:border-r border-border bg-muted/20">
-              <div className="size-full aspect-square min-h-[360px] sm:min-h-[400px] xl:min-h-[440px]">
-                {song.imageUrl ? (
-                  <img
-                    src={song.imageUrl}
-                    alt={`${song.title} — ${song.artist}`}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <div className="flex size-full items-end p-8">
-                    <span className="text-display font-light leading-display tracking-[-0.04em]">
-                      {song.title.charAt(0)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Sisi Kanan: Panel Tipografi Artist & Judul */}
-            <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
-              <div>
-                <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
-                  <span>Artist</span>
-                  <span>//</span>
-                  <Link
-                    href={`/artist/${artistSlug}`}
-                    className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
-                  >
-                    {song.artist}
-                  </Link>
+        <div className="border border-border grid grid-cols-1 lg:grid-cols-[400px_1fr] xl:grid-cols-[440px_1fr]">
+          {/* Sisi Kiri: 1:1 Cover Square Utuh murni */}
+          <div className="relative border-b lg:border-b-0 lg:border-r border-border bg-muted/20">
+            <div className="size-full aspect-square min-h-[360px] sm:min-h-[400px] xl:min-h-[440px]">
+              {song.imageUrl ? (
+                <img
+                  src={song.imageUrl}
+                  alt={`${song.title} — ${song.artist}`}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <div className="flex size-full items-end p-8">
+                  <span className="text-display font-light leading-display tracking-[-0.04em]">
+                    {song.title.charAt(0)}
+                  </span>
                 </div>
-
-                {/* Judul Display */}
-                <div className="mt-8">
-                  <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
-                    {song.title}
-                  </h1>
-                </div>
-              </div>
-
-              {/* Scroll to Lyrics Button */}
-              <div className="mt-8 pt-4">
-                <a
-                  href="#lyrics"
-                  className="group inline-flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
-                >
-                  <span>To lyrics</span>
-                  <ArrowDown
-                    size={16}
-                    strokeWidth={1}
-                    className="transition-transform duration-300 group-hover:translate-y-0.5"
-                  />
-                </a>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Bottom Panel: Structured Credits (Album Liner Notes Aesthetic) */}
-          {credits.length > 0 && (
-            <div className="border-t border-border p-6 sm:p-8 lg:px-12 lg:py-8 bg-muted/10">
-              <p className="text-caption uppercase text-muted-foreground mb-6">
-                Credits
-              </p>
+          {/* Sisi Kanan: Panel Tipografi Artist & Judul */}
+          <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
+            <div>
+              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
+                <span>Artist</span>
+                <span>//</span>
+                <Link
+                  href={`/artist/${artistSlug}`}
+                  className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
+                >
+                  {song.artist}
+                </Link>
+              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-6">
-                {credits.map((c, idx) => (
-                  <div
-                    key={idx}
-                    className="group border-l border-border hover:border-accent pl-3.5 transition-colors"
-                  >
-                    <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {c.role}
-                    </span>
-                    <span className="block mt-1 text-body-sm font-light text-foreground group-hover:text-accent transition-colors">
-                      {c.names.join(", ")}
-                    </span>
-                  </div>
-                ))}
+              {/* Judul Display */}
+              <div className="mt-8">
+                <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
+                  {song.title}
+                </h1>
               </div>
             </div>
-          )}
+
+            {/* Scroll to Lyrics Button */}
+            <div className="mt-8 pt-4">
+              <a
+                href="#lyrics"
+                className="group inline-flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
+              >
+                <span>To lyrics</span>
+                <ArrowDown
+                  size={16}
+                  strokeWidth={1}
+                  className="transition-transform duration-300 group-hover:translate-y-0.5"
+                />
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -189,6 +161,31 @@ export default async function LyricsPage({ params }: Props) {
                 {song.lyrics}
               </p>
             </div>
+
+            {/* Structured Credits di akhir lirik */}
+            {credits.length > 0 && (
+              <div className="mt-16 pt-8 border-t border-border">
+                <p className="text-caption uppercase text-muted-foreground tracking-widest mb-6">
+                  Credits
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6">
+                  {credits.map((c, idx) => (
+                    <div
+                      key={idx}
+                      className="group border-l border-border hover:border-accent pl-3.5 transition-colors"
+                    >
+                      <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {c.role}
+                      </span>
+                      <span className="block mt-1 text-body-sm font-light text-foreground group-hover:text-accent transition-colors">
+                        {c.names.join(", ")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Detail sticky di kanan — bersih */}
