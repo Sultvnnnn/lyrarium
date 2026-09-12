@@ -94,6 +94,10 @@
   --ring: #fffef7;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   @apply bg-background font-switzer text-foreground antialiased;
 }

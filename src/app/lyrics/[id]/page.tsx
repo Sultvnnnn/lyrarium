@@ -7,7 +7,7 @@ import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
 type Props = { params: Promise<{ id: string }> };
@@ -108,22 +108,39 @@ export default async function LyricsPage({ params }: Props) {
 
             {/* Sisi Kanan: Panel Tipografi Artist & Judul */}
             <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
-              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
-                <span>Artist</span>
-                <span>//</span>
-                <Link
-                  href={`/artist/${artistSlug}`}
-                  className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
-                >
-                  {song.artist}
-                </Link>
+              <div>
+                <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
+                  <span>Artist</span>
+                  <span>//</span>
+                  <Link
+                    href={`/artist/${artistSlug}`}
+                    className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
+                  >
+                    {song.artist}
+                  </Link>
+                </div>
+
+                {/* Judul Display */}
+                <div className="mt-8">
+                  <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
+                    {song.title}
+                  </h1>
+                </div>
               </div>
 
-              {/* Judul Display */}
-              <div className="mt-8">
-                <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
-                  {song.title}
-                </h1>
+              {/* Scroll to Lyrics Button */}
+              <div className="mt-8 pt-4">
+                <a
+                  href="#lyrics"
+                  className="group inline-flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
+                >
+                  <span>Scroll to lyrics</span>
+                  <ArrowDown
+                    size={16}
+                    strokeWidth={1}
+                    className="transition-transform duration-300 group-hover:translate-y-0.5"
+                  />
+                </a>
               </div>
             </div>
           </div>
@@ -156,7 +173,7 @@ export default async function LyricsPage({ params }: Props) {
       </section>
 
       {/* 2 — Lirik + detail (sticky kanan) */}
-      <section className="px-8 pt-4 pb-24">
+      <section id="lyrics" className="scroll-mt-8 px-8 pt-4 pb-24">
         <div className="grid grid-cols-1 gap-16 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Kolom lirik */}
           <div>
