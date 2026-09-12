@@ -130,10 +130,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
 
               {/* === ACTIVE / EXPANDED VIEW === */}
               <div
-                className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+                className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-all duration-500 ease-[0.22,1,0.36,1] ${
                   isActive
-                    ? "opacity-100 pointer-events-auto delay-150"
-                    : "opacity-0 pointer-events-none"
+                    ? "opacity-100 translate-y-0 pointer-events-auto delay-150"
+                    : "opacity-0 translate-y-1 pointer-events-none"
                 }`}
               >
                 {/* Top: Nomor Indeks & Track Count */}
@@ -146,13 +146,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                   </span>
                 </div>
 
-                {/* Bottom: Artist Details & Link Arrow */}
+                {/* Bottom: Nama Artis & Link Arrow */}
                 <div className="flex items-end justify-between gap-4">
-                  <div className="max-w-md">
-                    <p className="text-caption uppercase text-accent tracking-widest font-medium">
-                      Artist
-                    </p>
-                    <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em]">
+                  <div className="max-w-md min-w-0">
+                    <h3 className="text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em] truncate">
                       {artist.name}
                     </h3>
                   </div>
