@@ -103,10 +103,10 @@ export function SongAccordion({ songs }: SongAccordionProps) {
             >
               {/* 
                 Cover Image Wrapper:
-                Lebar tetap 1:1 (460/500px = tinggi container) agar gambar
-                tidak meregang. Card bertindak sebagai overflow-hidden window.
+                Di desktop, diposisikan di tengah (md:left-1/2 md:-translate-x-1/2) dengan lebar 1:1
+                sehingga saat card dalam keadaan tertutup (close hover), bagian tengah gambarlah yang tampil.
               */}
-              <div className="absolute inset-0 w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
+              <div className="absolute inset-0 md:inset-auto md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:right-auto w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
                 {song.imageUrl ? (
                   <img
                     src={song.imageUrl}
@@ -137,7 +137,7 @@ export function SongAccordion({ songs }: SongAccordionProps) {
 
               {/* === ACTIVE / EXPANDED VIEW === */}
               <div
-                className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+                className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
                   isActive
                     ? "opacity-100 pointer-events-auto delay-150"
                     : "opacity-0 pointer-events-none"

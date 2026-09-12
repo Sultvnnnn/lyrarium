@@ -96,10 +96,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
             >
               {/* 
                 Cover / Portrait Image Wrapper:
-                Lebar tetap 1:1 (460/500px = tinggi container) agar gambar
-                tidak meregang. Card bertindak sebagai overflow-hidden window.
+                Di desktop, diposisikan di tengah (md:left-1/2 md:-translate-x-1/2) dengan lebar 1:1
+                sehingga saat card dalam keadaan tertutup (close hover), bagian tengah fotolah yang tampil.
               */}
-              <div className="absolute inset-0 w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
+              <div className="absolute inset-0 md:inset-auto md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:right-auto w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
                 {artist.imageUrl ? (
                   <img
                     src={artist.imageUrl}
