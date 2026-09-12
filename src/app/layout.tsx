@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({
           enableSystem={false}
         >
           {children}
+          <ScrollToTop />
         </ThemeProvider>
       </body>
     </html>
