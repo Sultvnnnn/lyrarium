@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SongAccordion } from "@/components/song-accordion";
 import { ArrowLeft, Plus } from "lucide-react";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -221,15 +222,23 @@ export default async function ArtistPage({ params }: Props) {
       </div>
       {/* All songs by artist (Discography) */}
       <section className="px-8 pt-16 pb-24">
-        <p className="text-caption uppercase text-muted-foreground">
-          Discography
-        </p>
-        <h2 className="mt-4 text-heading-sm font-light tracking-[-0.02em]">
-          All songs by {displayName}.
-        </h2>
+        <div className="flex flex-wrap items-end justify-between gap-8 border-b border-border pb-4 mb-8">
+          <div>
+            <p className="text-caption uppercase text-muted-foreground tracking-widest">
+              Discography
+            </p>
+            <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
+              All songs by {displayName}.
+            </h2>
+          </div>
+
+          <span className="text-caption uppercase text-muted-foreground">
+            {artistSongs.length} {artistSongs.length === 1 ? "track" : "tracks"}
+          </span>
+        </div>
 
         {artistSongs.length === 0 ? (
-          <div className="mt-12 border border-border p-8 max-w-md">
+          <div className="border border-border p-8 max-w-md">
             <p className="text-body-sm text-muted-foreground">
               No songs archived yet for {displayName}.
             </p>
@@ -242,53 +251,7 @@ export default async function ArtistPage({ params }: Props) {
             </Link>
           </div>
         ) : (
-          <div className="mt-12 grid grid-cols-1 gap-x-12 gap-y-16 md:grid-cols-3">
-            {artistSongs.map((song, i) => (
-              <Link
-                key={song.id}
-                href={`/lyrics/${song.id}`}
-                className="group block"
-              >
-                <article>
-                  <div
-                    className={`aspect-square ${
-                      i % 3 === 1 ? "border border-accent" : ""
-                    }`}
-                  >
-                    {song.imageUrl ? (
-                      <img
-                        src={song.imageUrl}
-                        alt={`${song.title} — ${song.artist}`}
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={`flex size-full items-end p-6 ${
-                          i % 3 === 1
-                            ? "bg-accent"
-                            : "border border-border"
-                        }`}
-                      >
-                        <span
-                          className={`text-heading font-light tracking-[-0.023em] ${
-                            i % 3 === 1 ? "text-accent-foreground" : ""
-                          }`}
-                        >
-                          {song.title.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="mt-4 text-subheading font-light transition-colors group-hover:text-accent">
-                    {song.title}
-                  </h3>
-                  <p className="mt-1 text-caption uppercase text-muted-foreground">
-                    {song.artist}
-                  </p>
-                </article>
-              </Link>
-            ))}
-          </div>
+          <SongAccordion songs={artistSongs} />
         )}
       </section>
 
