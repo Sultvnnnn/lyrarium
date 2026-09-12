@@ -131,23 +131,7 @@ export default async function Home({ searchParams }: Props) {
     }
   }
 
-  // Prepared artists with slugs for stats ledger
-  const artistsForLedger = artistsList.map(([name, count]) => {
-    const matched = allDbArtists.find(
-      (a) => a.name.toLowerCase() === name.toLowerCase(),
-    );
-    return {
-      name,
-      slug:
-        matched?.slug ??
-        name
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, ""),
-      count,
-    };
-  });
+
 
   let filtered = all;
   if (artist)
@@ -219,7 +203,7 @@ export default async function Home({ searchParams }: Props) {
 
       {/* 4. Artists Section (Distinct Artist Dossier Accordion Strip) */}
       <section id="artists" className="px-8 pt-20">
-        <div className="flex flex-wrap items-end justify-between gap-8 border-b border-border pb-4 mb-8">
+        <div className="flex flex-wrap items-end justify-between gap-8 pb-4 mb-8">
           <div>
             <p className="text-caption uppercase text-muted-foreground tracking-widest">
               Archive Index
@@ -250,7 +234,6 @@ export default async function Home({ searchParams }: Props) {
         totalSongs={all.length}
         totalArtists={totalArtists}
         totalWords={totalWords}
-        artists={artistsForLedger}
       />
 
       <SiteFooter />
