@@ -121,7 +121,7 @@ export function AddSongForm({
 
     if (writers.trim()) {
       creditsList.push({
-        role: "Writer",
+        role: "Songwriter",
         names: writers.split(/,\s*/).map((s) => s.trim()).filter(Boolean),
       });
     }
@@ -353,13 +353,13 @@ export function AddSongForm({
           <Disc size={16} strokeWidth={1} className="text-muted-foreground" />
         </div>
 
-        {/* Writers / Songwriters */}
+        {/* Songwriters */}
         <div className="flex flex-col gap-2">
           <label
             htmlFor="credits_writers"
             className="text-caption uppercase text-muted-foreground"
           >
-            Songwriters / Composers
+            Songwriters
           </label>
           <input
             id="credits_writers"

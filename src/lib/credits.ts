@@ -3,6 +3,14 @@ export type StructuredCredit = {
   names: string[];
 };
 
+function normalizeRole(role: string): string {
+  const trimmed = role.trim();
+  if (/^writers?$/i.test(trimmed)) {
+    return "Songwriter";
+  }
+  return trimmed;
+}
+
 /**
  * Parsing data kredit lagu, mendukung format JSON baru maupun format teks lama (Key: Value).
  */
@@ -15,7 +23,7 @@ export function parseCredits(raw: string | null | undefined): StructuredCredit[]
   try {
     const parsed = JSON.parse(trimmed);
 
-    // Format array: [{ role: "Writer", names: ["..."] }]
+    // Format array: [{ role: "Songwriter", names: ["..."] }]
     if (Array.isArray(parsed)) {
       return parsed
         .filter(
@@ -26,7 +34,7 @@ export function parseCredits(raw: string | null | undefined): StructuredCredit[]
             item.names.length > 0
         )
         .map((item) => ({
-          role: item.role.trim(),
+          role: normalizeRole(item.role),
           names: item.names.map((n: string) => String(n).trim()).filter(Boolean),
         }));
     }
@@ -44,7 +52,7 @@ export function parseCredits(raw: string | null | undefined): StructuredCredit[]
               .filter(Boolean);
 
         if (names.length > 0) {
-          result.push({ role: role.trim(), names });
+          result.push({ role: normalizeRole(role), names });
         }
       }
       return result;
@@ -68,7 +76,7 @@ export function parseCredits(raw: string | null | undefined): StructuredCredit[]
         .filter(Boolean);
 
       if (role && names.length > 0) {
-        result.push({ role, names });
+        result.push({ role: normalizeRole(role), names });
       }
     } else {
       // Baris teks bebas tanpa format Role: Name
