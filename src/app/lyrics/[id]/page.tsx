@@ -7,7 +7,7 @@ import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Disc } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
 type Props = { params: Promise<{ id: string }> };
@@ -120,16 +120,10 @@ export default async function LyricsPage({ params }: Props) {
               </div>
 
               {/* Judul Display */}
-              <div className="my-auto py-6">
+              <div className="mt-8">
                 <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
                   {song.title}
                 </h1>
-              </div>
-
-              {/* Bottom Tag / Indicator */}
-              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground tracking-widest">
-                <span className="size-1.5 bg-accent" />
-                <span>Archive // Verified Lyrics</span>
               </div>
             </div>
           </div>
@@ -137,10 +131,9 @@ export default async function LyricsPage({ params }: Props) {
           {/* Bottom Panel: Structured Credits (Album Liner Notes Aesthetic) */}
           {credits.length > 0 && (
             <div className="border-t border-border p-6 sm:p-8 lg:px-12 lg:py-8 bg-muted/10">
-              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground mb-6">
-                <Disc size={16} strokeWidth={1} />
-                <span>Credits</span>
-              </div>
+              <p className="text-caption uppercase text-muted-foreground mb-6">
+                Credits
+              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-6">
                 {credits.map((c, idx) => (
