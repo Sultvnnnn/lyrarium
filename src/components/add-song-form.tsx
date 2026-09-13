@@ -88,6 +88,29 @@ export function AddSongForm({
   // Image preview state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const featDropdownRef = useRef<HTMLDivElement>(null);
+  const mainArtistDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        featDropdownRef.current &&
+        !featDropdownRef.current.contains(e.target as Node)
+      ) {
+        setFeatDropdownOpen(false);
+      }
+      if (
+        mainArtistDropdownRef.current &&
+        !mainArtistDropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Save draft to sessionStorage whenever fields change
   useEffect(() => {
@@ -304,7 +327,7 @@ export function AddSongForm({
           <input type="hidden" name="artist" value={artist} />
 
           {/* Artist Selector Component */}
-          <div className="relative">
+          <div className="relative" ref={mainArtistDropdownRef}>
             <div
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className={`flex items-center justify-between cursor-pointer border ${
@@ -434,44 +457,63 @@ export function AddSongForm({
           {/* Hidden input for formData */}
           <input type="hidden" name="featuring" value={featuringList.join(", ")} />
 
-          {/* Featuring Dropdown Selector */}
-          <div className="relative">
+          {/* Featuring Input + Dropdown Selector with Direct Typing */}
+          <div className="relative" ref={featDropdownRef}>
             <div
-              onClick={() => setFeatDropdownOpen(!featDropdownOpen)}
-              className={`flex items-center justify-between cursor-pointer border ${
+              className={`flex items-center border ${
                 featDropdownOpen ? "border-accent" : "border-border"
-              } bg-transparent px-4 py-3 text-body font-light text-foreground transition-colors`}
+              } bg-transparent transition-colors focus-within:border-accent`}
             >
-              <span className="text-muted-foreground">
-                {featuringList.length > 0
-                  ? "+ Add another featuring artist..."
-                  : "Select featuring artist(s)..."}
-              </span>
-              <ChevronDown
-                size={16}
-                strokeWidth={1}
-                className={`text-muted-foreground transition-transform ${
-                  featDropdownOpen ? "rotate-180 text-accent" : ""
-                }`}
+              <input
+                type="text"
+                value={featSearch}
+                onChange={(e) => {
+                  setFeatSearch(e.target.value);
+                  setFeatDropdownOpen(true);
+                }}
+                onFocus={() => setFeatDropdownOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const trimmed = featSearch.trim();
+                    if (!trimmed) return;
+                    const match = artistsList.find(
+                      (a) => a.toLowerCase() === trimmed.toLowerCase()
+                    );
+                    if (match) {
+                      addFeaturingArtist(match);
+                    }
+                  } else if (e.key === "Escape") {
+                    setFeatDropdownOpen(false);
+                  }
+                }}
+                placeholder={
+                  featuringList.length > 0
+                    ? "Type to search or add another featuring artist..."
+                    : "Type artist name to search or select (e.g. Lady Gaga)..."
+                }
+                className="w-full bg-transparent px-4 py-3 text-body font-light text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => setFeatDropdownOpen(!featDropdownOpen)}
+                className="px-4 py-3 text-muted-foreground hover:text-accent transition-colors shrink-0"
+                tabIndex={-1}
+                aria-label="Toggle featuring dropdown"
+              >
+                <ChevronDown
+                  size={16}
+                  strokeWidth={1}
+                  className={`transition-transform ${
+                    featDropdownOpen ? "rotate-180 text-accent" : ""
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Dropdown Menu */}
             {featDropdownOpen && (
               <div className="absolute top-full left-0 right-0 z-30 mt-1 border border-border bg-background shadow-none">
-                {/* Search filter inside dropdown */}
-                <div className="border-b border-border p-2">
-                  <input
-                    type="text"
-                    value={featSearch}
-                    onChange={(e) => setFeatSearch(e.target.value)}
-                    placeholder="Search featuring artist..."
-                    autoFocus
-                    className="w-full border border-border/80 bg-muted/30 px-3 py-2 text-body-sm font-light text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-
                 {/* Filtered available artists */}
                 <div className="max-h-56 overflow-y-auto divide-y divide-border/40">
                   {availableFeaturingArtists.length > 0 ? (
@@ -490,16 +532,16 @@ export function AddSongForm({
                     <div className="p-4 text-center">
                       <p className="text-body-sm text-muted-foreground">
                         {featSearch.trim()
-                          ? `No registered artist matching "${featSearch}".`
+                          ? `No registered artist matching "${featSearch.trim()}".`
                           : "All available artists are already selected."}
                       </p>
                       {featSearch.trim() && (
                         <Link
-                          href={`/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat&name=${encodeURIComponent(featSearch)}`}
+                          href={`/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat&name=${encodeURIComponent(featSearch.trim())}`}
                           className="mt-3 inline-flex items-center gap-1.5 border border-foreground bg-foreground px-3 py-1.5 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors"
                         >
                           <UserPlus size={16} strokeWidth={1} />
-                          <span>Create "{featSearch}"</span>
+                          <span>Create "{featSearch.trim()}"</span>
                         </Link>
                       )}
                     </div>
@@ -509,11 +551,19 @@ export function AddSongForm({
                 {/* Bottom link to create new artist */}
                 <div className="border-t border-border bg-muted/20 p-2.5">
                   <Link
-                    href="/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat"
+                    href={
+                      featSearch.trim()
+                        ? `/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat&name=${encodeURIComponent(featSearch.trim())}`
+                        : `/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat`
+                    }
                     className="flex w-full items-center justify-center gap-2 text-caption uppercase text-muted-foreground hover:text-accent transition-colors py-1"
                   >
                     <Plus size={16} strokeWidth={1} />
-                    <span>Create a new artist profile</span>
+                    <span>
+                      {featSearch.trim()
+                        ? `Create profile for "${featSearch.trim()}"`
+                        : "Create a new artist profile"}
+                    </span>
                   </Link>
                 </div>
               </div>
@@ -601,22 +651,32 @@ export function AddSongForm({
 
         {/* Featuring Artists */}
         <div className="flex flex-col gap-2">
-          <label
-            htmlFor="credits_featuring"
-            className="text-caption uppercase text-muted-foreground"
-          >
-            Featuring Artists
-          </label>
-          <input
-            id="credits_featuring"
-            value={featuringList.join(", ")}
-            readOnly
-            className={`${inputCls} opacity-80 cursor-default bg-muted/10`}
-            placeholder="Selected in Section 01 above..."
-          />
-          <p className="text-caption text-muted-foreground">
-            Configured in Section 01 // Automatically included in song liner notes.
-          </p>
+          <div className="flex items-center justify-between">
+            <span className="text-caption uppercase text-muted-foreground">
+              Featuring Artists
+            </span>
+            <span className="text-caption uppercase text-muted-foreground/70">
+              // Configured in Section 01
+            </span>
+          </div>
+          <div className="border border-border bg-muted/20 px-4 py-3 text-body-sm font-light text-foreground min-h-[48px] flex items-center">
+            {featuringList.length > 0 ? (
+              <div className="flex flex-wrap gap-2 items-center">
+                {featuringList.map((name) => (
+                  <span
+                    key={name}
+                    className="border border-border bg-background px-2.5 py-1 text-caption uppercase text-foreground"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-muted-foreground text-caption">
+                No featuring artists selected. Use the Featuring Artists field in Section 01 above.
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Audio Engineering / Mixing & Mastering */}
