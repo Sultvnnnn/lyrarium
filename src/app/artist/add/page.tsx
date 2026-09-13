@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AddArtistForm } from "@/components/add-artist-form";
+import { Breadcrumb } from "@/components/breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,17 @@ export default async function AddArtistPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
+
+      {/* Breadcrumb navigation */}
+      <div className="px-8 pt-8">
+        <Breadcrumb
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Artists", href: "/#artists" },
+            { label: "Add Artist" },
+          ]}
+        />
+      </div>
 
       <div className="px-8 pt-10 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-16 xl:gap-24">

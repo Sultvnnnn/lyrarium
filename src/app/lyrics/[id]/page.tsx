@@ -7,10 +7,14 @@ import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
-import { ArrowDown, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { LyricsBreadcrumb } from "@/components/lyrics-breadcrumb";
+import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -40,8 +44,9 @@ function getYouTubeEmbedUrl(url: string | null): string | null {
   }
 }
 
-export default async function LyricsPage({ params }: Props) {
+export default async function LyricsPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { from } = await searchParams;
   const songId = Number(id);
   if (!Number.isInteger(songId)) notFound();
 
@@ -67,19 +72,14 @@ export default async function LyricsPage({ params }: Props) {
     <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
 
-      {/* Back to archive link */}
+      {/* Breadcrumb navigation */}
       <div className="px-8 pt-8">
-        <Link
-          href="/"
-          className="group inline-flex items-center gap-2 text-caption uppercase text-muted-foreground transition-colors hover:text-accent"
-        >
-          <ArrowLeft
-            size={16}
-            strokeWidth={1}
-            className="transition-transform group-hover:-translate-x-1"
-          />
-          <span>Archive</span>
-        </Link>
+        <LyricsBreadcrumb
+          songTitle={song.title}
+          artistName={song.artist}
+          artistSlug={artistSlug}
+          fromParam={from}
+        />
       </div>
 
       {/* 1 — Integrated Gatefold Hero: Cover & Title Menyatu */}
@@ -233,7 +233,7 @@ export default async function LyricsPage({ params }: Props) {
       <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
         {prev ? (
           <Link
-            href={`/lyrics/${prev.id}`}
+            href={`/lyrics/${prev.id}${from === "artist" ? "?from=artist" : ""}`}
             className="group flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r"
           >
             <ChevronLeft
@@ -259,7 +259,7 @@ export default async function LyricsPage({ params }: Props) {
 
         {next ? (
           <Link
-            href={`/lyrics/${next.id}`}
+            href={`/lyrics/${next.id}${from === "artist" ? "?from=artist" : ""}`}
             className="group flex items-center justify-end gap-6 px-8 py-8 text-right"
           >
             <span className="min-w-0">

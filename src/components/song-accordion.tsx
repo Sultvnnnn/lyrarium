@@ -16,9 +16,10 @@ export type AccordionSong = {
 
 type SongAccordionProps = {
   songs: AccordionSong[];
+  fromArtist?: boolean;
 };
 
-export function SongAccordion({ songs }: SongAccordionProps) {
+export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
 
@@ -89,7 +90,7 @@ export function SongAccordion({ songs }: SongAccordionProps) {
               key={song.id}
               onClick={() => {
                 if (isActive) {
-                  router.push(`/lyrics/${song.id}`);
+                  router.push(fromArtist ? `/lyrics/${song.id}?from=artist` : `/lyrics/${song.id}`);
                 } else {
                   activateCard(i);
                 }
@@ -163,7 +164,7 @@ export function SongAccordion({ songs }: SongAccordionProps) {
 
                   {/* Direct Link to Song lyrics */}
                   <Link
-                    href={`/lyrics/${song.id}`}
+                    href={fromArtist ? `/lyrics/${song.id}?from=artist` : `/lyrics/${song.id}`}
                     aria-label={`Open lyrics for ${song.title}`}
                     className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
                     onClick={(e) => e.stopPropagation()}

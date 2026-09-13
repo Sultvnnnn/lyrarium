@@ -7,7 +7,8 @@ import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SongAccordion } from "@/components/song-accordion";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Breadcrumb } from "@/components/breadcrumb";
+import { Plus } from "lucide-react";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -95,19 +96,15 @@ export default async function ArtistPage({ params }: Props) {
       <div className="relative overflow-hidden">
         <SiteHeader />
 
-        {/* Back to archive link */}
+        {/* Breadcrumb navigation */}
         <div className="relative z-10 px-8 pt-8">
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-2 text-caption uppercase text-muted-foreground transition-colors hover:text-accent"
-          >
-            <ArrowLeft
-              size={16}
-              strokeWidth={1}
-              className="transition-colors group-hover:text-accent"
-            />
-            <span>Home</span>
-          </Link>
+          <Breadcrumb
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Artists", href: "/#artists" },
+              { label: displayName },
+            ]}
+          />
         </div>
 
         {/* Artist Hero — Editorial Art-Book Spread */}
@@ -251,7 +248,7 @@ export default async function ArtistPage({ params }: Props) {
             </Link>
           </div>
         ) : (
-          <SongAccordion songs={artistSongs} />
+          <SongAccordion songs={artistSongs} fromArtist />
         )}
       </section>
 
