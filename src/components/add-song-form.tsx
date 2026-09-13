@@ -832,7 +832,7 @@ export function AddSongForm({
           }}
           className="text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
         >
-          // Cancel & Return to Archive
+          // Cancel
         </Link>
 
         <button
