@@ -26,6 +26,7 @@ export default async function Home({ searchParams }: Props) {
   const pool3: HeroItem[] = [];
 
   for (const s of all) {
+    const artistDisplay = s.featuring ? `${s.artist} ft. ${s.featuring}` : s.artist;
     const rawLines = s.lyrics
       .split("\n")
       .map((l) => l.trim().replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, ""))
@@ -39,7 +40,7 @@ export default async function Home({ searchParams }: Props) {
         pool1.push({
           id: s.id,
           title: s.title,
-          artist: s.artist,
+          artist: artistDisplay,
           lines: [l1],
           line: l1,
         });
@@ -52,7 +53,7 @@ export default async function Home({ searchParams }: Props) {
           pool2.push({
             id: s.id,
             title: s.title,
-            artist: s.artist,
+            artist: artistDisplay,
             lines: [l1, l2],
             line: `${l1} / ${l2}`,
           });
@@ -71,7 +72,7 @@ export default async function Home({ searchParams }: Props) {
           pool3.push({
             id: s.id,
             title: s.title,
-            artist: s.artist,
+            artist: artistDisplay,
             lines: [l1, l2, l3],
             line: `${l1} / ${l2} / ${l3}`,
           });
@@ -88,16 +89,35 @@ export default async function Home({ searchParams }: Props) {
   const heroItems: HeroItem[] = [...shuffled1, ...shuffled2, ...shuffled3]
     .sort(() => Math.random() - 0.5);
 
-  const totalArtists = new Set(all.map((s) => s.artist.trim().toLowerCase()))
-    .size;
+  const allArtistNames = new Set<string>();
+  for (const s of all) {
+    allArtistNames.add(s.artist.trim().toLowerCase());
+    if (s.featuring) {
+      s.featuring.split(/,\s*/).forEach((f) => {
+        if (f.trim()) allArtistNames.add(f.trim().toLowerCase());
+      });
+    }
+  }
+  const totalArtists = allArtistNames.size;
+
   const totalWords = all.reduce(
     (acc, s) => acc + s.lyrics.split(/\s+/).filter(Boolean).length,
     0,
   );
 
   const artistMap = new Map<string, number>();
-  for (const s of all)
-    artistMap.set(s.artist.trim(), (artistMap.get(s.artist.trim()) ?? 0) + 1);
+  for (const s of all) {
+    const mainArtist = s.artist.trim();
+    artistMap.set(mainArtist, (artistMap.get(mainArtist) ?? 0) + 1);
+
+    if (s.featuring) {
+      const feats = s.featuring.split(/,\s*/).map((f) => f.trim()).filter(Boolean);
+      for (const f of feats) {
+        artistMap.set(f, (artistMap.get(f) ?? 0) + 1);
+      }
+    }
+  }
+
   const artistsList = [...artistMap.entries()].sort((a, b) =>
     a[0].localeCompare(b[0]),
   );
@@ -131,19 +151,22 @@ export default async function Home({ searchParams }: Props) {
     }
   }
 
-
-
   let filtered = all;
-  if (artist)
+  if (artist) {
+    const term = artist.toLowerCase();
     filtered = filtered.filter(
-      (s) => s.artist.trim().toLowerCase() === artist.toLowerCase(),
+      (s) =>
+        s.artist.trim().toLowerCase() === term ||
+        (s.featuring && s.featuring.toLowerCase().includes(term)),
     );
+  }
   if (q) {
     const term = q.toLowerCase();
     filtered = filtered.filter(
       (s) =>
         s.title.toLowerCase().includes(term) ||
         s.artist.toLowerCase().includes(term) ||
+        (s.featuring && s.featuring.toLowerCase().includes(term)) ||
         s.lyrics.toLowerCase().includes(term),
     );
   }

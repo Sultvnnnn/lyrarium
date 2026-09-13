@@ -19,10 +19,12 @@ export function AddSongForm({
   error,
   artistsList = [],
   initialArtist = "",
+  target = "",
 }: {
   error?: string;
   artistsList?: string[];
   initialArtist?: string;
+  target?: string;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -33,17 +35,51 @@ export function AddSongForm({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [lyrics, setLyrics] = useState("");
 
-  // Synchronize when initialArtist changes (e.g. redirected from Add Artist)
+  // Featuring artists state
+  const [featuringList, setFeaturingList] = useState<string[]>([]);
+  const [featSearch, setFeatSearch] = useState("");
+  const [featDropdownOpen, setFeatDropdownOpen] = useState(false);
+
+  // Restore draft from sessionStorage on initial mount
   useEffect(() => {
-    if (initialArtist) {
-      setArtist(initialArtist);
+    try {
+      const saved = sessionStorage.getItem("lyrarium_add_song_draft");
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft.title) setTitle(draft.title);
+        if (draft.artist && !initialArtist) setArtist(draft.artist);
+        if (Array.isArray(draft.featuringList) && draft.featuringList.length > 0) {
+          setFeaturingList((prev) => Array.from(new Set([...prev, ...draft.featuringList])));
+        }
+        if (draft.lyrics) setLyrics(draft.lyrics);
+        if (draft.writers) setWriters(draft.writers);
+        if (draft.producers) setProducers(draft.producers);
+        if (draft.engineering) setEngineering(draft.engineering);
+        if (Array.isArray(draft.customCredits) && draft.customCredits.length > 0) {
+          setCustomCredits(draft.customCredits);
+        }
+      }
+    } catch {
+      // ignore
     }
   }, [initialArtist]);
+
+  // Synchronize when initialArtist / target changes (e.g. redirected from Add Artist)
+  useEffect(() => {
+    if (initialArtist) {
+      if (target === "feat") {
+        setFeaturingList((prev) =>
+          prev.includes(initialArtist) ? prev : [...prev, initialArtist]
+        );
+      } else {
+        setArtist(initialArtist);
+      }
+    }
+  }, [initialArtist, target]);
 
   // Standard Credits
   const [writers, setWriters] = useState("");
   const [producers, setProducers] = useState("");
-  const [featuring, setFeaturing] = useState("");
   const [engineering, setEngineering] = useState("");
 
   // Custom Credits
@@ -53,6 +89,27 @@ export function AddSongForm({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Save draft to sessionStorage whenever fields change
+  useEffect(() => {
+    try {
+      const draft = {
+        title,
+        artist,
+        featuringList,
+        lyrics,
+        writers,
+        producers,
+        engineering,
+        customCredits,
+      };
+      if (title || lyrics || featuringList.length > 0 || writers || producers) {
+        sessionStorage.setItem("lyrarium_add_song_draft", JSON.stringify(draft));
+      }
+    } catch {
+      // ignore
+    }
+  }, [title, artist, featuringList, lyrics, writers, producers, engineering, customCredits]);
+
   // Lyrics statistics
   const lineCount = lyrics.split("\n").filter((l) => l.trim().length > 0).length;
   const wordCount = lyrics.split(/\s+/).filter(Boolean).length;
@@ -60,6 +117,22 @@ export function AddSongForm({
   const filteredArtists = artistsList.filter((a) =>
     a.toLowerCase().includes(artistSearch.toLowerCase().trim())
   );
+
+  const availableFeaturingArtists = artistsList
+    .filter((a) => a !== artist && !featuringList.includes(a))
+    .filter((a) => a.toLowerCase().includes(featSearch.toLowerCase().trim()));
+
+  const addFeaturingArtist = (name: string) => {
+    if (!featuringList.includes(name)) {
+      setFeaturingList((prev) => [...prev, name]);
+    }
+    setFeatDropdownOpen(false);
+    setFeatSearch("");
+  };
+
+  const removeFeaturingArtist = (name: string) => {
+    setFeaturingList((prev) => prev.filter((item) => item !== name));
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -100,7 +173,14 @@ export function AddSongForm({
   };
 
   const handleSubmit = (formData: FormData) => {
+    try {
+      sessionStorage.removeItem("lyrarium_add_song_draft");
+    } catch {
+      // ignore
+    }
+
     formData.set("artist", artist);
+    formData.set("featuring", featuringList.join(", "));
 
     const creditsList: StructuredCredit[] = [];
 
@@ -112,10 +192,11 @@ export function AddSongForm({
       });
     }
 
-    if (featuring.trim()) {
+    // Featuring Artists
+    if (featuringList.length > 0) {
       creditsList.push({
         role: "Featuring",
-        names: featuring.split(/,\s*/).map((s) => s.trim()).filter(Boolean),
+        names: featuringList,
       });
     }
 
@@ -313,6 +394,137 @@ export function AddSongForm({
           </p>
         </div>
 
+        {/* Featuring Artists Selector */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-caption uppercase text-muted-foreground">
+              Featuring Artists <span className="text-muted-foreground/60">(Optional)</span>
+            </label>
+            <Link
+              href="/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat"
+              className="inline-flex items-center gap-1.5 text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
+            >
+              <UserPlus size={16} strokeWidth={1} />
+              <span>Add New Artist</span>
+            </Link>
+          </div>
+
+          {/* Selected Featuring Artists Chips */}
+          {featuringList.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1 pb-1">
+              {featuringList.map((featName) => (
+                <div
+                  key={featName}
+                  className="inline-flex items-center gap-2 border border-border bg-muted/30 px-3 py-1.5 text-caption uppercase text-foreground"
+                >
+                  <span>{featName}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFeaturingArtist(featName)}
+                    aria-label={`Remove ${featName}`}
+                    className="text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    <X size={16} strokeWidth={1} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Hidden input for formData */}
+          <input type="hidden" name="featuring" value={featuringList.join(", ")} />
+
+          {/* Featuring Dropdown Selector */}
+          <div className="relative">
+            <div
+              onClick={() => setFeatDropdownOpen(!featDropdownOpen)}
+              className={`flex items-center justify-between cursor-pointer border ${
+                featDropdownOpen ? "border-accent" : "border-border"
+              } bg-transparent px-4 py-3 text-body font-light text-foreground transition-colors`}
+            >
+              <span className="text-muted-foreground">
+                {featuringList.length > 0
+                  ? "+ Add another featuring artist..."
+                  : "Select featuring artist(s)..."}
+              </span>
+              <ChevronDown
+                size={16}
+                strokeWidth={1}
+                className={`text-muted-foreground transition-transform ${
+                  featDropdownOpen ? "rotate-180 text-accent" : ""
+                }`}
+              />
+            </div>
+
+            {/* Dropdown Menu */}
+            {featDropdownOpen && (
+              <div className="absolute top-full left-0 right-0 z-30 mt-1 border border-border bg-background shadow-none">
+                {/* Search filter inside dropdown */}
+                <div className="border-b border-border p-2">
+                  <input
+                    type="text"
+                    value={featSearch}
+                    onChange={(e) => setFeatSearch(e.target.value)}
+                    placeholder="Search featuring artist..."
+                    autoFocus
+                    className="w-full border border-border/80 bg-muted/30 px-3 py-2 text-body-sm font-light text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+
+                {/* Filtered available artists */}
+                <div className="max-h-56 overflow-y-auto divide-y divide-border/40">
+                  {availableFeaturingArtists.length > 0 ? (
+                    availableFeaturingArtists.map((a) => (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => addFeaturingArtist(a)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left text-body-sm text-foreground transition-colors hover:bg-muted/40 hover:text-accent"
+                      >
+                        <span>{a}</span>
+                        <Plus size={16} strokeWidth={1} className="text-muted-foreground" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center">
+                      <p className="text-body-sm text-muted-foreground">
+                        {featSearch.trim()
+                          ? `No registered artist matching "${featSearch}".`
+                          : "All available artists are already selected."}
+                      </p>
+                      {featSearch.trim() && (
+                        <Link
+                          href={`/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat&name=${encodeURIComponent(featSearch)}`}
+                          className="mt-3 inline-flex items-center gap-1.5 border border-foreground bg-foreground px-3 py-1.5 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors"
+                        >
+                          <UserPlus size={16} strokeWidth={1} />
+                          <span>Create "{featSearch}"</span>
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom link to create new artist */}
+                <div className="border-t border-border bg-muted/20 p-2.5">
+                  <Link
+                    href="/artist/add?returnUrl=%2Fadd%3Ftarget%3Dfeat"
+                    className="flex w-full items-center justify-center gap-2 text-caption uppercase text-muted-foreground hover:text-accent transition-colors py-1"
+                  >
+                    <Plus size={16} strokeWidth={1} />
+                    <span>Create a new artist profile</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p className="text-caption text-muted-foreground">
+            Songs will appear in the archive and discography for all featured artists.
+          </p>
+        </div>
+
         {/* Lyrics */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -397,11 +609,14 @@ export function AddSongForm({
           </label>
           <input
             id="credits_featuring"
-            value={featuring}
-            onChange={(e) => setFeaturing(e.target.value)}
-            className={inputCls}
-            placeholder="e.g. David Bowie"
+            value={featuringList.join(", ")}
+            readOnly
+            className={`${inputCls} opacity-80 cursor-default bg-muted/10`}
+            placeholder="Selected in Section 01 above..."
           />
+          <p className="text-caption text-muted-foreground">
+            Configured in Section 01 // Automatically included in song liner notes.
+          </p>
         </div>
 
         {/* Audio Engineering / Mixing & Mastering */}
@@ -577,6 +792,13 @@ export function AddSongForm({
       <section className="border-t border-border pt-8 flex flex-wrap items-center justify-between gap-6">
         <Link
           href="/"
+          onClick={() => {
+            try {
+              sessionStorage.removeItem("lyrarium_add_song_draft");
+            } catch {
+              // ignore
+            }
+          }}
           className="text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
         >
           // Cancel & Return to Archive

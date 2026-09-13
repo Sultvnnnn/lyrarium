@@ -9,6 +9,7 @@ export type AccordionSong = {
   id: number;
   title: string;
   artist: string;
+  featuring?: string | null;
   lyrics: string;
   imageUrl: string | null;
   createdAt?: Date | null;
@@ -84,6 +85,9 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
         {songs.map((song, i) => {
           const isActive = activeIndex === i;
           const indexNum = String(i + 1).padStart(2, "0");
+          const artistDisplay = song.featuring
+            ? `${song.artist} ft. ${song.featuring}`
+            : song.artist;
 
           return (
             <div
@@ -111,7 +115,7 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                 {song.imageUrl ? (
                   <img
                     src={song.imageUrl}
-                    alt={`${song.title} — ${song.artist}`}
+                    alt={`${song.title} — ${artistDisplay}`}
                     className={`size-full object-cover transition-opacity duration-500 ease-out ${
                       isActive
                         ? "opacity-95"
@@ -155,7 +159,7 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                 <div className="flex items-end justify-between gap-4">
                   <div className="max-w-md">
                     <p className="text-caption uppercase text-accent tracking-widest font-medium">
-                      {song.artist}
+                      {artistDisplay}
                     </p>
                     <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em]">
                       {song.title}
@@ -187,7 +191,7 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                 </span>
 
                 <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
-                  {song.title} — {song.artist}
+                  {song.title} — {artistDisplay}
                 </span>
               </div>
 
@@ -208,7 +212,7 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                   </span>
                 </div>
                 <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
-                  {song.artist}
+                  {artistDisplay}
                 </span>
               </div>
             </div>

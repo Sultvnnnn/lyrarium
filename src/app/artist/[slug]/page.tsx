@@ -64,7 +64,7 @@ export default async function ArtistPage({ params }: Props) {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
 
-  // Cari semua lagu dengan artist yang match (case-insensitive)
+  // Cari semua lagu dengan artist atau featuring yang match (case-insensitive)
   const artistSongs = await db
     .select()
     .from(songs)
@@ -72,7 +72,10 @@ export default async function ArtistPage({ params }: Props) {
       sql`LOWER(TRIM(${songs.artist})) = ${displayName.toLowerCase()}
        OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${slugified}
        OR LOWER(TRIM(${songs.artist})) = ${decoded.toLowerCase()}
-       OR LOWER(TRIM(${songs.artist})) = ${unhyphenated}`
+       OR LOWER(TRIM(${songs.artist})) = ${unhyphenated}
+       OR LOWER(COALESCE(${songs.featuring}, '')) ILIKE ${`%${displayName.toLowerCase()}%`}
+       OR LOWER(COALESCE(${songs.featuring}, '')) ILIKE ${`%${decoded.toLowerCase()}%`}
+       OR LOWER(COALESCE(${songs.credits}, '')) ILIKE ${`%${displayName.toLowerCase()}%`}`
     )
     .orderBy(asc(songs.id));
 

@@ -10,6 +10,7 @@ import { uploadSongImage } from "@/lib/supabase-storage";
 export async function addSong(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const artist = String(formData.get("artist") ?? "").trim();
+  const featuring = String(formData.get("featuring") ?? "").trim() || null;
   const lyrics = String(formData.get("lyrics") ?? "").trim();
   let aboutArtist = String(formData.get("aboutArtist") ?? "").trim() || null;
 
@@ -41,6 +42,7 @@ export async function addSong(formData: FormData) {
   await db.insert(songs).values({
     title,
     artist,
+    featuring,
     lyrics,
     imageUrl,
     aboutArtist,
@@ -49,5 +51,6 @@ export async function addSong(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidatePath("/add");
   redirect("/");
 }

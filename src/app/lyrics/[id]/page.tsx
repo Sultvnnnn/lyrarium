@@ -68,6 +68,32 @@ export default async function LyricsPage({ params, searchParams }: Props) {
     artistRecord?.slug || encodeURIComponent(song.artist.toLowerCase().trim());
   const credits = parseCredits(song.credits);
 
+  // Fetch featuring artists
+  const rawFeaturing = song.featuring || "";
+  const featuringNames = rawFeaturing
+    ? rawFeaturing.split(/,\s*/).map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const allFeaturingArtists = await Promise.all(
+    featuringNames.map(async (name) => {
+      const rec = await db.query.artists.findFirst({
+        where: eq(artists.name, name),
+      });
+      const slug =
+        rec?.slug ||
+        name
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+      return {
+        name,
+        slug,
+        about: rec?.about || null,
+      };
+    })
+  );
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -79,6 +105,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           artistName={song.artist}
           artistSlug={artistSlug}
           fromParam={from}
+          featuringArtists={allFeaturingArtists}
         />
       </div>
 
@@ -107,7 +134,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           {/* Sisi Kanan: Panel Tipografi Artist & Judul */}
           <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
             <div>
-              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-caption uppercase text-muted-foreground">
                 <span>Artist</span>
                 <span>//</span>
                 <Link
@@ -116,6 +143,25 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                 >
                   {song.artist}
                 </Link>
+                {allFeaturingArtists.length > 0 && (
+                  <>
+                    <span className="text-border">//</span>
+                    <span>feat.</span>
+                    {allFeaturingArtists.map((feat, idx) => (
+                      <span key={feat.name} className="inline-flex items-center gap-1">
+                        <Link
+                          href={`/artist/${feat.slug}`}
+                          className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
+                        >
+                          {feat.name}
+                        </Link>
+                        {idx < allFeaturingArtists.length - 1 && (
+                          <span className="text-muted-foreground">,</span>
+                        )}
+                      </span>
+                    ))}
+                  </>
+                )}
               </div>
 
               {/* Judul Display */}
@@ -220,10 +266,32 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                   href={`/artist/${artistSlug}`}
                   className="mt-4 inline-flex items-center gap-1 text-caption uppercase text-foreground transition-colors hover:text-accent"
                 >
-                  <span>Explore artist</span>
+                  <span>Explore {song.artist}</span>
                   <ArrowRight size={16} strokeWidth={1} />
                 </Link>
               </div>
+            )}
+
+            {/* About featuring artists */}
+            {allFeaturingArtists.map(
+              (feat) =>
+                feat.about && (
+                  <div key={feat.name} className="border-t border-border pt-6">
+                    <p className="text-caption uppercase text-muted-foreground">
+                      About {feat.name}
+                    </p>
+                    <p className="mt-4 text-body-sm leading-body-sm text-muted-foreground">
+                      {feat.about}
+                    </p>
+                    <Link
+                      href={`/artist/${feat.slug}`}
+                      className="mt-4 inline-flex items-center gap-1 text-caption uppercase text-foreground transition-colors hover:text-accent"
+                    >
+                      <span>Explore {feat.name}</span>
+                      <ArrowRight size={16} strokeWidth={1} />
+                    </Link>
+                  </div>
+                )
             )}
           </aside>
         </div>

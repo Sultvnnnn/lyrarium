@@ -9,11 +9,11 @@ import { Breadcrumb } from "@/components/breadcrumb";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ error?: string; artist?: string }>;
+  searchParams: Promise<{ error?: string; artist?: string; target?: string }>;
 };
 
 export default async function AddPage({ searchParams }: Props) {
-  const { error, artist } = await searchParams;
+  const { error, artist, target } = await searchParams;
 
   // Ambil semua artis yang terdaftar dari database
   const allArtists = await db
@@ -57,6 +57,7 @@ export default async function AddPage({ searchParams }: Props) {
               error={error}
               artistsList={artistsList}
               initialArtist={artist}
+              target={target}
             />
           </div>
         </div>
