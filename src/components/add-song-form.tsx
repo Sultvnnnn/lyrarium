@@ -649,35 +649,6 @@ export function AddSongForm({
           />
         </div>
 
-        {/* Featuring Artists */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-caption uppercase text-muted-foreground">
-              Featuring Artists
-            </span>
-            <span className="text-caption uppercase text-muted-foreground/70">
-              // Configured in Section 01
-            </span>
-          </div>
-          <div className="border border-border bg-muted/20 px-4 py-3 text-body-sm font-light text-foreground min-h-[48px] flex items-center">
-            {featuringList.length > 0 ? (
-              <div className="flex flex-wrap gap-2 items-center">
-                {featuringList.map((name) => (
-                  <span
-                    key={name}
-                    className="border border-border bg-background px-2.5 py-1 text-caption uppercase text-foreground"
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <span className="text-muted-foreground text-caption">
-                No featuring artists selected. Use the Featuring Artists field in Section 01 above.
-              </span>
-            )}
-          </div>
-        </div>
 
         {/* Audio Engineering / Mixing & Mastering */}
         <div className="flex flex-col gap-2">
