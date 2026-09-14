@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
 import { LyricsBreadcrumb } from "@/components/lyrics-breadcrumb";
-import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
 type Props = {
@@ -174,8 +174,8 @@ export default async function LyricsPage({ params, searchParams }: Props) {
               </div>
             </div>
 
-            {/* Scroll to Lyrics Button */}
-            <div className="mt-8 pt-4">
+            {/* Action Buttons: Scroll to Lyrics & Edit Entry */}
+            <div className="mt-8 pt-4 flex flex-wrap items-center gap-3">
               <a
                 href="#lyrics"
                 className="group inline-flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
@@ -187,6 +187,14 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                   className="transition-transform duration-300 group-hover:translate-y-0.5"
                 />
               </a>
+
+              <Link
+                href={`/lyrics/${song.id}/edit`}
+                className="group inline-flex items-center gap-2 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-muted-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
+              >
+                <Pencil size={16} strokeWidth={1} />
+                <span>Edit Entry</span>
+              </Link>
             </div>
           </div>
         </div>
