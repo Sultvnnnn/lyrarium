@@ -43,6 +43,13 @@
       "when": 1789319888023,
       "tag": "0005_bent_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789387521499,
+      "tag": "0006_yellow_magik",
+      "breakpoints": true
     }
   ]
 }

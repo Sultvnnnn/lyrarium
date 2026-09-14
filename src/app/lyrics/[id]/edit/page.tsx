@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { asc, desc, eq, isNotNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { EditSongForm } from "@/components/edit-song-form";
+import { EditSongForm, type ExistingArtwork } from "@/components/edit-song-form";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ export default async function EditSongPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  const [song, allArtists] = await Promise.all([
+  const [song, allArtists, songArtworks] = await Promise.all([
     db.query.songs.findFirst({
       where: eq(songs.id, songId),
     }),
@@ -49,6 +49,17 @@ export default async function EditSongPage({ params, searchParams }: Props) {
       .select({ name: artists.name })
       .from(artists)
       .orderBy(asc(artists.name)),
+    db
+      .select({
+        id: songs.id,
+        title: songs.title,
+        artist: songs.artist,
+        album: songs.album,
+        imageUrl: songs.imageUrl,
+      })
+      .from(songs)
+      .where(isNotNull(songs.imageUrl))
+      .orderBy(desc(songs.createdAt)),
   ]);
 
   if (!song) {
@@ -56,6 +67,22 @@ export default async function EditSongPage({ params, searchParams }: Props) {
   }
 
   const artistsList = allArtists.map((a) => a.name);
+
+  // Deduplikasi artwork berdasarkan imageUrl
+  const seenUrls = new Set<string>();
+  const existingArtworks: ExistingArtwork[] = [];
+  for (const s of songArtworks) {
+    if (s.imageUrl && !seenUrls.has(s.imageUrl)) {
+      seenUrls.add(s.imageUrl);
+      existingArtworks.push({
+        id: s.id,
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        imageUrl: s.imageUrl,
+      });
+    }
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -92,6 +119,7 @@ export default async function EditSongPage({ params, searchParams }: Props) {
             <EditSongForm
               song={song}
               artistsList={artistsList}
+              existingArtworks={existingArtworks}
               error={error}
             />
           </div>

@@ -3,13 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { songs, artists } from "@/db/schema";
 import { uploadSongImage, deleteSongImage } from "@/lib/supabase-storage";
+
+async function safeDeleteSongImage(urlToDelete: string | null) {
+  if (!urlToDelete) return;
+  try {
+    const [songUsage] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(songs)
+      .where(eq(songs.imageUrl, urlToDelete));
+
+    const [artistUsage] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(artists)
+      .where(eq(artists.imageUrl, urlToDelete));
+
+    const totalUsage =
+      Number(songUsage?.count ?? 0) + Number(artistUsage?.count ?? 0);
+
+    // If totalUsage <= 1 (meaning either only the record being modified, or already 0),
+    // it is safe to delete from storage. If totalUsage > 1, other tracks still share it.
+    if (totalUsage <= 1) {
+      await deleteSongImage(urlToDelete);
+    }
+  } catch (err) {
+    console.error("Error in safeDeleteSongImage:", err);
+  }
+}
 
 export async function addSong(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const artist = String(formData.get("artist") ?? "").trim();
+  const album = String(formData.get("album") ?? "").trim() || null;
   const featuring = String(formData.get("featuring") ?? "").trim() || null;
   const lyrics = String(formData.get("lyrics") ?? "").trim();
   let aboutArtist = String(formData.get("aboutArtist") ?? "").trim() || null;
@@ -29,19 +56,25 @@ export async function addSong(formData: FormData) {
 
   if (!title || !artist || !lyrics) redirect("/add?error=1");
 
-  // Handle image upload
+  // Handle image upload or reuse existing artwork
   let imageUrl: string | null = null;
+  const existingImageUrl =
+    String(formData.get("existingImageUrl") ?? "").trim() || null;
   const imageFile = formData.get("image") as File | null;
+
   if (imageFile && imageFile.size > 0) {
     if (imageFile.size > 5 * 1024 * 1024) {
       redirect("/add?error=large");
     }
     imageUrl = await uploadSongImage(imageFile);
+  } else if (existingImageUrl) {
+    imageUrl = existingImageUrl;
   }
 
   await db.insert(songs).values({
     title,
     artist,
+    album,
     featuring,
     lyrics,
     imageUrl,
@@ -52,6 +85,7 @@ export async function addSong(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/add");
+  revalidatePath("/edit");
   redirect("/");
 }
 
@@ -76,6 +110,7 @@ export async function updateSong(
 
   const title = String(formData.get("title") ?? "").trim();
   const artist = String(formData.get("artist") ?? "").trim();
+  const album = String(formData.get("album") ?? "").trim() || null;
   const featuring = String(formData.get("featuring") ?? "").trim() || null;
   const lyrics = String(formData.get("lyrics") ?? "").trim();
   let aboutArtist = String(formData.get("aboutArtist") ?? "").trim() || null;
@@ -96,6 +131,8 @@ export async function updateSong(
   const removeImage = String(formData.get("removeImage") ?? "") === "true";
   const currentImageUrl =
     String(formData.get("currentImageUrl") ?? "").trim() || null;
+  const existingImageUrl =
+    String(formData.get("existingImageUrl") ?? "").trim() || null;
 
   if (!title || !artist || !lyrics) {
     redirect(`/lyrics/${id}/edit?error=1`);
@@ -108,26 +145,31 @@ export async function updateSong(
   });
   const previousImageUrl = existingSong?.imageUrl ?? currentImageUrl;
 
-  // Handle image upload / removal
+  // Handle image upload / existing reuse / removal
   let imageUrl: string | null = previousImageUrl;
   if (removeImage) {
     imageUrl = null;
     if (previousImageUrl) {
-      await deleteSongImage(previousImageUrl);
+      await safeDeleteSongImage(previousImageUrl);
     }
-  }
-
-  const imageFile = formData.get("image") as File | null;
-  if (imageFile && imageFile.size > 0) {
-    if (imageFile.size > 5 * 1024 * 1024) {
-      redirect(`/lyrics/${id}/edit?error=large`);
-    }
-    const uploadedUrl = await uploadSongImage(imageFile);
-    if (uploadedUrl) {
-      if (previousImageUrl && previousImageUrl !== uploadedUrl) {
-        await deleteSongImage(previousImageUrl);
+  } else {
+    const imageFile = formData.get("image") as File | null;
+    if (imageFile && imageFile.size > 0) {
+      if (imageFile.size > 5 * 1024 * 1024) {
+        redirect(`/lyrics/${id}/edit?error=large`);
       }
-      imageUrl = uploadedUrl;
+      const uploadedUrl = await uploadSongImage(imageFile);
+      if (uploadedUrl) {
+        if (previousImageUrl && previousImageUrl !== uploadedUrl) {
+          await safeDeleteSongImage(previousImageUrl);
+        }
+        imageUrl = uploadedUrl;
+      }
+    } else if (existingImageUrl) {
+      if (previousImageUrl && previousImageUrl !== existingImageUrl) {
+        await safeDeleteSongImage(previousImageUrl);
+      }
+      imageUrl = existingImageUrl;
     }
   }
 
@@ -136,6 +178,7 @@ export async function updateSong(
     .set({
       title,
       artist,
+      album,
       featuring,
       lyrics,
       imageUrl,
@@ -149,6 +192,7 @@ export async function updateSong(
   revalidatePath(`/lyrics/${id}`);
   revalidatePath(`/lyrics/${id}/edit`);
   revalidatePath("/add");
+  revalidatePath("/edit");
   redirect(`/lyrics/${id}`);
 }
 

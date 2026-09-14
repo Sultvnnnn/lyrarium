@@ -134,15 +134,27 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           {/* Sisi Kanan: Panel Tipografi Artist & Judul */}
           <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
             <div>
-              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
-                <span>Artist</span>
-                <span>//</span>
-                <Link
-                  href={`/artist/${artistSlug}`}
-                  className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
-                >
-                  {song.artist}
-                </Link>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption uppercase text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <span>Artist</span>
+                  <span>//</span>
+                  <Link
+                    href={`/artist/${artistSlug}`}
+                    className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
+                  >
+                    {song.artist}
+                  </Link>
+                </span>
+                {song.album && (
+                  <>
+                    <span>//</span>
+                    <span className="inline-flex items-center gap-2">
+                      <span>Album</span>
+                      <span>//</span>
+                      <span className="text-foreground">{song.album}</span>
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Judul Display + Featuring Artist */}

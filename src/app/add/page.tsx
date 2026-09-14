@@ -1,9 +1,9 @@
-import { asc } from "drizzle-orm";
+import { asc, desc, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
-import { artists } from "@/db/schema";
+import { artists, songs } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { AddSongForm } from "@/components/add-song-form";
+import { AddSongForm, type ExistingArtwork } from "@/components/add-song-form";
 import { Breadcrumb } from "@/components/breadcrumb";
 
 export const dynamic = "force-dynamic";
@@ -15,13 +15,42 @@ type Props = {
 export default async function AddPage({ searchParams }: Props) {
   const { error, artist, target } = await searchParams;
 
-  // Ambil semua artis yang terdaftar dari database
-  const allArtists = await db
-    .select({ name: artists.name })
-    .from(artists)
-    .orderBy(asc(artists.name));
+  // Ambil semua artis dan artwork lagu eksisting dari database
+  const [allArtists, songArtworks] = await Promise.all([
+    db
+      .select({ name: artists.name })
+      .from(artists)
+      .orderBy(asc(artists.name)),
+    db
+      .select({
+        id: songs.id,
+        title: songs.title,
+        artist: songs.artist,
+        album: songs.album,
+        imageUrl: songs.imageUrl,
+      })
+      .from(songs)
+      .where(isNotNull(songs.imageUrl))
+      .orderBy(desc(songs.createdAt)),
+  ]);
 
   const artistsList = allArtists.map((a) => a.name);
+
+  // Deduplikasi artwork berdasarkan imageUrl
+  const seenUrls = new Set<string>();
+  const existingArtworks: ExistingArtwork[] = [];
+  for (const s of songArtworks) {
+    if (s.imageUrl && !seenUrls.has(s.imageUrl)) {
+      seenUrls.add(s.imageUrl);
+      existingArtworks.push({
+        id: s.id,
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        imageUrl: s.imageUrl,
+      });
+    }
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -56,6 +85,7 @@ export default async function AddPage({ searchParams }: Props) {
             <AddSongForm
               error={error}
               artistsList={artistsList}
+              existingArtworks={existingArtworks}
               initialArtist={artist}
               target={target}
             />

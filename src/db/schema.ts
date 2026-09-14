@@ -4,6 +4,7 @@ export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
+  album: text("album"),
   featuring: text("featuring"),
   lyrics: text("lyrics").notNull(),
   imageUrl: text("image_url"),

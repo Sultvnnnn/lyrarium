@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -7,15 +8,19 @@ export const supabaseStorage = createClient(supabaseUrl, supabaseKey);
 
 export async function uploadSongImage(file: File): Promise<string | null> {
   try {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const hash = createHash("sha256").update(buffer).digest("hex").slice(0, 24);
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const fileName = `${hash}.${fileExt}`;
     const filePath = fileName;
 
     const { data, error } = await supabaseStorage.storage
       .from("song-images")
-      .upload(filePath, file, {
+      .upload(filePath, buffer, {
+        contentType: file.type || "image/jpeg",
         cacheControl: "3600",
-        upsert: false,
+        upsert: true,
       });
 
     if (error) {

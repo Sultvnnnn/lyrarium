@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Plus, X, Upload, ArrowRight, Music, Disc, Check, UserPlus, ChevronDown } from "lucide-react";
+import { Plus, X, Upload, ArrowRight, Music, Disc, Check, UserPlus, ChevronDown, Layers } from "lucide-react";
 import { addSong } from "@/app/actions/songs";
 import { serializeCredits, type StructuredCredit } from "@/lib/credits";
 
@@ -10,6 +10,14 @@ type CustomCreditRow = {
   id: string;
   role: string;
   names: string;
+};
+
+export type ExistingArtwork = {
+  id: number;
+  title: string;
+  artist: string;
+  album: string | null;
+  imageUrl: string;
 };
 
 const inputCls =
@@ -20,11 +28,13 @@ export function AddSongForm({
   artistsList = [],
   initialArtist = "",
   target = "",
+  existingArtworks = [],
 }: {
   error?: string;
   artistsList?: string[];
   initialArtist?: string;
   target?: string;
+  existingArtworks?: ExistingArtwork[];
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -33,6 +43,7 @@ export function AddSongForm({
   const [artist, setArtist] = useState(initialArtist || (artistsList[0] ?? ""));
   const [artistSearch, setArtistSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [album, setAlbum] = useState("");
   const [lyrics, setLyrics] = useState("");
 
   // Featuring artists state
@@ -48,6 +59,7 @@ export function AddSongForm({
         const draft = JSON.parse(saved);
         if (draft.title) setTitle(draft.title);
         if (draft.artist && !initialArtist) setArtist(draft.artist);
+        if (draft.album) setAlbum(draft.album);
         if (Array.isArray(draft.featuringList) && draft.featuringList.length > 0) {
           setFeaturingList((prev) => Array.from(new Set([...prev, ...draft.featuringList])));
         }
@@ -87,9 +99,43 @@ export function AddSongForm({
 
   // Image preview state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [artworkSource, setArtworkSource] = useState<"upload" | "existing">("upload");
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [selectedArtworkMeta, setSelectedArtworkMeta] = useState<{
+    title: string;
+    album: string | null;
+    artist: string;
+  } | null>(null);
+  const [showAllArtworks, setShowAllArtworks] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const featDropdownRef = useRef<HTMLDivElement>(null);
   const mainArtistDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Existing Artworks and Album suggestions
+  const artistAlbums = useMemo(() => {
+    if (!artist) return [];
+    const set = new Set<string>();
+    existingArtworks.forEach((a) => {
+      if (a.artist.toLowerCase() === artist.toLowerCase() && a.album) {
+        set.add(a.album.trim());
+      }
+    });
+    return Array.from(set);
+  }, [existingArtworks, artist]);
+
+  const artistArtworks = useMemo(() => {
+    if (!artist) return [];
+    return existingArtworks.filter(
+      (a) => a.artist.toLowerCase() === artist.toLowerCase() && a.imageUrl
+    );
+  }, [existingArtworks, artist]);
+
+  const otherArtworks = useMemo(() => {
+    return existingArtworks.filter(
+      (a) => a.artist.toLowerCase() !== artist.toLowerCase() && a.imageUrl
+    );
+  }, [existingArtworks, artist]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -118,6 +164,7 @@ export function AddSongForm({
       const draft = {
         title,
         artist,
+        album,
         featuringList,
         lyrics,
         writers,
@@ -125,13 +172,13 @@ export function AddSongForm({
         engineering,
         customCredits,
       };
-      if (title || lyrics || featuringList.length > 0 || writers || producers) {
+      if (title || lyrics || album || featuringList.length > 0 || writers || producers) {
         sessionStorage.setItem("lyrarium_add_song_draft", JSON.stringify(draft));
       }
     } catch {
       // ignore
     }
-  }, [title, artist, featuringList, lyrics, writers, producers, engineering, customCredits]);
+  }, [title, artist, album, featuringList, lyrics, writers, producers, engineering, customCredits]);
 
   // Lyrics statistics
   const lineCount = lyrics.split("\n").filter((l) => l.trim().length > 0).length;
@@ -157,18 +204,40 @@ export function AddSongForm({
     setFeaturingList((prev) => prev.filter((item) => item !== name));
   };
 
+  const selectExistingArtwork = (art: ExistingArtwork) => {
+    setExistingImageUrl(art.imageUrl);
+    setImagePreview(art.imageUrl);
+    setSelectedArtworkMeta({
+      title: art.title,
+      album: art.album,
+      artist: art.artist,
+    });
+    if (!album && art.album) {
+      setAlbum(art.album);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       setImagePreview(url);
+      setExistingImageUrl(null);
+      setSelectedArtworkMeta(null);
     } else {
       setImagePreview(null);
+      setExistingImageUrl(null);
+      setSelectedArtworkMeta(null);
     }
   };
 
   const removeImage = () => {
     setImagePreview(null);
+    setExistingImageUrl(null);
+    setSelectedArtworkMeta(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -203,7 +272,9 @@ export function AddSongForm({
     }
 
     formData.set("artist", artist);
+    formData.set("album", album);
     formData.set("featuring", featuringList.join(", "));
+    formData.set("existingImageUrl", existingImageUrl || "");
 
     const creditsList: StructuredCredit[] = [];
 
@@ -575,6 +646,60 @@ export function AddSongForm({
           </p>
         </div>
 
+        {/* Album (Optional) */}
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="album"
+            className="text-caption uppercase text-muted-foreground"
+          >
+            Album Name <span className="text-muted-foreground/60">(Optional)</span>
+          </label>
+          <input
+            id="album"
+            name="album"
+            value={album}
+            onChange={(e) => setAlbum(e.target.value)}
+            className={inputCls}
+            placeholder="e.g. A Night at the Opera"
+            list="album-suggestions"
+          />
+          {artistAlbums.length > 0 && (
+            <datalist id="album-suggestions">
+              {artistAlbums.map((alb) => (
+                <option key={alb} value={alb} />
+              ))}
+            </datalist>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-caption text-muted-foreground">
+              If this track belongs to an album, EP, or LP, enter the title here.
+            </p>
+            {album.trim() &&
+              artistArtworks.some(
+                (a) => a.album?.toLowerCase() === album.trim().toLowerCase()
+              ) &&
+              existingImageUrl !==
+                artistArtworks.find(
+                  (a) => a.album?.toLowerCase() === album.trim().toLowerCase()
+                )?.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const matching = artistArtworks.find(
+                      (a) =>
+                        a.album?.toLowerCase() === album.trim().toLowerCase()
+                    );
+                    if (matching) selectExistingArtwork(matching);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-caption uppercase text-accent hover:underline transition-colors"
+                >
+                  <Check size={14} strokeWidth={1} />
+                  <span>Use artwork for album "{album.trim()}"</span>
+                </button>
+              )}
+          </div>
+        </div>
+
         {/* Lyrics */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -733,70 +858,224 @@ export function AddSongForm({
           <Music size={16} strokeWidth={1} className="text-muted-foreground" />
         </div>
 
-        {/* Cover Art Upload with Sharp Preview */}
-        <div className="flex flex-col gap-3">
-          <label
-            htmlFor="image"
-            className="text-caption uppercase text-muted-foreground"
-          >
-            Cover Artwork
-          </label>
+        {/* Cover Artwork with Upload / Existing Picker */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="image"
+              className="text-caption uppercase text-muted-foreground"
+            >
+              Cover Artwork
+            </label>
 
-          <div className="flex flex-col sm:flex-row items-start gap-6 border border-border p-6 bg-muted/20">
-            {/* Sharp Preview Box */}
-            <div className="size-36 shrink-0 border border-border bg-background flex items-center justify-center overflow-hidden">
-              {imagePreview ? (
-                <img
-                  src={imagePreview}
-                  alt="Preview cover"
-                  className="size-full object-cover"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
-                  <Upload size={16} strokeWidth={1} className="mb-2" />
-                  <span className="text-[11px] uppercase tracking-wider">
-                    Upload Image
-                  </span>
-                </div>
-              )}
+            {/* Source Switcher: Upload vs Existing */}
+            <div className="flex items-center border border-border">
+              <button
+                type="button"
+                onClick={() => setArtworkSource("upload")}
+                className={`px-3 py-1.5 text-caption uppercase transition-colors ${
+                  artworkSource === "upload"
+                    ? "bg-foreground text-background font-medium"
+                    : "text-muted-foreground hover:text-accent"
+                }`}
+              >
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setArtworkSource("existing")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-caption uppercase border-l border-border transition-colors ${
+                  artworkSource === "existing"
+                    ? "bg-foreground text-background font-medium"
+                    : "text-muted-foreground hover:text-accent"
+                }`}
+              >
+                <span>Existing Artworks</span>
+                <span className="text-[10px] font-mono px-1 py-0.5 border border-current">
+                  {artistArtworks.length}
+                </span>
+              </button>
             </div>
+          </div>
 
-            <div className="flex-1 flex flex-col justify-between self-stretch gap-4">
-              <div>
-                <p className="text-body-sm text-foreground font-light">
-                  Upload square cover art or editorial song poster.
-                </p>
-                <p className="mt-1 text-caption text-muted-foreground">
-                  Supported formats: JPG, PNG, WebP (max 5MB).
-                </p>
+          {/* Mode 1: Upload New File */}
+          {artworkSource === "upload" && (
+            <div className="flex flex-col sm:flex-row items-start gap-6 border border-border p-6 bg-muted/20">
+              {/* Sharp Preview Box */}
+              <div className="size-36 shrink-0 border border-border bg-background flex items-center justify-center overflow-hidden">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview cover"
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
+                    <Upload size={16} strokeWidth={1} className="mb-2" />
+                    <span className="text-[11px] uppercase tracking-wider">
+                      Upload Image
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer border border-foreground bg-foreground px-4 py-2 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors">
-                  Choose File
-                  <input
-                    ref={fileInputRef}
-                    id="image"
-                    name="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
+              <div className="flex-1 flex flex-col justify-between self-stretch gap-4">
+                <div>
+                  <p className="text-body-sm text-foreground font-light">
+                    Upload square cover art or editorial song poster.
+                  </p>
+                  <p className="mt-1 text-caption text-muted-foreground">
+                    Supported formats: JPG, PNG, WebP (max 5MB). Content hash deduplication prevents duplicate storage files.
+                  </p>
+                  {existingImageUrl && (
+                    <p className="mt-2 text-caption text-accent">
+                      // Currently linked to shared artwork ({selectedArtworkMeta?.album || selectedArtworkMeta?.title || "Existing"}). Uploading a new file will override this.
+                    </p>
+                  )}
+                </div>
 
-                {imagePreview && (
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer border border-foreground bg-foreground px-4 py-2 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors">
+                    Choose File
+                    <input
+                      ref={fileInputRef}
+                      id="image"
+                      name="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="border border-border px-4 py-2 text-caption uppercase text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mode 2: Select from Existing Artworks */}
+          {artworkSource === "existing" && (
+            <div className="flex flex-col gap-4 border border-border p-6 bg-muted/20">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-body-sm text-foreground font-light">
+                    {artist
+                      ? `Select existing artwork by ${artist}:`
+                      : "Select an artist to view available artworks."}
+                  </p>
+                  <p className="text-caption text-muted-foreground mt-0.5">
+                    Reusing existing cover artwork links tracks together and avoids duplicate storage uploads.
+                  </p>
+                </div>
+                {otherArtworks.length > 0 && (
                   <button
                     type="button"
-                    onClick={removeImage}
-                    className="border border-border px-4 py-2 text-caption uppercase text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                    onClick={() => setShowAllArtworks(!showAllArtworks)}
+                    className="text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
                   >
-                    Remove Image
+                    {showAllArtworks
+                      ? `// Show only ${artist || "artist"} (${artistArtworks.length})`
+                      : `// Browse all archive covers (${existingArtworks.length})`}
                   </button>
                 )}
               </div>
+
+              {/* Grid of Artworks */}
+              {(() => {
+                const listToDisplay = showAllArtworks
+                  ? existingArtworks
+                  : artistArtworks;
+
+                if (listToDisplay.length === 0) {
+                  return (
+                    <div className="py-8 text-center border border-dashed border-border bg-background/50">
+                      <p className="text-body-sm text-muted-foreground">
+                        No previous artworks found for {artist || "this artist"}.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setArtworkSource("upload")}
+                        className="mt-3 inline-flex items-center gap-1.5 border border-foreground bg-foreground px-3 py-1.5 text-caption uppercase text-background hover:bg-accent hover:border-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <Upload size={16} strokeWidth={1} />
+                        <span>Upload New Artwork</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-2">
+                    {listToDisplay.map((art) => {
+                      const isSelected = existingImageUrl === art.imageUrl;
+                      return (
+                        <button
+                          key={`${art.id}-${art.imageUrl}`}
+                          type="button"
+                          onClick={() => selectExistingArtwork(art)}
+                          className={`group relative text-left border transition-colors ${
+                            isSelected
+                              ? "border-accent bg-background"
+                              : "border-border bg-background hover:border-accent"
+                          }`}
+                        >
+                          <div className="aspect-square w-full overflow-hidden bg-muted/30">
+                            <img
+                              src={art.imageUrl}
+                              alt={art.album || art.title}
+                              className="size-full object-cover"
+                            />
+                          </div>
+                          <div className="p-2">
+                            <p className="truncate text-[11px] font-normal uppercase text-foreground group-hover:text-accent transition-colors">
+                              {art.album || art.title}
+                            </p>
+                            <p className="truncate text-[10px] text-muted-foreground">
+                              {art.album ? `Album // ${art.artist}` : art.artist}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 bg-accent text-accent-foreground p-0.5">
+                              <Check size={16} strokeWidth={1} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              {existingImageUrl && (
+                <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
+                  <div className="flex items-center gap-2 text-caption">
+                    <span className="text-muted-foreground">Selected:</span>
+                    <span className="text-foreground font-normal">
+                      {selectedArtworkMeta?.album
+                        ? `Album: ${selectedArtworkMeta.album}`
+                        : selectedArtworkMeta?.title || "Shared Artwork"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="text-caption uppercase text-muted-foreground hover:text-accent transition-colors"
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* YouTube Embed URL */}
