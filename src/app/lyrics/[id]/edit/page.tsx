@@ -84,9 +84,6 @@ export default async function EditSongPage({ params, searchParams }: Props) {
               <h1 className="mt-4 text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
                 Edit song.
               </h1>
-              <p className="mt-4 text-body-sm text-muted-foreground font-light leading-relaxed">
-                Update song title, primary artist, featuring artists, full lyrics, liner note credits, artwork, or external media links in one unified editorial view.
-              </p>
             </div>
           </aside>
 
