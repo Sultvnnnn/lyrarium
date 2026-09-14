@@ -134,7 +134,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           {/* Sisi Kanan: Panel Tipografi Artist & Judul */}
           <div className="flex flex-col justify-between p-8 sm:p-10 lg:p-12 xl:p-14">
             <div>
-              <div className="flex flex-wrap items-center gap-2 text-caption uppercase text-muted-foreground">
+              <div className="flex items-center gap-2 text-caption uppercase text-muted-foreground">
                 <span>Artist</span>
                 <span>//</span>
                 <Link
@@ -143,32 +143,35 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                 >
                   {song.artist}
                 </Link>
-                {allFeaturingArtists.length > 0 && (
-                  <>
-                    <span className="text-border">//</span>
-                    <span>feat.</span>
-                    {allFeaturingArtists.map((feat, idx) => (
-                      <span key={feat.name} className="inline-flex items-center gap-1">
-                        <Link
-                          href={`/artist/${feat.slug}`}
-                          className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
-                        >
-                          {feat.name}
-                        </Link>
-                        {idx < allFeaturingArtists.length - 1 && (
-                          <span className="text-muted-foreground">,</span>
-                        )}
-                      </span>
-                    ))}
-                  </>
-                )}
               </div>
 
-              {/* Judul Display */}
+              {/* Judul Display + Featuring Artist */}
               <div className="mt-8">
-                <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
-                  {song.title}
-                </h1>
+                <div className="flex flex-wrap items-baseline gap-x-4 sm:gap-x-6 gap-y-2">
+                  <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
+                    {song.title}
+                  </h1>
+                  {allFeaturingArtists.length > 0 && (
+                    <span className="inline-flex flex-wrap items-baseline gap-2 text-subheading sm:text-heading-sm font-light text-muted-foreground">
+                      <span className="text-caption uppercase tracking-widest text-muted-foreground font-mono">
+                        // feat.
+                      </span>
+                      {allFeaturingArtists.map((feat, idx) => (
+                        <span key={feat.name} className="inline-flex items-baseline gap-1">
+                          <Link
+                            href={`/artist/${feat.slug}`}
+                            className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
+                          >
+                            {feat.name}
+                          </Link>
+                          {idx < allFeaturingArtists.length - 1 && (
+                            <span className="text-muted-foreground">,</span>
+                          )}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
