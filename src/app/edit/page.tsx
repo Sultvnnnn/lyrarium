@@ -84,7 +84,7 @@ export default async function EditHubPage({ searchParams }: Props) {
 
       <div className="px-8 pt-10 pb-24">
         {/* Editorial Section Header */}
-        <div className="mb-10 border-b border-border pb-6">
+        <div className="mb-10">
           <p className="text-caption uppercase text-muted-foreground tracking-widest">
             Archive Maintenance // Directory
           </p>
