@@ -152,10 +152,9 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                     {song.title}
                   </h1>
                   {allFeaturingArtists.length > 0 && (
-                    <span className="inline-flex flex-wrap items-baseline gap-2 text-subheading sm:text-heading-sm font-light text-muted-foreground">
-                      <span className="text-caption uppercase tracking-widest text-muted-foreground font-mono">
-                        // feat.
-                      </span>
+                    <span className="inline-flex flex-wrap items-baseline gap-2 text-caption uppercase text-muted-foreground">
+                      <span>//</span>
+                      <span>feat.</span>
                       {allFeaturingArtists.map((feat, idx) => (
                         <span key={feat.name} className="inline-flex items-baseline gap-1">
                           <Link
@@ -165,7 +164,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                             {feat.name}
                           </Link>
                           {idx < allFeaturingArtists.length - 1 && (
-                            <span className="text-muted-foreground">,</span>
+                            <span>,</span>
                           )}
                         </span>
                       ))}
