@@ -44,6 +44,31 @@ function getYouTubeEmbedUrl(url: string | null): string | null {
   }
 }
 
+function getDynamicTitleSize(title: string): string {
+  const trimmed = title.trim();
+  const len = trimmed.length;
+  const maxWordLen = Math.max(...trimmed.split(/\s+/).map((w) => w.length), 0);
+
+  // Very short: 1–8 characters (e.g. "Loser", "2001x", "Alamak")
+  if (len <= 8 && maxWordLen <= 8) {
+    return "text-6xl sm:text-7xl md:text-8xl xl:text-9xl leading-[0.9]";
+  }
+  // Short: 9–15 characters (e.g. "Menawan", "Starboy")
+  if (len <= 15 && maxWordLen <= 12) {
+    return "text-5xl sm:text-6xl md:text-7xl xl:text-8xl leading-[0.92]";
+  }
+  // Medium: 16–25 characters (e.g. "Bohemian Rhapsody", "Harap-Harap Cemas")
+  if (len <= 25 && maxWordLen <= 16) {
+    return "text-4xl sm:text-5xl md:text-6xl xl:text-7xl leading-[0.95]";
+  }
+  // Long: 26–38 characters (e.g. "The Less I Know the Better")
+  if (len <= 38) {
+    return "text-3xl sm:text-4xl md:text-5xl xl:text-6xl leading-[1.02]";
+  }
+  // Very long: > 38 characters
+  return "text-2xl sm:text-3xl md:text-4xl xl:text-5xl leading-[1.08]";
+}
+
 export default async function LyricsPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { from } = await searchParams;
@@ -148,7 +173,11 @@ export default async function LyricsPage({ params, searchParams }: Props) {
               {/* Judul Display + Featuring Artist */}
               <div className="mt-8">
                 <div className="flex flex-wrap items-baseline gap-x-4 sm:gap-x-6 gap-y-2">
-                  <h1 className="text-heading font-light leading-[0.9] tracking-[-0.035em] sm:text-7xl md:text-8xl xl:text-9xl">
+                  <h1
+                    className={`${getDynamicTitleSize(
+                      song.title
+                    )} font-light tracking-[-0.035em] break-words`}
+                  >
                     {song.title}
                   </h1>
                   {allFeaturingArtists.length > 0 && (
