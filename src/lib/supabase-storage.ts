@@ -36,3 +36,37 @@ export async function uploadSongImage(file: File): Promise<string | null> {
 
 export const uploadArtistImage = uploadSongImage;
 
+export function extractStoragePath(url: string, bucket = "song-images"): string | null {
+  if (!url) return null;
+  const marker = `/${bucket}/`;
+  const idx = url.indexOf(marker);
+  if (idx !== -1) {
+    return url.slice(idx + marker.length).split("?")[0];
+  }
+  // If the string is already just the file path
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return url;
+  }
+  return null;
+}
+
+export async function deleteSongImage(
+  url: string | null | undefined,
+  bucket = "song-images"
+): Promise<void> {
+  if (!url) return;
+  try {
+    const path = extractStoragePath(url, bucket);
+    if (!path) return;
+    const { error } = await supabaseStorage.storage.from(bucket).remove([path]);
+    if (error) {
+      console.error(`Failed to delete storage file "${path}" from "${bucket}":`, error);
+    }
+  } catch (error) {
+    console.error(`Error deleting storage file from "${bucket}":`, error);
+  }
+}
+
+export const deleteArtistImage = deleteSongImage;
+
+

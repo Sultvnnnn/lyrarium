@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
 import { songs, artists } from "@/db/schema";
-import { uploadSongImage } from "@/lib/supabase-storage";
+import { uploadSongImage, deleteSongImage } from "@/lib/supabase-storage";
 
 export async function addSong(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
@@ -101,10 +101,20 @@ export async function updateSong(
     redirect(`/lyrics/${id}/edit?error=1`);
   }
 
+  // Fetch existing song record to get true previous imageUrl
+  const existingSong = await db.query.songs.findFirst({
+    where: eq(songs.id, id),
+    columns: { imageUrl: true },
+  });
+  const previousImageUrl = existingSong?.imageUrl ?? currentImageUrl;
+
   // Handle image upload / removal
-  let imageUrl: string | null = currentImageUrl;
+  let imageUrl: string | null = previousImageUrl;
   if (removeImage) {
     imageUrl = null;
+    if (previousImageUrl) {
+      await deleteSongImage(previousImageUrl);
+    }
   }
 
   const imageFile = formData.get("image") as File | null;
@@ -112,7 +122,13 @@ export async function updateSong(
     if (imageFile.size > 5 * 1024 * 1024) {
       redirect(`/lyrics/${id}/edit?error=large`);
     }
-    imageUrl = await uploadSongImage(imageFile);
+    const uploadedUrl = await uploadSongImage(imageFile);
+    if (uploadedUrl) {
+      if (previousImageUrl && previousImageUrl !== uploadedUrl) {
+        await deleteSongImage(previousImageUrl);
+      }
+      imageUrl = uploadedUrl;
+    }
   }
 
   await db

@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { artists, songs } from "@/db/schema";
 
-import { uploadArtistImage } from "@/lib/supabase-storage";
+import { uploadArtistImage, deleteArtistImage } from "@/lib/supabase-storage";
 
 export async function addArtist(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -107,9 +107,19 @@ export async function updateArtist(
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  let imageUrl: string | null = currentImageUrl;
+  // Fetch existing artist record to get true previous imageUrl
+  const existingArtist = await db.query.artists.findFirst({
+    where: eq(artists.id, id),
+    columns: { imageUrl: true },
+  });
+  const previousImageUrl = existingArtist?.imageUrl ?? currentImageUrl;
+
+  let imageUrl: string | null = previousImageUrl;
   if (removeImage) {
     imageUrl = null;
+    if (previousImageUrl) {
+      await deleteArtistImage(previousImageUrl);
+    }
   }
 
   const imageFile = formData.get("image") as File | null;
@@ -117,7 +127,13 @@ export async function updateArtist(
     if (imageFile.size > 5 * 1024 * 1024) {
       redirect(`/artist/${oldSlug || id}/edit?error=large`);
     }
-    imageUrl = await uploadArtistImage(imageFile);
+    const uploadedUrl = await uploadArtistImage(imageFile);
+    if (uploadedUrl) {
+      if (previousImageUrl && previousImageUrl !== uploadedUrl) {
+        await deleteArtistImage(previousImageUrl);
+      }
+      imageUrl = uploadedUrl;
+    }
   }
 
   await db
