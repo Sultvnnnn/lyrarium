@@ -84,16 +84,13 @@ export default async function EditHubPage({ searchParams }: Props) {
 
       <div className="px-8 pt-10 pb-24">
         {/* Editorial Section Header */}
-        <div className="mb-12 border-b border-border pb-8">
+        <div className="mb-10 border-b border-border pb-6">
           <p className="text-caption uppercase text-muted-foreground tracking-widest">
             Archive Maintenance // Directory
           </p>
           <h1 className="mt-4 text-heading font-light leading-heading tracking-[-0.023em] md:text-display md:leading-display md:tracking-[-0.04em]">
             Edit archive.
           </h1>
-          <p className="mt-4 text-body-sm text-muted-foreground font-light max-w-2xl leading-relaxed">
-            Select an entry below to modify lyrics, credits, artwork, or artist profiles. Choose between songs or artists to update records in the archive.
-          </p>
         </div>
 
         {/* Interactive Hub with Tabs & Cards */}
