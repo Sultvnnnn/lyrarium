@@ -259,7 +259,7 @@ export function EditArchiveHub({
           }}
         >
           {/* TRACK 1: SONGS (100% of visible container width) */}
-          <div className="w-1/2 shrink-0 pr-4">
+          <div className="w-1/2 shrink-0">
             {filteredSongs.length === 0 ? (
               <div className="border border-border p-12 text-center max-w-md mx-auto">
                 <p className="text-body-sm text-muted-foreground">
@@ -418,7 +418,7 @@ export function EditArchiveHub({
           </div>
 
           {/* TRACK 2: ARTISTS (100% of visible container width) */}
-          <div className="w-1/2 shrink-0 pl-4">
+          <div className="w-1/2 shrink-0">
             {filteredArtists.length === 0 ? (
               <div className="border border-border p-12 text-center max-w-md mx-auto">
                 <p className="text-body-sm text-muted-foreground">
