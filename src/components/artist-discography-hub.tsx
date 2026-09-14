@@ -162,13 +162,14 @@ export function ArtistDiscographyHub({
 
       {/* 2. Count Summary */}
       <div className="flex items-center justify-between">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption uppercase text-muted-foreground tracking-widest">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption uppercase text-muted-foreground tracking-widest">
           <span>
             {tabs[activeIndex]?.songs.length}{" "}
             {tabs[activeIndex]?.songs.length === 1 ? "track" : "tracks"}
           </span>
           {tabs[activeIndex]?.albumName ? (
             <>
+              <span>in album</span>
               <span>//</span>
               <span className="text-foreground font-normal">
                 {tabs[activeIndex].albumName}
@@ -176,6 +177,7 @@ export function ArtistDiscographyHub({
             </>
           ) : tabs[activeIndex]?.id === "singles" ? (
             <>
+              <span>in</span>
               <span>//</span>
               <span className="text-foreground font-normal">
                 Singles
