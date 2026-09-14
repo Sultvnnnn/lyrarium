@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, X, Disc } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { SongAccordion, type AccordionSong } from "@/components/song-accordion";
 
@@ -165,9 +165,6 @@ export function ArtistDiscographyHub({
         <span className="text-caption uppercase text-muted-foreground tracking-widest">
           {tabs[activeIndex]?.songs.length}{" "}
           {tabs[activeIndex]?.songs.length === 1 ? "track" : "tracks"}
-          {tabs[activeIndex]?.albumName
-            ? ` // Album: ${tabs[activeIndex]?.albumName}`
-            : ""}
         </span>
 
         {search && (
@@ -211,43 +208,6 @@ export function ArtistDiscographyHub({
                 style={{ width: `${100 / tabs.length}%` }}
                 className="shrink-0"
               >
-                {/* Album Header Banner if this is an album tab */}
-                {tab.albumName && (
-                  <div className="mb-6 flex flex-wrap items-center gap-6 border border-border bg-muted/20 p-4 sm:p-6">
-                    {tab.artworkUrl ? (
-                      <div className="size-20 sm:size-24 shrink-0 border border-border overflow-hidden bg-background">
-                        <img
-                          src={tab.artworkUrl}
-                          alt={tab.albumName}
-                          className="size-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="size-20 sm:size-24 shrink-0 border border-border bg-background flex items-center justify-center">
-                        <Disc
-                          size={28}
-                          strokeWidth={1}
-                          className="text-muted-foreground"
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-[200px]">
-                      <div className="flex items-center gap-2 text-caption uppercase text-accent tracking-wider font-mono">
-                        <Disc size={12} strokeWidth={1} />
-                        <span>Album</span>
-                      </div>
-                      <h3 className="text-heading-sm sm:text-heading font-light tracking-[-0.02em] text-foreground mt-1">
-                        {tab.albumName}
-                      </h3>
-                      <p className="text-caption uppercase text-muted-foreground mt-1">
-                        {tab.songs.length}{" "}
-                        {tab.songs.length === 1 ? "track" : "tracks"} //{" "}
-                        {artistName}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {filteredSongs.length === 0 ? (
                   <div className="border border-border p-12 text-center max-w-md mx-auto">
                     <p className="text-body-sm text-muted-foreground">
