@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { SongAccordion } from "@/components/song-accordion";
+import { ArtistDiscographyHub } from "@/components/artist-discography-hub";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Plus, Pencil } from "lucide-react";
 
@@ -239,21 +239,15 @@ export default async function ArtistPage({ params }: Props) {
           </div>
         </section>
       </div>
-      {/* All songs by artist (Discography) */}
+      {/* All songs & albums by artist (Discography) */}
       <section className="px-8 pt-16 pb-24">
-        <div className="flex flex-wrap items-end justify-between gap-8 border-b border-border pb-4 mb-8">
-          <div>
-            <p className="text-caption uppercase text-muted-foreground tracking-widest">
-              Discography
-            </p>
-            <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
-              All songs by {displayName}.
-            </h2>
-          </div>
-
-          <span className="text-caption uppercase text-muted-foreground">
-            {artistSongs.length} {artistSongs.length === 1 ? "track" : "tracks"}
-          </span>
+        <div className="mb-8">
+          <p className="text-caption uppercase text-muted-foreground tracking-widest">
+            Discography & Albums
+          </p>
+          <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
+            Releases by {displayName}.
+          </h2>
         </div>
 
         {artistSongs.length === 0 ? (
@@ -270,7 +264,10 @@ export default async function ArtistPage({ params }: Props) {
             </Link>
           </div>
         ) : (
-          <SongAccordion songs={artistSongs} fromArtist />
+          <ArtistDiscographyHub
+            songs={artistSongs}
+            artistName={displayName}
+          />
         )}
       </section>
 
