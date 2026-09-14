@@ -162,10 +162,27 @@ export function ArtistDiscographyHub({
 
       {/* 2. Count Summary */}
       <div className="flex items-center justify-between">
-        <span className="text-caption uppercase text-muted-foreground tracking-widest">
-          {tabs[activeIndex]?.songs.length}{" "}
-          {tabs[activeIndex]?.songs.length === 1 ? "track" : "tracks"}
-        </span>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption uppercase text-muted-foreground tracking-widest">
+          <span>
+            {tabs[activeIndex]?.songs.length}{" "}
+            {tabs[activeIndex]?.songs.length === 1 ? "track" : "tracks"}
+          </span>
+          {tabs[activeIndex]?.albumName ? (
+            <>
+              <span>//</span>
+              <span className="text-foreground font-normal">
+                {tabs[activeIndex].albumName}
+              </span>
+            </>
+          ) : tabs[activeIndex]?.id === "singles" ? (
+            <>
+              <span>//</span>
+              <span className="text-foreground font-normal">
+                Singles
+              </span>
+            </>
+          ) : null}
+        </div>
 
         {search && (
           <button
