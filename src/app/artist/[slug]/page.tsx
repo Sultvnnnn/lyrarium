@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SongAccordion } from "@/components/song-accordion";
 import { Breadcrumb } from "@/components/breadcrumb";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -150,6 +150,25 @@ export default async function ArtistPage({ params }: Props) {
                     Tracks
                   </p>
                 </div>
+              </div>
+
+              {/* Action Buttons: Edit Profile & Add Song */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/artist/${artistRecord ? artistRecord.slug : slugified}/edit`}
+                  className="group inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-caption uppercase tracking-widest text-muted-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
+                >
+                  <Pencil size={16} strokeWidth={1} />
+                  <span>Edit Profile</span>
+                </Link>
+
+                <Link
+                  href={`/add?artist=${encodeURIComponent(displayName)}`}
+                  className="group inline-flex items-center gap-2 border border-foreground bg-foreground px-4 py-2 text-caption uppercase tracking-widest text-background transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground active:scale-95"
+                >
+                  <Plus size={16} strokeWidth={1} />
+                  <span>Add Song</span>
+                </Link>
               </div>
 
               {/* About artist bio */}

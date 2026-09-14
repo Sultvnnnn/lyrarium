@@ -10,6 +10,7 @@ const links = [
   { href: "/", label: "Home", num: "01" },
   { href: "/add", label: "Add a song", num: "02" },
   { href: "/artist/add", label: "Add an artist", num: "03" },
+  { href: "/edit", label: "Edit archive", num: "04" },
 ];
 
 export function SiteHeader() {

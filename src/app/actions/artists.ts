@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { artists } from "@/db/schema";
+import { artists, songs } from "@/db/schema";
 
 import { uploadArtistImage } from "@/lib/supabase-storage";
 
@@ -69,3 +70,80 @@ export async function addArtist(formData: FormData) {
     redirect(`/artist/${slug}`);
   }
 }
+
+export async function updateArtist(
+  idOrFormData: number | FormData,
+  maybeFormData?: FormData
+) {
+  let id: number;
+  let formData: FormData;
+
+  if (typeof idOrFormData === "number") {
+    id = idOrFormData;
+    formData = maybeFormData as FormData;
+  } else {
+    formData = idOrFormData;
+    id = Number(formData.get("id"));
+  }
+
+  const oldSlug = String(formData.get("oldSlug") ?? "").trim();
+  const oldName = String(formData.get("oldName") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const about = String(formData.get("about") ?? "").trim() || null;
+  const removeImage = String(formData.get("removeImage") ?? "") === "true";
+  const currentImageUrl =
+    String(formData.get("currentImageUrl") ?? "").trim() || null;
+
+  if (!id || isNaN(id)) {
+    redirect("/edit?type=artists");
+  }
+
+  if (!name) {
+    redirect(`/artist/${oldSlug || id}/edit?error=1`);
+  }
+
+  const newSlug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  let imageUrl: string | null = currentImageUrl;
+  if (removeImage) {
+    imageUrl = null;
+  }
+
+  const imageFile = formData.get("image") as File | null;
+  if (imageFile && imageFile.size > 0) {
+    if (imageFile.size > 5 * 1024 * 1024) {
+      redirect(`/artist/${oldSlug || id}/edit?error=large`);
+    }
+    imageUrl = await uploadArtistImage(imageFile);
+  }
+
+  await db
+    .update(artists)
+    .set({
+      name,
+      slug: newSlug,
+      about,
+      imageUrl,
+    })
+    .where(eq(artists.id, id));
+
+  // If the artist name changed, update the artist in songs table as well
+  if (oldName && oldName !== name) {
+    await db
+      .update(songs)
+      .set({ artist: name })
+      .where(eq(songs.artist, oldName));
+  }
+
+  revalidatePath("/");
+  revalidatePath("/edit");
+  revalidatePath("/add");
+  if (oldSlug) revalidatePath(`/artist/${oldSlug}`);
+  revalidatePath(`/artist/${newSlug}`);
+
+  redirect(`/artist/${newSlug}`);
+}
+
