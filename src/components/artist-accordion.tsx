@@ -110,7 +110,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
         - Active card: strictly 1:1 square (width = height via explicit flex basis matching h).
         - Inactive cards: strip ramping fixed-width (flex-none).
       */}
-      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2">
+      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
         {displayArtists.map((artist, i) => {
           const isActive = activeIndex === i;
           const indexNum = String(i + 1).padStart(2, "0");
@@ -126,7 +126,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                 }
               }}
               onMouseEnter={() => activateCard(i)}
-              className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] ${
+              className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
                 isActive
                   ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
                   : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
@@ -141,7 +141,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                     className={`size-full object-cover transition-opacity duration-500 ease-out ${
                       isActive
                         ? "opacity-95"
-                        : "opacity-40 grayscale group-hover:opacity-60 group-hover:grayscale-0"
+                        : "opacity-40 grayscale group-hover:opacity-60"
                     }`}
                   />
                 ) : (

@@ -90,19 +90,19 @@ export function SiteHeader() {
           open ? "translate-y-0" : "-translate-y-full"
         }`}
       >
-        <nav className="flex flex-col">
+        <nav className="flex flex-col overflow-y-auto">
           {links.map((l, i) => (
             <Link
               key={l.num}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="group flex items-baseline gap-6 border-t border-charcoal-scale py-6 last:border-b dark:border-ash"
+              className="group flex items-baseline gap-6 border-t border-charcoal-scale py-4 last:border-b dark:border-ash"
             >
               <span className="text-caption uppercase text-ash dark:text-graphite">
                 {l.num}
               </span>
               <span
-                className={`text-heading font-light leading-heading tracking-[-0.023em] transition-all duration-500 group-hover:pl-4 group-hover:text-signal-yellow dark:group-hover:text-magenta-bloom md:text-display md:leading-display md:tracking-[-0.04em] ${
+                className={`text-heading-sm font-light leading-heading-sm tracking-[-0.023em] transition-all duration-500 group-hover:pl-4 group-hover:text-signal-yellow dark:group-hover:text-magenta-bloom md:text-heading md:leading-heading md:tracking-[-0.04em] ${
                   open ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
                 }`}
                 style={{ transitionDelay: `${150 + i * 100}ms` }}
