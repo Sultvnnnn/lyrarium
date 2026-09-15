@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
@@ -20,6 +20,56 @@ type SongsCatalogViewProps = {
 export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
   const [selectedLetter, setSelectedLetter] = useState<string>("ALL");
   const [search, setSearch] = useState<string>("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [itemsPerRow, setItemsPerRow] = useState<number>(6);
+
+  // ── Dynamic Screen-Fitting Calculation ──
+  // Menghitung kapasitas card per baris secara dinamis menyesuaikan lebar kontainer/layar
+  useEffect(() => {
+    function updateCapacity() {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const isDesktop = window.innerWidth >= 768;
+
+      if (!isDesktop) {
+        // Mobile: 4 card per baris vertikal
+        setItemsPerRow(4);
+        return;
+      }
+
+      const isLarge = window.innerWidth >= 1024;
+      const activeWidth = isLarge ? 500 : 460;
+      const inactiveWidth = isLarge ? 84 : 72;
+      const gap = window.innerWidth >= 640 ? 12 : 10;
+
+      const remainingWidth = width - activeWidth;
+      if (remainingWidth <= 0) {
+        setItemsPerRow(2);
+        return;
+      }
+
+      // Hitung berapa inactive cards yang muat secara presisi
+      const inactiveCount = Math.floor(remainingWidth / (inactiveWidth + gap));
+      const totalFit = 1 + inactiveCount;
+      setItemsPerRow(Math.max(2, totalFit));
+    }
+
+    updateCapacity();
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+      observer = new ResizeObserver(() => {
+        updateCapacity();
+      });
+      observer.observe(containerRef.current);
+    }
+
+    window.addEventListener("resize", updateCapacity);
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener("resize", updateCapacity);
+    };
+  }, []);
 
   // Letter distribution counts
   const letterCounts = useMemo(() => {
@@ -67,18 +117,18 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
     });
   }, [songs, selectedLetter, search]);
 
-  // Chunk songs into rows of 6 for accordion strips
+  // Chunk songs into rows of dynamic itemsPerRow
   const songChunks = useMemo(() => {
     const chunks: Song[][] = [];
-    const CHUNK_SIZE = 6;
-    for (let i = 0; i < filteredSongs.length; i += CHUNK_SIZE) {
-      chunks.push(filteredSongs.slice(i, i + CHUNK_SIZE));
+    const size = Math.max(1, itemsPerRow);
+    for (let i = 0; i < filteredSongs.length; i += size) {
+      chunks.push(filteredSongs.slice(i, i + size));
     }
     return chunks;
-  }, [filteredSongs]);
+  }, [filteredSongs, itemsPerRow]);
 
   return (
-    <div className="w-full space-y-10">
+    <div ref={containerRef} className="w-full space-y-10">
       {/* Controls Bar: Search & Alphabet Filter */}
       <div className="space-y-6">
         {/* Search Input Box */}
@@ -201,9 +251,9 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
         <div className="space-y-8">
           {songChunks.map((chunk, chunkIdx) => (
             <SongAccordionRow
-              key={chunkIdx}
+              key={`row-${chunkIdx}-${chunk[0]?.id}`}
               songs={chunk}
-              startIndex={chunkIdx * 6}
+              startIndex={chunkIdx * itemsPerRow}
             />
           ))}
         </div>
@@ -217,9 +267,50 @@ type SongAccordionRowProps = {
   startIndex: number;
 };
 
-function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
+const SongAccordionRow = React.memo(function SongAccordionRow({
+  songs,
+  startIndex,
+}: SongAccordionRowProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
+
+  // ── Transition lock to eliminate hover lag & jitter ──
+  const lockRef = useRef(false);
+  const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    };
+  }, []);
+
+  const activateCard = useCallback(
+    (i: number) => {
+      if (i === activeIndex) return;
+
+      if (lockRef.current) {
+        pendingRef.current = i;
+        return;
+      }
+
+      lockRef.current = true;
+      pendingRef.current = null;
+      setActiveIndex(i);
+
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+      lockTimerRef.current = setTimeout(() => {
+        lockRef.current = false;
+
+        if (pendingRef.current !== null && pendingRef.current !== i) {
+          const next = pendingRef.current;
+          pendingRef.current = null;
+          activateCard(next);
+        }
+      }, 300);
+    },
+    [activeIndex],
+  );
 
   return (
     <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
@@ -237,13 +328,13 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
               if (isActive) {
                 router.push(`/lyrics/${song.id}`);
               } else {
-                setActiveIndex(i);
+                activateCard(i);
               }
             }}
-            onMouseEnter={() => setActiveIndex(i)}
-            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
+            onMouseEnter={() => activateCard(i)}
+            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex-basis,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
               isActive
-                ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] w-full aspect-square md:aspect-auto md:h-full border-accent z-10"
                 : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
             }`}
           >
@@ -259,6 +350,7 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
                       : "opacity-40 grayscale group-hover:opacity-60"
                   }`}
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="size-full flex items-center justify-center bg-muted">
@@ -268,7 +360,7 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
                 </div>
               )}
 
-              {/* Scrim Overlay */}
+              {/* Scrim Overlay untuk kontras teks */}
               <div
                 className={`absolute inset-0 transition-opacity duration-500 ease-out ${
                   isActive
@@ -286,7 +378,7 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              {/* Top: Index & Album */}
+              {/* Top: Nomor Indeks & Album */}
               <div className="flex items-center justify-between gap-2">
                 <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
                   [{indexNum}]
@@ -298,7 +390,7 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
                 )}
               </div>
 
-              {/* Bottom: Artist, Title & Arrow Link */}
+              {/* Bottom: Judul, Artis & Link Arrow */}
               <div className="flex items-end justify-between gap-4">
                 <div className="max-w-md min-w-0">
                   <p className="text-caption uppercase text-accent tracking-widest font-medium line-clamp-1">
@@ -320,7 +412,7 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
               </div>
             </div>
 
-            {/* === COLLAPSED VIEW (DESKTOP) === */}
+            {/* === COLLAPSED VIEW (DESKTOP: Vertical Text Strip) === */}
             <div
               className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
                 !isActive
@@ -337,7 +429,7 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
               </span>
             </div>
 
-            {/* === COLLAPSED VIEW (MOBILE) === */}
+            {/* === COLLAPSED VIEW (MOBILE: Horizontal Strip Bar) === */}
             <div
               className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
                 !isActive
@@ -362,4 +454,4 @@ function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
       })}
     </div>
   );
-}
+});
