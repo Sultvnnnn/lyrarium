@@ -271,38 +271,25 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
               {/* Top: Header Tag */}
               <div className="flex items-center justify-between">
                 <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
-                  [INDEX // COMPLETE]
-                </span>
-                <span className="text-caption uppercase text-muted-foreground tracking-widest">
                   +{remainingCount} more
                 </span>
               </div>
 
               {/* Middle: Editorial Callout */}
               <div className="my-auto py-6">
-                <p className="text-caption uppercase tracking-widest text-muted-foreground">
-                  Archive Index
-                </p>
-                <h3 className="mt-2 text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
-                  Explore All Artists.
+                <h3 className="text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
+                  All {artists.length} artists.
                 </h3>
-                <p className="mt-3 text-body-sm text-muted-foreground max-w-sm">
-                  View full profiles, biographical dossiers, and discographies indexed in the Lyrarium archive.
-                </p>
               </div>
 
               {/* Bottom: Action Button to /artist */}
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <span className="text-caption uppercase text-muted-foreground tracking-wider">
-                  Showing {displayArtists.length} of {artists.length}
-                </span>
-
+              <div className="flex items-end justify-end pt-4 border-t border-border">
                 <Link
                   href="/artist"
                   className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span>Open Index</span>
+                  <span>Browse</span>
                   <ArrowUpRight size={16} strokeWidth={1} />
                 </Link>
               </div>
