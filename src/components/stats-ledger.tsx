@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type StatsLedgerProps = {
   totalSongs: number;
   totalArtists: number;
@@ -25,24 +27,30 @@ export function StatsLedger({
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-px border border-border">
         {/* Songs */}
-        <div className="group p-6 md:p-8 border-b sm:border-b-0 sm:border-r border-border last:border-0 transition-colors hover:bg-muted/30">
+        <Link
+          href="/songs"
+          className="group block p-6 md:p-8 border-b sm:border-b-0 sm:border-r border-border last:border-0 transition-colors hover:bg-muted/30"
+        >
           <p className="text-display font-light leading-none tracking-[-0.04em] group-hover:text-accent transition-colors">
             {totalSongs}
           </p>
-          <p className="mt-3 text-caption uppercase tracking-widest text-muted-foreground">
-            Songs
+          <p className="mt-3 text-caption uppercase tracking-widest text-muted-foreground group-hover:text-accent transition-colors">
+            Songs &rarr;
           </p>
-        </div>
+        </Link>
 
         {/* Artists */}
-        <div className="group p-6 md:p-8 border-b sm:border-b-0 sm:border-r border-border last:border-0 transition-colors hover:bg-muted/30">
+        <Link
+          href="/artist"
+          className="group block p-6 md:p-8 border-b sm:border-b-0 sm:border-r border-border last:border-0 transition-colors hover:bg-muted/30"
+        >
           <p className="text-display font-light leading-none tracking-[-0.04em] group-hover:text-accent transition-colors">
             {totalArtists}
           </p>
-          <p className="mt-3 text-caption uppercase tracking-widest text-muted-foreground">
-            Artists
+          <p className="mt-3 text-caption uppercase tracking-widest text-muted-foreground group-hover:text-accent transition-colors">
+            Artists &rarr;
           </p>
-        </div>
+        </Link>
 
         {/* Words */}
         <div className="group p-6 md:p-8 transition-colors hover:bg-muted/30">

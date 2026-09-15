@@ -8,9 +8,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
   { href: "/", label: "Home", num: "01" },
-  { href: "/add", label: "Add a song", num: "02" },
-  { href: "/artist/add", label: "Add an artist", num: "03" },
-  { href: "/edit", label: "Edit archive", num: "04" },
+  { href: "/songs", label: "Songs archive", num: "02" },
+  { href: "/artist", label: "Artist index", num: "03" },
+  { href: "/add", label: "Add a song", num: "04" },
+  { href: "/artist/add", label: "Add an artist", num: "05" },
+  { href: "/edit", label: "Edit archive", num: "06" },
 ];
 
 export function SiteHeader() {

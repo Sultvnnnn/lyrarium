@@ -19,10 +19,44 @@ type ArtistAccordionProps = {
 
 export function ArtistAccordion({ artists }: ArtistAccordionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [maxVisible, setMaxVisible] = useState<number>(artists.length);
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // ── Dynamic Screen-Fitting Calculation ──
+  useEffect(() => {
+    function updateCapacity() {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const isDesktop = window.innerWidth >= 768;
+
+      if (!isDesktop) {
+        setMaxVisible(5);
+        return;
+      }
+
+      const isLarge = window.innerWidth >= 1024;
+      const activeWidth = isLarge ? 500 : 460;
+      const inactiveWidth = isLarge ? 84 : 72;
+      const gap = window.innerWidth >= 640 ? 12 : 10;
+
+      const remainingWidth = width - activeWidth;
+      if (remainingWidth <= 0) {
+        setMaxVisible(2);
+        return;
+      }
+
+      const inactiveCount = Math.floor(remainingWidth / (inactiveWidth + gap));
+      const totalFit = 1 + inactiveCount;
+      setMaxVisible(Math.max(3, totalFit));
+    }
+
+    updateCapacity();
+    window.addEventListener("resize", updateCapacity);
+    return () => window.removeEventListener("resize", updateCapacity);
+  }, []);
+
   // ── Transition lock ──
-  // Mencegah hover glitch saat boundary card bergeser selama animasi transisi
   const lockRef = useRef(false);
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<number | null>(null);
@@ -62,18 +96,22 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
 
   if (!artists || artists.length === 0) return null;
 
+  const hasMore = artists.length > maxVisible;
+  const displayArtists = hasMore ? artists.slice(0, maxVisible - 1) : artists;
+  const remainingCount = artists.length - displayArtists.length;
+  const viewAllIndex = displayArtists.length;
+
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       {/* 
         Accordion Container:
         - Desktop: Menyamping (flex-row), height 460px (500px di lg).
         - Mobile: Menurun (flex-col).
         - Active card: strictly 1:1 square (width = height via explicit flex basis matching h).
         - Inactive cards: strip ramping fixed-width (flex-none).
-        - Transition lock mencegah glitch akibat boundary shift selama animasi.
       */}
-      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-x-auto scrollbar-none pb-2">
-        {artists.map((artist, i) => {
+      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2">
+        {displayArtists.map((artist, i) => {
           const isActive = activeIndex === i;
           const indexNum = String(i + 1).padStart(2, "0");
 
@@ -94,11 +132,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                   : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
               }`}
             >
-              {/* 
-                Cover / Portrait Image Wrapper:
-                Di desktop, diposisikan di tengah (md:left-1/2 md:-translate-x-1/2) dengan lebar 1:1
-                sehingga saat card dalam keadaan tertutup (close hover), bagian tengah fotolah yang tampil.
-              */}
+              {/* Cover / Portrait Image Wrapper */}
               <div className="absolute inset-0 md:inset-auto md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:right-auto w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
                 {artist.imageUrl ? (
                   <img
@@ -154,7 +188,6 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                     </h3>
                   </div>
 
-                  {/* Direct Link to Artist Profile */}
                   <Link
                     href={`/artist/${artist.slug}`}
                     aria-label={`View artist profile for ${artist.name}`}
@@ -206,6 +239,107 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
             </div>
           );
         })}
+
+        {/* ── CARD KHUSUS: VIEW ALL ARTISTS (jika artis melebihi kapasitas layar) ── */}
+        {hasMore && (
+          <div
+            onClick={() => {
+              if (activeIndex === viewAllIndex) {
+                router.push("/artist");
+              } else {
+                activateCard(viewAllIndex);
+              }
+            }}
+            onMouseEnter={() => activateCard(viewAllIndex)}
+            className={`group relative overflow-hidden border bg-muted/40 cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] ${
+              activeIndex === viewAllIndex
+                ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+            }`}
+          >
+            {/* Background Texture Minimalis */}
+            <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-muted/80 pointer-events-none" />
+
+            {/* === ACTIVE / EXPANDED VIEW === */}
+            <div
+              className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+                activeIndex === viewAllIndex
+                  ? "opacity-100 pointer-events-auto delay-150"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              {/* Top: Header Tag */}
+              <div className="flex items-center justify-between">
+                <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
+                  [INDEX // COMPLETE]
+                </span>
+                <span className="text-caption uppercase text-muted-foreground tracking-widest">
+                  +{remainingCount} more
+                </span>
+              </div>
+
+              {/* Middle: Editorial Callout */}
+              <div className="my-auto py-6">
+                <p className="text-caption uppercase tracking-widest text-muted-foreground">
+                  Archive Index
+                </p>
+                <h3 className="mt-2 text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
+                  Explore All Artists.
+                </h3>
+                <p className="mt-3 text-body-sm text-muted-foreground max-w-sm">
+                  View full profiles, biographical dossiers, and discographies indexed in the Lyrarium archive.
+                </p>
+              </div>
+
+              {/* Bottom: Action Button to /artist */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <span className="text-caption uppercase text-muted-foreground tracking-wider">
+                  Showing {displayArtists.length} of {artists.length}
+                </span>
+
+                <Link
+                  href="/artist"
+                  className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span>Open Index</span>
+                  <ArrowUpRight size={16} strokeWidth={1} />
+                </Link>
+              </div>
+            </div>
+
+            {/* === COLLAPSED VIEW (DESKTOP) === */}
+            <div
+              className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
+                activeIndex !== viewAllIndex
+                  ? "opacity-100 pointer-events-auto delay-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
+                [→]
+              </span>
+
+              <span className="text-caption uppercase tracking-widest text-foreground font-medium [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+                EXPLORE ALL // +{remainingCount} MORE
+              </span>
+            </div>
+
+            {/* === COLLAPSED VIEW (MOBILE) === */}
+            <div
+              className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
+                activeIndex !== viewAllIndex
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <span className="text-caption uppercase tracking-wide text-foreground font-medium">
+                VIEW ALL ARTISTS (+{remainingCount} MORE)
+              </span>
+              <ArrowUpRight size={16} strokeWidth={1} className="text-accent" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

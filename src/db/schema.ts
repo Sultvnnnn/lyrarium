@@ -22,3 +22,9 @@ export const artists = pgTable("artists", {
   imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export type Song = typeof songs.$inferSelect;
+export type NewSong = typeof songs.$inferInsert;
+export type Artist = typeof artists.$inferSelect;
+export type NewArtist = typeof artists.$inferInsert;
+

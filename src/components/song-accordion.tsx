@@ -22,13 +22,49 @@ type SongAccordionProps = {
 
 export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [maxVisible, setMaxVisible] = useState<number>(songs.length);
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // ── Dynamic Screen-Fitting Calculation ──
+  // Menghitung kapasitas card berdasarkan lebar kontainer/layar
+  // sehingga strip accordion pas di viewport tanpa horizontal overflow yang meluber.
+  useEffect(() => {
+    function updateCapacity() {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const isDesktop = window.innerWidth >= 768;
+
+      if (!isDesktop) {
+        // Mobile: batasi misalnya 5 card
+        setMaxVisible(5);
+        return;
+      }
+
+      const isLarge = window.innerWidth >= 1024;
+      const activeWidth = isLarge ? 500 : 460;
+      const inactiveWidth = isLarge ? 84 : 72;
+      const gap = window.innerWidth >= 640 ? 12 : 10;
+
+      const remainingWidth = width - activeWidth;
+      if (remainingWidth <= 0) {
+        setMaxVisible(2);
+        return;
+      }
+
+      // Hitung berapa inactive cards yang muat
+      const inactiveCount = Math.floor(remainingWidth / (inactiveWidth + gap));
+      const totalFit = 1 + inactiveCount;
+      // Minimal 3 card
+      setMaxVisible(Math.max(3, totalFit));
+    }
+
+    updateCapacity();
+    window.addEventListener("resize", updateCapacity);
+    return () => window.removeEventListener("resize", updateCapacity);
+  }, []);
+
   // ── Transition lock ──
-  // Saat card berganti, boundary semua card bergeser selama transisi CSS berlangsung.
-  // Jika kursor diam di tempat, batas yang bergeser bisa memicu mouseenter
-  // pada card tetangga → menyebabkan bolak-balik tak terhingga (glitch).
-  // Lock mencegah pergantian card selama transisi berjalan.
   const lockRef = useRef(false);
   const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<number | null>(null);
@@ -43,13 +79,11 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
     (i: number) => {
       if (i === activeIndex) return;
 
-      // Jika sedang dalam masa lock, simpan sebagai pending (akan dieksekusi setelah lock selesai)
       if (lockRef.current) {
         pendingRef.current = i;
         return;
       }
 
-      // Set active dan lock transisi
       lockRef.current = true;
       pendingRef.current = null;
       setActiveIndex(i);
@@ -58,7 +92,6 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
       lockTimerRef.current = setTimeout(() => {
         lockRef.current = false;
 
-        // Jika ada pending hover yang masuk selama lock, eksekusi sekarang
         if (pendingRef.current !== null && pendingRef.current !== i) {
           const next = pendingRef.current;
           pendingRef.current = null;
@@ -71,18 +104,23 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
 
   if (!songs || songs.length === 0) return null;
 
+  // Bagi data lagu: jika melebihi batas layar, sisakan 1 slot untuk card "Explore All"
+  const hasMore = songs.length > maxVisible;
+  const displaySongs = hasMore ? songs.slice(0, maxVisible - 1) : songs;
+  const remainingCount = songs.length - displaySongs.length;
+  const viewAllIndex = displaySongs.length;
+
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       {/* 
         Accordion Container:
         - Desktop: Menyamping (flex-row), height 460px (500px di lg).
         - Mobile: Menurun (flex-col).
         - Active card: strictly 1:1 square (width = height via explicit w matching h).
         - Inactive cards: strip ramping fixed-width (flex-none).
-        - Transition lock mencegah glitch akibat boundary shift selama animasi.
       */}
-      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-x-auto scrollbar-none pb-2">
-        {songs.map((song, i) => {
+      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2">
+        {displaySongs.map((song, i) => {
           const isActive = activeIndex === i;
           const indexNum = String(i + 1).padStart(2, "0");
           const artistDisplay = song.featuring
@@ -106,11 +144,7 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                   : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
               }`}
             >
-              {/* 
-                Cover Image Wrapper:
-                Di desktop, diposisikan di tengah (md:left-1/2 md:-translate-x-1/2) dengan lebar 1:1
-                sehingga saat card dalam keadaan tertutup (close hover), bagian tengah gambarlah yang tampil.
-              */}
+              {/* Cover Image Wrapper */}
               <div className="absolute inset-0 md:inset-auto md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:right-auto w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
                 {song.imageUrl ? (
                   <img
@@ -166,7 +200,6 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                     </h3>
                   </div>
 
-                  {/* Direct Link to Song lyrics */}
                   <Link
                     href={fromArtist ? `/lyrics/${song.id}?from=artist` : `/lyrics/${song.id}`}
                     aria-label={`Open lyrics for ${song.title}`}
@@ -218,6 +251,107 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
             </div>
           );
         })}
+
+        {/* ── CARD KHUSUS: VIEW ALL SONGS (jika lagu melebihi kapasitas layar) ── */}
+        {hasMore && (
+          <div
+            onClick={() => {
+              if (activeIndex === viewAllIndex) {
+                router.push("/songs");
+              } else {
+                activateCard(viewAllIndex);
+              }
+            }}
+            onMouseEnter={() => activateCard(viewAllIndex)}
+            className={`group relative overflow-hidden border bg-muted/40 cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] ${
+              activeIndex === viewAllIndex
+                ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+            }`}
+          >
+            {/* Background Texture Minimalis */}
+            <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-muted/80 pointer-events-none" />
+
+            {/* === ACTIVE / EXPANDED VIEW === */}
+            <div
+              className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+                activeIndex === viewAllIndex
+                  ? "opacity-100 pointer-events-auto delay-150"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              {/* Top: Header Tag */}
+              <div className="flex items-center justify-between">
+                <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
+                  [ARCHIVE // COMPLETE]
+                </span>
+                <span className="text-caption uppercase text-muted-foreground tracking-widest">
+                  +{remainingCount} more
+                </span>
+              </div>
+
+              {/* Middle: Editorial Callout */}
+              <div className="my-auto py-6">
+                <p className="text-caption uppercase tracking-widest text-muted-foreground">
+                  The Archive
+                </p>
+                <h3 className="mt-2 text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
+                  Explore All Songs.
+                </h3>
+                <p className="mt-3 text-body-sm text-muted-foreground max-w-sm">
+                  Browse the complete archive of preserved lyrics, organized alphabetically with A–Z quick filters.
+                </p>
+              </div>
+
+              {/* Bottom: Action Button to /songs */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <span className="text-caption uppercase text-muted-foreground tracking-wider">
+                  Showing {displaySongs.length} of {songs.length}
+                </span>
+
+                <Link
+                  href="/songs"
+                  className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span>Open Catalog</span>
+                  <ArrowUpRight size={16} strokeWidth={1} />
+                </Link>
+              </div>
+            </div>
+
+            {/* === COLLAPSED VIEW (DESKTOP) === */}
+            <div
+              className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
+                activeIndex !== viewAllIndex
+                  ? "opacity-100 pointer-events-auto delay-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
+                [→]
+              </span>
+
+              <span className="text-caption uppercase tracking-widest text-foreground font-medium [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+                EXPLORE ALL // +{remainingCount} MORE
+              </span>
+            </div>
+
+            {/* === COLLAPSED VIEW (MOBILE) === */}
+            <div
+              className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
+                activeIndex !== viewAllIndex
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <span className="text-caption uppercase tracking-wide text-foreground font-medium">
+                VIEW ALL SONGS (+{remainingCount} MORE)
+              </span>
+              <ArrowUpRight size={16} strokeWidth={1} className="text-accent" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

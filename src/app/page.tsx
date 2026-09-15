@@ -200,6 +200,12 @@ export default async function Home({ searchParams }: Props) {
             <span className="text-caption uppercase text-muted-foreground">
               {filtered.length} {filtered.length === 1 ? "song" : "songs"}
             </span>
+            <Link
+              href="/songs"
+              className="text-caption uppercase text-foreground hover:text-accent transition-colors underline underline-offset-4"
+            >
+              View all songs →
+            </Link>
             {hasFilter && (
               <Link
                 href="/"
@@ -236,9 +242,17 @@ export default async function Home({ searchParams }: Props) {
             </h2>
           </div>
 
-          <span className="text-caption uppercase text-muted-foreground">
-            {artistAccordionItems.length} {artistAccordionItems.length === 1 ? "profile" : "profiles"}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-caption uppercase text-muted-foreground">
+              {artistAccordionItems.length} {artistAccordionItems.length === 1 ? "profile" : "profiles"}
+            </span>
+            <Link
+              href="/artist"
+              className="text-caption uppercase text-foreground hover:text-accent transition-colors underline underline-offset-4"
+            >
+              View all artists →
+            </Link>
+          </div>
         </div>
 
         {artistAccordionItems.length === 0 ? (
