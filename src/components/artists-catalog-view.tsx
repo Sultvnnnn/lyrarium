@@ -237,12 +237,12 @@ function ArtistAccordionRow({ artists, startIndex }: ArtistAccordionRowProps) {
             onMouseEnter={() => setActiveIndex(i)}
             className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
               isActive
-                ? "md:flex-1 h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
                 : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
             }`}
           >
             {/* Cover Image Wrapper */}
-            <div className="absolute inset-0 w-full h-full pointer-events-none">
+            <div className="absolute inset-0 md:inset-auto md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:right-auto w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
               {artist.imageUrl ? (
                 <img
                   src={artist.imageUrl}
@@ -274,7 +274,7 @@ function ArtistAccordionRow({ artists, startIndex }: ArtistAccordionRowProps) {
 
             {/* === ACTIVE / EXPANDED VIEW === */}
             <div
-              className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+              className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
                 isActive
                   ? "opacity-100 pointer-events-auto delay-150"
                   : "opacity-0 pointer-events-none"
