@@ -96,13 +96,13 @@ export function SiteHeader() {
               key={l.num}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="group flex items-baseline gap-6 border-t border-charcoal-scale py-4 last:border-b dark:border-ash"
+              className="group flex items-baseline gap-4 md:gap-6 border-t border-charcoal-scale py-2.5 sm:py-3 md:py-[1.4vh] last:border-b dark:border-ash"
             >
               <span className="text-caption uppercase text-ash dark:text-graphite">
                 {l.num}
               </span>
               <span
-                className={`text-heading-sm font-light leading-heading-sm tracking-[-0.023em] transition-all duration-500 group-hover:pl-4 group-hover:text-signal-yellow dark:group-hover:text-magenta-bloom md:text-heading md:leading-heading md:tracking-[-0.04em] ${
+                className={`text-[clamp(1.625rem,min(4.8vw,6.2vh),4.75rem)] font-light leading-[1.08] tracking-[-0.03em] transition-all duration-500 group-hover:pl-4 group-hover:text-signal-yellow dark:group-hover:text-magenta-bloom ${
                   open ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
                 }`}
                 style={{ transitionDelay: `${150 + i * 100}ms` }}
