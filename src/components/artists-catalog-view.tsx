@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Music, Search, X } from "lucide-react";
+import { ArrowUpRight, Search, X } from "lucide-react";
 import type { AccordionArtist } from "@/components/artist-accordion";
 
 const ALPHABET = [
@@ -192,58 +192,53 @@ export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
               <Link
                 key={artist.slug}
                 href={`/artist/${artist.slug}`}
-                className="group relative flex flex-col border border-border bg-muted/10 transition-colors hover:border-accent"
+                className="group relative aspect-square w-full overflow-hidden border border-border bg-muted cursor-pointer transition-colors hover:border-accent"
               >
-                {/* 1:1 Portrait / Image Frame */}
-                <div className="relative aspect-square w-full overflow-hidden border-b border-border bg-muted">
+                {/* Cover Image / Portrait */}
+                <div className="absolute inset-0 size-full pointer-events-none">
                   {artist.imageUrl ? (
                     <img
                       src={artist.imageUrl}
                       alt={artist.name}
-                      className="size-full object-cover transition-opacity duration-300 group-hover:opacity-90"
+                      className="size-full object-cover transition-opacity duration-500 ease-out opacity-90 group-hover:opacity-100"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center p-8">
-                      <span className="text-display font-light text-muted-foreground/30 leading-none select-none">
-                        {artist.name.charAt(0).toUpperCase()}
+                    <div className="size-full flex items-center justify-center bg-muted">
+                      <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
+                        {artist.name.charAt(0)}
                       </span>
                     </div>
                   )}
 
-                  {/* Top Index Badge */}
-                  <div className="absolute top-3 left-3 bg-background/90 px-2 py-0.5 border border-border text-caption font-mono uppercase text-muted-foreground tracking-widest">
-                    [{indexStr}]
-                  </div>
-
-                  {/* Hover Arrow Link */}
-                  <div className="absolute bottom-3 right-3 flex size-8 items-center justify-center border border-border bg-background/95 text-foreground transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground">
-                    <ArrowUpRight size={16} strokeWidth={1} />
-                  </div>
+                  {/* Scrim Overlay untuk kontras teks persis Recently Added */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                 </div>
 
-                {/* Artist Meta Details */}
-                <div className="flex flex-1 flex-col justify-between p-5 space-y-3">
-                  <div>
-                    <h3 className="text-heading-sm font-light leading-snug tracking-[-0.02em] text-foreground group-hover:text-accent transition-colors line-clamp-1">
-                      {artist.name}
-                    </h3>
-
-                    <div className="mt-2 flex items-center gap-1.5 text-caption uppercase text-muted-foreground tracking-wider">
-                      <Music size={16} strokeWidth={1} className="shrink-0" />
-                      <span>
-                        {artist.songCount} {artist.songCount === 1 ? "track in archive" : "tracks in archive"}
-                      </span>
-                    </div>
+                {/* Overlaid Editorial Content */}
+                <div className="relative z-10 size-full flex flex-col justify-between p-5 md:p-6">
+                  {/* Top: Nomor Indeks & Track Count */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                      [{indexStr}]
+                    </span>
+                    <span className="text-caption uppercase text-bone-white/70 tracking-widest select-none">
+                      {artist.songCount} {artist.songCount === 1 ? "Track" : "Tracks"}
+                    </span>
                   </div>
 
-                  {artist.about && (
-                    <div className="pt-2 border-t border-border/50">
-                      <p className="text-caption text-muted-foreground line-clamp-2">
-                        {artist.about}
-                      </p>
+                  {/* Bottom: Artist Name & Link Arrow */}
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="max-w-[75%] min-w-0">
+                      <h3 className="text-heading-sm font-light leading-heading-sm text-bone-white tracking-[-0.02em] truncate">
+                        {artist.name}
+                      </h3>
                     </div>
-                  )}
+
+                    <div className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground group-hover:scale-105 active:scale-95 transition-transform">
+                      <ArrowUpRight size={16} strokeWidth={1.5} />
+                    </div>
+                  </div>
                 </div>
               </Link>
             );

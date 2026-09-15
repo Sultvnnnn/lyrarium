@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Disc, Search, X } from "lucide-react";
+import { ArrowUpRight, Search, X } from "lucide-react";
 import type { Song } from "@/db/schema";
 
 const ALPHABET = [
@@ -194,69 +194,61 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
               ? `${song.artist} ft. ${song.featuring}`
               : song.artist;
 
-            // Extract first non-bracket line for preview
-            const previewLine = song.lyrics
-              .split("\n")
-              .map((l: string) => l.trim().replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, ""))
-              .find((l: string) => l.length > 0 && !l.startsWith("[") && !l.endsWith("]"));
-
             return (
               <Link
                 key={song.id}
                 href={`/lyrics/${song.id}`}
-                className="group relative flex flex-col border border-border bg-muted/10 transition-colors hover:border-accent"
+                className="group relative aspect-square w-full overflow-hidden border border-border bg-muted cursor-pointer transition-colors hover:border-accent"
               >
-                {/* 1:1 Cover Art Frame */}
-                <div className="relative aspect-square w-full overflow-hidden border-b border-border bg-muted">
+                {/* Cover Image */}
+                <div className="absolute inset-0 size-full pointer-events-none">
                   {song.imageUrl ? (
                     <img
                       src={song.imageUrl}
                       alt={`${song.title} — ${artistDisplay}`}
-                      className="size-full object-cover transition-opacity duration-300 group-hover:opacity-90"
+                      className="size-full object-cover transition-opacity duration-500 ease-out opacity-90 group-hover:opacity-100"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="flex size-full items-center justify-center p-8">
-                      <span className="text-display font-light text-muted-foreground/30 leading-none select-none">
-                        {song.title.charAt(0).toUpperCase()}
+                    <div className="size-full flex items-center justify-center bg-muted">
+                      <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
+                        {song.title.charAt(0)}
                       </span>
                     </div>
                   )}
 
-                  {/* Top Index Badge */}
-                  <div className="absolute top-3 left-3 bg-background/90 px-2 py-0.5 border border-border text-caption font-mono uppercase text-muted-foreground tracking-widest">
-                    [{indexStr}]
-                  </div>
-
-                  {/* Hover Arrow Link */}
-                  <div className="absolute bottom-3 right-3 flex size-8 items-center justify-center border border-border bg-background/95 text-foreground transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground">
-                    <ArrowUpRight size={16} strokeWidth={1} />
-                  </div>
+                  {/* Scrim Overlay untuk kontras teks persis Recently Added */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                 </div>
 
-                {/* Song Meta Details */}
-                <div className="flex flex-1 flex-col justify-between p-5 space-y-4">
-                  <div>
-                    <p className="text-caption uppercase text-muted-foreground tracking-widest line-clamp-1 group-hover:text-accent transition-colors">
-                      {artistDisplay}
-                    </p>
-                    <h3 className="mt-1 text-heading-sm font-light leading-snug tracking-[-0.02em] text-foreground line-clamp-2">
-                      {song.title}
-                    </h3>
+                {/* Overlaid Editorial Content */}
+                <div className="relative z-10 size-full flex flex-col justify-between p-5 md:p-6">
+                  {/* Top: Nomor Indeks & Album */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                      [{indexStr}]
+                    </span>
+                    {song.album && (
+                      <span className="text-caption uppercase text-bone-white/70 tracking-widest truncate max-w-[55%] select-none">
+                        {song.album}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="pt-2 border-t border-border/50 flex flex-col gap-2">
-                    {song.album && (
-                      <div className="flex items-center gap-1.5 text-caption uppercase text-muted-foreground/80 tracking-wider">
-                        <Disc size={16} strokeWidth={1} className="shrink-0" />
-                        <span className="truncate">{song.album}</span>
-                      </div>
-                    )}
-                    {previewLine && (
-                      <p className="text-caption italic text-muted-foreground line-clamp-1">
-                        &ldquo;{previewLine}&rdquo;
+                  {/* Bottom: Judul, Artis & Link Arrow */}
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="max-w-[75%] min-w-0">
+                      <p className="text-caption uppercase text-accent tracking-widest font-medium line-clamp-1">
+                        {artistDisplay}
                       </p>
-                    )}
+                      <h3 className="mt-1 text-heading-sm font-light leading-heading-sm text-bone-white tracking-[-0.02em] line-clamp-2">
+                        {song.title}
+                      </h3>
+                    </div>
+
+                    <div className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground group-hover:scale-105 active:scale-95 transition-transform">
+                      <ArrowUpRight size={16} strokeWidth={1.5} />
+                    </div>
                   </div>
                 </div>
               </Link>
