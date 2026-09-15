@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
 import type { AccordionArtist } from "@/components/artist-accordion";
 
@@ -62,6 +63,16 @@ export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
       return true;
     });
   }, [artists, selectedLetter, search]);
+
+  // Chunk artists into rows of 6 for accordion strips
+  const artistChunks = useMemo(() => {
+    const chunks: AccordionArtist[][] = [];
+    const CHUNK_SIZE = 6;
+    for (let i = 0; i < filteredArtists.length; i += CHUNK_SIZE) {
+      chunks.push(filteredArtists.slice(i, i + CHUNK_SIZE));
+    }
+    return chunks;
+  }, [filteredArtists]);
 
   return (
     <div className="w-full space-y-10">
@@ -166,7 +177,7 @@ export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
         )}
       </div>
 
-      {/* Artist Dossier Grid */}
+      {/* Artist Dossiers: Accordion Strips */}
       {filteredArtists.length === 0 ? (
         <div className="border border-border p-12 text-center max-w-lg mx-auto my-12">
           <p className="text-body-sm text-muted-foreground">
@@ -184,67 +195,160 @@ export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredArtists.map((artist, idx) => {
-            const indexStr = String(idx + 1).padStart(2, "0");
-
-            return (
-              <Link
-                key={artist.slug}
-                href={`/artist/${artist.slug}`}
-                className="group relative aspect-square w-full overflow-hidden border border-border bg-muted cursor-pointer transition-colors hover:border-accent"
-              >
-                {/* Cover Image / Portrait */}
-                <div className="absolute inset-0 size-full pointer-events-none">
-                  {artist.imageUrl ? (
-                    <img
-                      src={artist.imageUrl}
-                      alt={artist.name}
-                      className="size-full object-cover transition-opacity duration-500 ease-out opacity-90 group-hover:opacity-100"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="size-full flex items-center justify-center bg-muted">
-                      <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
-                        {artist.name.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Scrim Overlay untuk kontras teks persis Recently Added */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-                </div>
-
-                {/* Overlaid Editorial Content */}
-                <div className="relative z-10 size-full flex flex-col justify-between p-5 md:p-6">
-                  {/* Top: Nomor Indeks & Track Count */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
-                      [{indexStr}]
-                    </span>
-                    <span className="text-caption uppercase text-bone-white/70 tracking-widest select-none">
-                      {artist.songCount} {artist.songCount === 1 ? "Track" : "Tracks"}
-                    </span>
-                  </div>
-
-                  {/* Bottom: Artist Name & Link Arrow */}
-                  <div className="flex items-end justify-between gap-4">
-                    <div className="max-w-[75%] min-w-0">
-                      <h3 className="text-heading-sm font-light leading-heading-sm text-bone-white tracking-[-0.02em] truncate">
-                        {artist.name}
-                      </h3>
-                    </div>
-
-                    <div className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground group-hover:scale-105 active:scale-95 transition-transform">
-                      <ArrowUpRight size={16} strokeWidth={1.5} />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="space-y-8">
+          {artistChunks.map((chunk, chunkIdx) => (
+            <ArtistAccordionRow
+              key={chunkIdx}
+              artists={chunk}
+              startIndex={chunkIdx * 6}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+type ArtistAccordionRowProps = {
+  artists: AccordionArtist[];
+  startIndex: number;
+};
+
+function ArtistAccordionRow({ artists, startIndex }: ArtistAccordionRowProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const router = useRouter();
+
+  return (
+    <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
+      {artists.map((artist, i) => {
+        const isActive = activeIndex === i;
+        const indexNum = String(startIndex + i + 1).padStart(2, "0");
+
+        return (
+          <div
+            key={artist.slug}
+            onClick={() => {
+              if (isActive) {
+                router.push(`/artist/${artist.slug}`);
+              } else {
+                setActiveIndex(i);
+              }
+            }}
+            onMouseEnter={() => setActiveIndex(i)}
+            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
+              isActive
+                ? "md:flex-1 h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+            }`}
+          >
+            {/* Cover Image Wrapper */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+              {artist.imageUrl ? (
+                <img
+                  src={artist.imageUrl}
+                  alt={artist.name}
+                  className={`size-full object-cover transition-opacity duration-500 ease-out ${
+                    isActive
+                      ? "opacity-95"
+                      : "opacity-40 grayscale group-hover:opacity-60"
+                  }`}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="size-full flex items-center justify-center bg-muted">
+                  <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
+                    {artist.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+
+              {/* Scrim Overlay */}
+              <div
+                className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+                  isActive
+                    ? "bg-gradient-to-t from-black/90 via-black/40 to-black/20"
+                    : "bg-black/60 group-hover:bg-black/40"
+                }`}
+              />
+            </div>
+
+            {/* === ACTIVE / EXPANDED VIEW === */}
+            <div
+              className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+                isActive
+                  ? "opacity-100 pointer-events-auto delay-150"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              {/* Top: Index & Track Count */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                  [{indexNum}]
+                </span>
+                <span className="text-caption uppercase text-bone-white/70 tracking-widest select-none">
+                  {artist.songCount} {artist.songCount === 1 ? "Track" : "Tracks"}
+                </span>
+              </div>
+
+              {/* Bottom: Name & Arrow Link */}
+              <div className="flex items-end justify-between gap-4">
+                <div className="max-w-md min-w-0">
+                  <h3 className="text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em] truncate">
+                    {artist.name}
+                  </h3>
+                </div>
+
+                <Link
+                  href={`/artist/${artist.slug}`}
+                  aria-label={`View artist profile for ${artist.name}`}
+                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ArrowUpRight size={16} strokeWidth={1.5} />
+                </Link>
+              </div>
+            </div>
+
+            {/* === COLLAPSED VIEW (DESKTOP) === */}
+            <div
+              className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
+                !isActive
+                  ? "opacity-100 pointer-events-auto delay-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                {indexNum}
+              </span>
+
+              <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+                {artist.name}
+              </span>
+            </div>
+
+            {/* === COLLAPSED VIEW (MOBILE) === */}
+            <div
+              className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
+                !isActive
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
+                  {indexNum}
+                </span>
+                <span className="text-caption uppercase tracking-wide text-bone-white truncate">
+                  {artist.name}
+                </span>
+              </div>
+              <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
+                {artist.songCount} tracks
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

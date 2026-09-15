@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
 import type { Song } from "@/db/schema";
 
@@ -65,6 +66,16 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
       return true;
     });
   }, [songs, selectedLetter, search]);
+
+  // Chunk songs into rows of 6 for accordion strips
+  const songChunks = useMemo(() => {
+    const chunks: Song[][] = [];
+    const CHUNK_SIZE = 6;
+    for (let i = 0; i < filteredSongs.length; i += CHUNK_SIZE) {
+      chunks.push(filteredSongs.slice(i, i + CHUNK_SIZE));
+    }
+    return chunks;
+  }, [filteredSongs]);
 
   return (
     <div className="w-full space-y-10">
@@ -169,7 +180,7 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
         )}
       </div>
 
-      {/* Song Cards Grid */}
+      {/* Song Cards: Accordion Strips */}
       {filteredSongs.length === 0 ? (
         <div className="border border-border p-12 text-center max-w-lg mx-auto my-12">
           <p className="text-body-sm text-muted-foreground">
@@ -187,75 +198,168 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredSongs.map((song, idx) => {
-            const indexStr = String(idx + 1).padStart(2, "0");
-            const artistDisplay = song.featuring
-              ? `${song.artist} ft. ${song.featuring}`
-              : song.artist;
-
-            return (
-              <Link
-                key={song.id}
-                href={`/lyrics/${song.id}`}
-                className="group relative aspect-square w-full overflow-hidden border border-border bg-muted cursor-pointer transition-colors hover:border-accent"
-              >
-                {/* Cover Image */}
-                <div className="absolute inset-0 size-full pointer-events-none">
-                  {song.imageUrl ? (
-                    <img
-                      src={song.imageUrl}
-                      alt={`${song.title} — ${artistDisplay}`}
-                      className="size-full object-cover transition-opacity duration-500 ease-out opacity-90 group-hover:opacity-100"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="size-full flex items-center justify-center bg-muted">
-                      <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
-                        {song.title.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Scrim Overlay untuk kontras teks persis Recently Added */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-                </div>
-
-                {/* Overlaid Editorial Content */}
-                <div className="relative z-10 size-full flex flex-col justify-between p-5 md:p-6">
-                  {/* Top: Nomor Indeks & Album */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
-                      [{indexStr}]
-                    </span>
-                    {song.album && (
-                      <span className="text-caption uppercase text-bone-white/70 tracking-widest truncate max-w-[55%] select-none">
-                        {song.album}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Bottom: Judul, Artis & Link Arrow */}
-                  <div className="flex items-end justify-between gap-4">
-                    <div className="max-w-[75%] min-w-0">
-                      <p className="text-caption uppercase text-accent tracking-widest font-medium line-clamp-1">
-                        {artistDisplay}
-                      </p>
-                      <h3 className="mt-1 text-heading-sm font-light leading-heading-sm text-bone-white tracking-[-0.02em] line-clamp-2">
-                        {song.title}
-                      </h3>
-                    </div>
-
-                    <div className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground group-hover:scale-105 active:scale-95 transition-transform">
-                      <ArrowUpRight size={16} strokeWidth={1.5} />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="space-y-8">
+          {songChunks.map((chunk, chunkIdx) => (
+            <SongAccordionRow
+              key={chunkIdx}
+              songs={chunk}
+              startIndex={chunkIdx * 6}
+            />
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+type SongAccordionRowProps = {
+  songs: Song[];
+  startIndex: number;
+};
+
+function SongAccordionRow({ songs, startIndex }: SongAccordionRowProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const router = useRouter();
+
+  return (
+    <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
+      {songs.map((song, i) => {
+        const isActive = activeIndex === i;
+        const indexNum = String(startIndex + i + 1).padStart(2, "0");
+        const artistDisplay = song.featuring
+          ? `${song.artist} ft. ${song.featuring}`
+          : song.artist;
+
+        return (
+          <div
+            key={song.id}
+            onClick={() => {
+              if (isActive) {
+                router.push(`/lyrics/${song.id}`);
+              } else {
+                setActiveIndex(i);
+              }
+            }}
+            onMouseEnter={() => setActiveIndex(i)}
+            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
+              isActive
+                ? "md:flex-1 h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+                : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+            }`}
+          >
+            {/* Cover Image Wrapper */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+              {song.imageUrl ? (
+                <img
+                  src={song.imageUrl}
+                  alt={`${song.title} — ${artistDisplay}`}
+                  className={`size-full object-cover transition-opacity duration-500 ease-out ${
+                    isActive
+                      ? "opacity-95"
+                      : "opacity-40 grayscale group-hover:opacity-60"
+                  }`}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="size-full flex items-center justify-center bg-muted">
+                  <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
+                    {song.title.charAt(0)}
+                  </span>
+                </div>
+              )}
+
+              {/* Scrim Overlay */}
+              <div
+                className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+                  isActive
+                    ? "bg-gradient-to-t from-black/90 via-black/40 to-black/20"
+                    : "bg-black/60 group-hover:bg-black/40"
+                }`}
+              />
+            </div>
+
+            {/* === ACTIVE / EXPANDED VIEW === */}
+            <div
+              className={`relative z-10 size-full flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+                isActive
+                  ? "opacity-100 pointer-events-auto delay-150"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              {/* Top: Index & Album */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                  [{indexNum}]
+                </span>
+                {song.album && (
+                  <span className="text-caption uppercase text-bone-white/70 tracking-widest truncate max-w-[55%] select-none">
+                    {song.album}
+                  </span>
+                )}
+              </div>
+
+              {/* Bottom: Artist, Title & Arrow Link */}
+              <div className="flex items-end justify-between gap-4">
+                <div className="max-w-md min-w-0">
+                  <p className="text-caption uppercase text-accent tracking-widest font-medium line-clamp-1">
+                    {artistDisplay}
+                  </p>
+                  <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em] line-clamp-2">
+                    {song.title}
+                  </h3>
+                </div>
+
+                <Link
+                  href={`/lyrics/${song.id}`}
+                  aria-label={`Open lyrics for ${song.title}`}
+                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ArrowUpRight size={16} strokeWidth={1.5} />
+                </Link>
+              </div>
+            </div>
+
+            {/* === COLLAPSED VIEW (DESKTOP) === */}
+            <div
+              className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
+                !isActive
+                  ? "opacity-100 pointer-events-auto delay-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                {indexNum}
+              </span>
+
+              <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+                {song.title} — {artistDisplay}
+              </span>
+            </div>
+
+            {/* === COLLAPSED VIEW (MOBILE) === */}
+            <div
+              className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
+                !isActive
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
+                  {indexNum}
+                </span>
+                <span className="text-caption uppercase tracking-wide text-bone-white truncate">
+                  {song.title}
+                </span>
+              </div>
+              <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
+                {artistDisplay}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
