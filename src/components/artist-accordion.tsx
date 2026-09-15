@@ -278,7 +278,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
               {/* Middle: Editorial Callout */}
               <div className="my-auto py-6">
                 <h3 className="text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
-                  All {artists.length} artists.
+                  Explore all artists.
                 </h3>
               </div>
 

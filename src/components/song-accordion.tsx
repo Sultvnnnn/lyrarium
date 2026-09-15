@@ -290,7 +290,7 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
               {/* Middle: Editorial Callout */}
               <div className="my-auto py-6">
                 <h3 className="text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
-                  All {songs.length} songs.
+                  Explore all songs.
                 </h3>
               </div>
 
