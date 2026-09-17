@@ -381,7 +381,7 @@ export function HeroSearch({
             <kbd className="font-mono text-[10px] border border-border bg-muted/40 px-1.5 py-0.5 text-foreground leading-none">
               {isMac ? "⌘" : "Ctrl"} K
             </kbd>
-            <span className="text-[11px] text-muted-foreground ml-0.5">to focus</span>
+            <span className="text-[11px] text-muted-foreground ml-0.5">to find something?</span>
           </div>
 
           <div className="flex items-center gap-3">
