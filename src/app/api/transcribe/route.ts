@@ -27,10 +27,6 @@ export async function POST(req: NextRequest) {
     groqFormData.append("model", "whisper-large-v3-turbo");
     groqFormData.append("response_format", "json");
     groqFormData.append("temperature", "0");
-    groqFormData.append(
-      "prompt",
-      "Music lyrics, artist, and song title search in English or Indonesian. E.g. Tame Impala, Adrian Khalif, Raim Laode, Rizky Febian, KATSEYE, LE SSERAFIM, pop, rock, indie."
-    );
 
     const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
       method: "POST",
@@ -57,6 +53,24 @@ export async function POST(req: NextRequest) {
       .replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, "")
       .replace(/[.,!?]+$/, "")
       .trim();
+
+    // Filter common Whisper hallucinations on silent/ambient audio
+    const HALLUCINATIONS = [
+      /^thank you[.!?,]?$/i,
+      /^thanks for watching[.!?,]?$/i,
+      /^thank you for watching[.!?,]?$/i,
+      /^subtitles by/i,
+      /^you[.!?,]?$/i,
+      /^bye[.!?,]?$/i,
+      /^music[.!?,]?$/i,
+      /^applause[.!?,]?$/i,
+      /^silence[.!?,]?$/i,
+      /^blank audio[.!?,]?$/i,
+    ];
+
+    if (HALLUCINATIONS.some((pattern) => pattern.test(text))) {
+      text = "";
+    }
 
     return NextResponse.json({
       text,

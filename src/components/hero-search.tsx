@@ -104,6 +104,7 @@ export function HeroSearch({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const vadAnimationRef = useRef<number | null>(null);
   const isTranscribingRef = useRef<boolean>(false);
+  const hasSpokenRef = useRef<boolean>(false);
 
   useEffect(() => {
     isTranscribingRef.current = isTranscribing;
@@ -268,11 +269,11 @@ export function HeroSearch({
 
   // Helper for realtime speech feedback while user is actively talking
   const sendInterimSnapshot = async () => {
-    if (isTranscribingRef.current || audioChunksRef.current.length < 2) return;
+    if (!hasSpokenRef.current || isTranscribingRef.current || audioChunksRef.current.length < 3) return;
     const partialBlob = new Blob(audioChunksRef.current, {
       type: mediaRecorderRef.current?.mimeType || "audio/webm",
     });
-    if (partialBlob.size < 800) return;
+    if (partialBlob.size < 1200) return;
 
     try {
       const formData = new FormData();
@@ -297,6 +298,7 @@ export function HeroSearch({
   // Start recording audio with noise cancellation & manual mic control
   const startRecording = async () => {
     setSpeechError(null);
+    hasSpokenRef.current = false;
     playMicCueSound("start");
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -319,7 +321,6 @@ export function HeroSearch({
       // ── Setup AudioContext & AnalyserNode for Real-Time Equalizer & Periodic Snapshots ──
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       let lastInterimSnapshotTime = Date.now();
-      const SPEECH_THRESHOLD = 14; // Ambang batas volume bicara
 
       if (AudioCtxClass) {
         const audioCtx = new AudioCtxClass();
@@ -346,12 +347,17 @@ export function HeroSearch({
           // Update audioLevel (0 - 100) untuk visualizer equalizer
           setAudioLevel(Math.min(100, Math.round(avg * 2.8)));
 
+          // Ambang batas vokal suara manusia yang jelas
+          if (avg > 22) {
+            hasSpokenRef.current = true;
+          }
+
           const now = Date.now();
-          if (avg > SPEECH_THRESHOLD) {
-            // Periodic snapshot: kirim potongan audio ke Whisper secara realtime setiap ~1.2 detik saat berbicara
+          // Periodic snapshot HANYA jika pengguna terbukti berbicara (bukan hening/noise latar)
+          if (hasSpokenRef.current && avg > 16) {
             if (
-              now - lastInterimSnapshotTime > 1200 &&
-              audioChunksRef.current.length > 2 &&
+              now - lastInterimSnapshotTime > 1500 &&
+              audioChunksRef.current.length > 3 &&
               !isTranscribingRef.current
             ) {
               lastInterimSnapshotTime = now;
@@ -393,8 +399,11 @@ export function HeroSearch({
           type: recorder.mimeType || "audio/webm",
         });
 
-        if (audioBlob.size < 500) {
+        // Jika tidak ada suara vokal terdeteksi atau blob terlalu kecil, batalkan tanpa mengirim ke Whisper
+        if (audioBlob.size < 500 || !hasSpokenRef.current) {
           setIsTranscribing(false);
+          setSpeechError("No speech detected.");
+          setTimeout(() => setSpeechError(null), 3000);
           return;
         }
 
