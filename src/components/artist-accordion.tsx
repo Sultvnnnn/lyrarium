@@ -19,46 +19,7 @@ type ArtistAccordionProps = {
 
 export function ArtistAccordion({ artists }: ArtistAccordionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [maxVisible, setMaxVisible] = useState<number>(artists.length);
-  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
-  // ── Dynamic Screen-Fitting Calculation ──
-  // Menggunakan ResizeObserver terisolasi agar tidak memicu forced synchronous layout
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const width = entry.contentRect.width;
-        const isDesktop = window.innerWidth >= 768;
-
-        if (!isDesktop) {
-          setMaxVisible(5);
-          return;
-        }
-
-        const isLarge = window.innerWidth >= 1024;
-        const activeWidth = isLarge ? 500 : 460;
-        const inactiveWidth = isLarge ? 84 : 72;
-        const gap = window.innerWidth >= 640 ? 12 : 10;
-
-        const remainingWidth = width - activeWidth;
-        if (remainingWidth <= 0) {
-          setMaxVisible(2);
-          return;
-        }
-
-        const inactiveCount = Math.floor(remainingWidth / (inactiveWidth + gap));
-        const totalFit = 1 + inactiveCount;
-        setMaxVisible(Math.max(3, totalFit));
-      }
-    });
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   // ── Transition lock ──
   const lockRef = useRef(false);
@@ -100,19 +61,20 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
 
   if (!artists || artists.length === 0) return null;
 
-  const hasMore = artists.length > maxVisible;
-  const displayArtists = hasMore ? artists.slice(0, maxVisible - 1) : artists;
+  // Batasi maksimal 5 card data, card ke-6 adalah "Explore All Artists"
+  const MAX_DISPLAY = 5;
+  const hasMore = artists.length > MAX_DISPLAY;
+  const displayArtists = hasMore ? artists.slice(0, MAX_DISPLAY) : artists;
   const remainingCount = artists.length - displayArtists.length;
   const viewAllIndex = displayArtists.length;
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div className="w-full">
       {/* 
         Accordion Container:
-        - Desktop: Menyamping (flex-row), height 460px (500px di lg).
-        - Mobile: Menurun (flex-col).
-        - Active card: strictly 1:1 square (width = height via explicit flex basis matching h).
-        - Inactive cards: strip ramping fixed-width (flex-none).
+        - Full Width (w-full): Mengisi 100% lebar kontainer tanpa ruang kosong di kanan.
+        - Active card: strictly 1:1 square (460px di md, 500px di lg).
+        - Inactive cards: fleksibel (flex-1) membagi rata sisa ruang kontainer.
       */}
       <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
         {displayArtists.map((artist, i) => {
@@ -133,11 +95,11 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
               className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
                 isActive
                   ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
-                  : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+                  : "md:flex-1 md:min-w-[60px] h-14 md:h-full border-border hover:border-accent/60 z-0"
               }`}
             >
-              {/* Cover / Portrait Image Wrapper */}
-              <div className="absolute inset-0 md:inset-auto md:top-0 md:bottom-0 md:left-1/2 md:-translate-x-1/2 md:right-auto w-full h-full md:w-[460px] lg:w-[500px] pointer-events-none">
+              {/* Cover / Portrait Image Wrapper — Full cover across dynamic inactive widths & 1:1 active width */}
+              <div className="absolute inset-0 w-full h-full pointer-events-none">
                 {artist.imageUrl ? (
                   <img
                     src={artist.imageUrl}
@@ -261,10 +223,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
               }
             }}
             onMouseEnter={() => activateCard(viewAllIndex)}
-            className={`group relative overflow-hidden border bg-muted/40 cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] ${
+            className={`group relative overflow-hidden border bg-muted/40 cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
               activeIndex === viewAllIndex
                 ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
-                : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+                : "md:flex-1 md:min-w-[60px] h-14 md:h-full border-border hover:border-accent/60 z-0"
             }`}
           >
             {/* Background Texture Minimalis */}
