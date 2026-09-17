@@ -76,6 +76,45 @@ function playMicCueSound(type: "start" | "stop") {
   } catch {}
 }
 
+// Helper: sintesis audio cue halus saat masuk & keluar mode fokus (Web Audio API)
+function playFocusCueSound(type: "enter" | "exit") {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtxClass) return;
+    const ctx = new AudioCtxClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (type === "enter") {
+      // Nada lembut naik tipis (terangkat & spotlight): 300Hz -> 460Hz
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(460, now + 0.08);
+      gain.gain.setValueAtTime(0.045, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.start(now);
+      osc.stop(now + 0.09);
+    } else {
+      // Nada lembut turun tipis (kembali): 440Hz -> 280Hz
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(280, now + 0.07);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    }
+
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 150);
+  } catch {}
+}
+
 export function HeroSearch({
   items,
   initialQuery,
@@ -105,10 +144,30 @@ export function HeroSearch({
   const vadAnimationRef = useRef<number | null>(null);
   const isTranscribingRef = useRef<boolean>(false);
   const hasSpokenRef = useRef<boolean>(false);
+  const prevFocusedRef = useRef<boolean>(false);
+  const hasMountedFocusRef = useRef<boolean>(false);
 
   useEffect(() => {
     isTranscribingRef.current = isTranscribing;
   }, [isTranscribing]);
+
+  // Audio cue saat masuk dan keluar mode fokus
+  useEffect(() => {
+    if (!hasMountedFocusRef.current) {
+      hasMountedFocusRef.current = true;
+      prevFocusedRef.current = isFocused;
+      return;
+    }
+
+    if (isFocused !== prevFocusedRef.current) {
+      if (isFocused) {
+        playFocusCueSound("enter");
+      } else {
+        playFocusCueSound("exit");
+      }
+      prevFocusedRef.current = isFocused;
+    }
+  }, [isFocused]);
 
   // Deteksi Mac OS untuk label shortcut (⌘ K vs Ctrl K)
   useEffect(() => {
@@ -717,7 +776,7 @@ export function HeroSearch({
                 <kbd className="font-mono text-[10px] border border-border bg-muted/40 px-1.5 py-0.5 text-foreground leading-none">
                   {isMac ? "⌘" : "Ctrl"} K
                 </kbd>
-                <span className="text-[11px] text-muted-foreground ml-0.5">quick search</span>
+                <span className="text-[11px] text-muted-foreground ml-0.5">for quick search</span>
               </div>
 
               <div className="flex items-center gap-3">
