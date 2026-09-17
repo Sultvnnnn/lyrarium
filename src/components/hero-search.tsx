@@ -564,34 +564,50 @@ export function HeroSearch({
   };
 
   return (
-    <section className="flex flex-col items-center justify-center pt-8 pb-10 px-4 md:px-8">
-      {/* 1. Kinetic Typographic Lyric Poster */}
-      <div
-        className={`mb-8 w-full flex justify-center transition-opacity duration-500 ease-[0.22,1,0.36,1] ${
-          isFocused ? "opacity-30" : "opacity-100"
-        }`}
-      >
-        <LyricPoster items={items} centered={true} />
-      </div>
+    <>
+      {/* ── Focus Mode Backdrop Blur (Spotlight Focus) ── */}
+      <AnimatePresence>
+        {isFocused && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            onClick={() => setIsFocused(false)}
+            className="fixed inset-0 z-30 bg-background/50 backdrop-blur-md cursor-pointer"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* 2. Search Container with smooth editorial width expansion on focus */}
-      <div
-        ref={containerRef}
-        className={`w-full transition-[max-width] duration-500 ease-[0.22,1,0.36,1] relative z-20 ${
-          isFocused ? "max-w-3xl" : "max-w-xl"
-        }`}
-      >
-        <form action="/" method="get">
-          {artist && <input type="hidden" name="artist" value={artist} />}
+      <section className="flex flex-col items-center justify-center pt-8 pb-10 px-4 md:px-8 relative">
+        {/* 1. Kinetic Typographic Lyric Poster */}
+        <div
+          className={`mb-8 w-full flex justify-center transition-all duration-500 ease-[0.22,1,0.36,1] ${
+            isFocused ? "opacity-20 pointer-events-none filter blur-[1px]" : "opacity-100"
+          }`}
+        >
+          <LyricPoster items={items} centered={true} />
+        </div>
 
-          {/* Search Box Input Bar */}
-          <div
-            className={`relative flex items-center gap-2 border bg-background py-3 pl-5 pr-2.5 transition-colors duration-300 ${
-              isFocused
-                ? "border-accent"
-                : "border-border hover:border-accent/60"
-            }`}
-          >
+        {/* 2. Search Container with smooth editorial width expansion & lift animation on focus */}
+        <div
+          ref={containerRef}
+          className={`w-full transition-[max-width,transform] duration-500 ease-[0.22,1,0.36,1] relative z-40 ${
+            isFocused ? "max-w-3xl -translate-y-2.5" : "max-w-xl translate-y-0"
+          }`}
+        >
+          <form action="/" method="get">
+            {artist && <input type="hidden" name="artist" value={artist} />}
+
+            {/* Search Box Input Bar */}
+            <div
+              className={`relative flex items-center gap-2 border bg-background py-3 pl-5 pr-2.5 transition-all duration-500 ease-[0.22,1,0.36,1] ${
+                isFocused
+                  ? "border-accent shadow-[0_16px_36px_-8px_rgba(0,0,0,0.35)] dark:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.8)]"
+                  : "border-border hover:border-accent/60 shadow-none"
+              }`}
+            >
             {/* Search Icon Indicator */}
             <Search
               size={16}
@@ -881,5 +897,6 @@ export function HeroSearch({
         )}
       </div>
     </section>
+    </>
   );
 }
