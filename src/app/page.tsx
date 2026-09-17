@@ -182,6 +182,8 @@ export default async function Home({ searchParams }: Props) {
         items={heroItems}
         initialQuery={q}
         artist={artist}
+        searchableSongs={all}
+        searchableArtists={artistAccordionItems}
       />
 
       {/* 3. Recently Added (Accordion Card Strip — Horizontal on Desktop, Vertical on Mobile) */}
