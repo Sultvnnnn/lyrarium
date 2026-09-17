@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Mic, Search, X } from "lucide-react";
 import { LyricPoster, type HeroItem } from "@/components/lyric-poster";
@@ -134,6 +134,7 @@ export function HeroSearch({
 }: HeroSearchProps) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery ?? "");
+  const deferredQuery = useDeferredValue(query);
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -557,43 +558,80 @@ export function HeroSearch({
     setSelectedIndex(-1);
   };
 
-  // ── Realtime search calculation ──
+  // ── Index sekali pakai untuk pencarian instan tanpa re-lowercasing & string splits di tiap frame ──
+  const indexedSongs = useMemo(() => {
+    return searchableSongs.map((song) => {
+      const titleLower = song.title.toLowerCase();
+      const artistLower = song.artist.toLowerCase();
+      const featLower = song.featuring ? song.featuring.toLowerCase() : "";
+      const albumLower = song.album ? song.album.toLowerCase() : "";
+      const lyricsLower = song.lyrics ? song.lyrics.toLowerCase() : "";
+      const haystack = `${titleLower} ${artistLower} ${featLower} ${albumLower} ${lyricsLower}`;
+      return {
+        song,
+        titleLower,
+        artistLower,
+        featLower,
+        albumLower,
+        lyricsLower,
+        haystack,
+      };
+    });
+  }, [searchableSongs]);
+
+  const indexedArtists = useMemo(() => {
+    return searchableArtists.map((artist) => ({
+      artist,
+      haystack: `${artist.name.toLowerCase()} ${artist.about ? artist.about.toLowerCase() : ""}`,
+    }));
+  }, [searchableArtists]);
+
+  // ── Realtime search calculation (menggunakan deferredQuery agar main thread tidak freeze) ──
   const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     if (!q) {
       return { songs: [], artists: [], total: 0 };
     }
 
     // 1. Filter songs
     const matchingSongs: Array<SearchableSong & { matchedLyric?: string | null }> = [];
-    for (const song of searchableSongs) {
-      const matchTitle = song.title.toLowerCase().includes(q);
-      const matchArtist = song.artist.toLowerCase().includes(q);
-      const matchFeat = song.featuring?.toLowerCase().includes(q) ?? false;
-      const matchAlbum = song.album?.toLowerCase().includes(q) ?? false;
-      const matchedLyric = getMatchingLyricLine(song.lyrics, q);
+    for (const item of indexedSongs) {
+      if (!item.haystack.includes(q)) continue;
 
-      if (matchTitle || matchArtist || matchFeat || matchAlbum || matchedLyric) {
-        matchingSongs.push({
-          ...song,
-          matchedLyric,
-        });
+      let matchedLyric: string | null = null;
+      const matchMeta =
+        item.titleLower.includes(q) ||
+        item.artistLower.includes(q) ||
+        item.featLower.includes(q) ||
+        item.albumLower.includes(q);
+
+      // Ambil cuplikan baris lirik hanya jika relevan
+      if (!matchMeta && item.lyricsLower.includes(q)) {
+        matchedLyric = getMatchingLyricLine(item.song.lyrics, q);
+      } else if (item.lyricsLower.includes(q) && q.length >= 3) {
+        matchedLyric = getMatchingLyricLine(item.song.lyrics, q);
       }
 
-      if (matchingSongs.length >= 5) break;
+      matchingSongs.push({
+        ...item.song,
+        matchedLyric,
+      });
+
+      if (matchingSongs.length >= 50) break;
     }
 
     // 2. Filter artists
-    const matchingArtists = searchableArtists
-      .filter((a) => a.name.toLowerCase().includes(q) || (a.about?.toLowerCase().includes(q) ?? false))
-      .slice(0, 3);
+    const matchingArtists = indexedArtists
+      .filter((a) => a.haystack.includes(q))
+      .slice(0, 3)
+      .map((a) => a.artist);
 
     return {
       songs: matchingSongs,
       artists: matchingArtists,
       total: matchingSongs.length + matchingArtists.length,
     };
-  }, [query, searchableSongs, searchableArtists]);
+  }, [deferredQuery, indexedSongs, indexedArtists]);
 
   // Flat list untuk keyboard navigation (ArrowUp, ArrowDown, Enter)
   const flatResults = useMemo(() => {
