@@ -176,18 +176,9 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
                       ? "text-foreground hover:bg-muted hover:text-accent"
                       : "text-muted-foreground/30 cursor-not-allowed"
                   }`}
-                  title={`${letter} (${count})`}
+                  title={letter === "ALL" ? "All songs" : `${letter} (${count})`}
                 >
                   <span>{letter}</span>
-                  {letter !== "ALL" && hasItems && (
-                    <span
-                      className={`ml-1 text-[10px] ${
-                        isSelected ? "text-accent-foreground/80" : "text-muted-foreground"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  )}
                 </button>
               );
             })}

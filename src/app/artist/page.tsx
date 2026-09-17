@@ -78,7 +78,7 @@ export default async function ArtistIndexPage() {
                 Archive Index
               </p>
               <h1 className="mt-2 text-heading md:text-display-sm font-light tracking-[-0.03em]">
-                Artists.
+                All Artists.
               </h1>
             </div>
           </div>
