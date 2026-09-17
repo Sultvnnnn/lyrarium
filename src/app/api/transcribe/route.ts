@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     groqFormData.append("file", file, "audio.webm");
     groqFormData.append("model", "whisper-large-v3-turbo");
     groqFormData.append("response_format", "json");
+    groqFormData.append("temperature", "0");
     groqFormData.append(
       "prompt",
       "Music lyrics, artist, and song title search in English or Indonesian. E.g. Tame Impala, Adrian Khalif, Raim Laode, Rizky Febian, KATSEYE, LE SSERAFIM, pop, rock, indie."

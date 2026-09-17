@@ -38,6 +38,44 @@ function getAutoSpeechLanguage(): string {
   return navigator.language || "en-US";
 }
 
+// Helper: sintesis audio cue halus saat mic ditekan (Web Audio API)
+function playMicCueSound(type: "start" | "stop") {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtxClass) return;
+    const ctx = new AudioCtxClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (type === "start") {
+      // Nada lembut naik: 480Hz -> 720Hz
+      osc.frequency.setValueAtTime(480, now);
+      osc.frequency.exponentialRampToValueAtTime(720, now + 0.08);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } else {
+      // Nada lembut turun: 720Hz -> 480Hz
+      osc.frequency.setValueAtTime(720, now);
+      osc.frequency.exponentialRampToValueAtTime(480, now + 0.08);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.start(now);
+      osc.stop(now + 0.11);
+    }
+
+    setTimeout(() => {
+      ctx.close().catch(() => {});
+    }, 180);
+  } catch {}
+}
+
 export function HeroSearch({
   items,
   initialQuery,
@@ -200,7 +238,11 @@ export function HeroSearch({
   };
 
   // Stop recording audio and cleanup VAD audio context
-  const stopRecording = () => {
+  const stopRecording = (playCue = true) => {
+    if (playCue) {
+      playMicCueSound("stop");
+    }
+
     if (autoStopTimerRef.current) {
       clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = null;
@@ -252,9 +294,10 @@ export function HeroSearch({
     } catch {}
   };
 
-  // Start recording audio with Voice Activity Detection (VAD) & auto-stop
+  // Start recording audio with noise cancellation & manual mic control
   const startRecording = async () => {
     setSpeechError(null);
+    playMicCueSound("start");
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       startWebSpeechFallback();
@@ -262,15 +305,20 @@ export function HeroSearch({
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Noise cancellation, echo cancellation, auto gain control
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      });
       streamRef.current = stream;
 
-      // ── Setup AudioContext & AnalyserNode for Real-Time VAD & Equalizer ──
+      // ── Setup AudioContext & AnalyserNode for Real-Time Equalizer & Periodic Snapshots ──
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-      let hasSpoken = false;
-      let silenceStartTime: number | null = null;
       let lastInterimSnapshotTime = Date.now();
-      const SILENCE_TIMEOUT = 1100; // 1.1 detik hening setelah bicara -> otomatis selesai!
       const SPEECH_THRESHOLD = 14; // Ambang batas volume bicara
 
       if (AudioCtxClass) {
@@ -300,9 +348,6 @@ export function HeroSearch({
 
           const now = Date.now();
           if (avg > SPEECH_THRESHOLD) {
-            hasSpoken = true;
-            silenceStartTime = null;
-
             // Periodic snapshot: kirim potongan audio ke Whisper secara realtime setiap ~1.2 detik saat berbicara
             if (
               now - lastInterimSnapshotTime > 1200 &&
@@ -311,14 +356,6 @@ export function HeroSearch({
             ) {
               lastInterimSnapshotTime = now;
               sendInterimSnapshot();
-            }
-          } else if (hasSpoken) {
-            if (!silenceStartTime) {
-              silenceStartTime = now;
-            } else if (now - silenceStartTime >= SILENCE_TIMEOUT) {
-              // Pengguna sudah selesai bicara & jeda hening terpenuhi -> Auto-stop!
-              stopRecording();
-              return;
             }
           }
 
@@ -401,11 +438,11 @@ export function HeroSearch({
       setIsListening(true);
       setIsFocused(true);
 
-      // Safety timeout: jika tidak ada suara sama sekali selama 7 detik, auto stop
+      // Safety timeout: auto stop setelah 30 detik jika mic dibiarkan menyala tanpa ditutup
       if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = setTimeout(() => {
         stopRecording();
-      }, 7000);
+      }, 30000);
     } catch {
       setSpeechError("Microphone permission denied.");
       setIsListening(false);
@@ -415,7 +452,7 @@ export function HeroSearch({
 
   const toggleListening = () => {
     if (isListening) {
-      stopRecording();
+      stopRecording(true);
     } else {
       startRecording();
     }
@@ -638,7 +675,7 @@ export function HeroSearch({
                   style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.12))}px` }}
                 />
               </span>
-              <span>// Listening...</span>
+              <span>// Listening... (click mic to finish)</span>
             </div>
           ) : isTranscribing ? (
             <div className="flex items-center gap-2 text-accent text-caption uppercase tracking-widest">
