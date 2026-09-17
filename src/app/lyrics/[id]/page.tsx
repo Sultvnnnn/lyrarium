@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
 import { LyricsBreadcrumb } from "@/components/lyrics-breadcrumb";
+import { YouTubeFacade } from "@/components/youtube-facade";
 import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function getYouTubeEmbedUrl(url: string | null): string | null {
+function getYouTubeVideoId(url: string | null): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
@@ -38,7 +39,7 @@ function getYouTubeEmbedUrl(url: string | null): string | null {
       else if (u.pathname.startsWith("/embed/")) id = u.pathname.split("/")[2];
       else if (u.pathname.startsWith("/shorts/")) id = u.pathname.split("/")[2];
     }
-    return id ? `https://www.youtube.com/embed/${id}` : null;
+    return id;
   } catch {
     return null;
   }
@@ -78,7 +79,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
   const song = await db.query.songs.findFirst({ where: eq(songs.id, songId) });
   if (!song) notFound();
 
-  const embedUrl = getYouTubeEmbedUrl(song.youtubeUrl);
+  const videoId = getYouTubeVideoId(song.youtubeUrl);
 
   const all = await db.select().from(songs).orderBy(songs.id);
   const i = all.findIndex((s) => s.id === song.id);
@@ -289,20 +290,13 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
           {/* Detail sticky di kanan — bersih */}
           <aside className="flex flex-col gap-12 lg:sticky lg:top-16 lg:self-start">
-            {/* YouTube embed */}
-            {embedUrl && (
+            {/* YouTube embed facade */}
+            {videoId && (
               <div>
                 <p className="text-caption uppercase text-muted-foreground">
                   Music video
                 </p>
-                <iframe
-                  src={embedUrl}
-                  title={`${song.title} — ${song.artist}`}
-                  className="mt-4 aspect-video w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  loading="lazy"
-                />
+                <YouTubeFacade videoId={videoId} title={`${song.title} — ${song.artist}`} />
               </div>
             )}
 
