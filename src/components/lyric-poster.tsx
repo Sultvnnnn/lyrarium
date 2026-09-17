@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -24,10 +24,27 @@ export function LyricPoster({
 }) {
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [progressKey, setProgressKey] = useState(0);
+  const posterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (items.length < 2 || isPaused) return;
+    const el = posterRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (items.length < 2 || isPaused || !isVisible) return;
 
     const timer = setInterval(() => {
       setIndex((prev) => {
@@ -39,7 +56,7 @@ export function LyricPoster({
     }, DURATION_MS);
 
     return () => clearInterval(timer);
-  }, [items.length, isPaused]);
+  }, [items.length, isPaused, isVisible]);
 
   const item = items[index];
   if (!item) return null;
@@ -128,6 +145,7 @@ export function LyricPoster({
 
   return (
     <div
+      ref={posterRef}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       className={`relative w-full max-w-5xl xl:max-w-6xl min-h-[175px] sm:min-h-[200px] md:min-h-[220px] flex flex-col justify-center select-none px-4 ${
@@ -245,7 +263,7 @@ export function LyricPoster({
           <motion.div
             key={progressKey}
             initial={{ width: "0%" }}
-            animate={{ width: isPaused ? undefined : "100%" }}
+            animate={{ width: isPaused || !isVisible ? undefined : "100%" }}
             transition={{
               duration: DURATION_MS / 1000,
               ease: "linear",
