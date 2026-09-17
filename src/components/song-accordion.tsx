@@ -150,6 +150,10 @@ export function SongAccordion({ songs, fromArtist = false }: SongAccordionProps)
                   <img
                     src={song.imageUrl}
                     alt={`${song.title} — ${artistDisplay}`}
+                    loading={i === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    width={500}
+                    height={500}
                     className={`size-full object-cover transition-opacity duration-500 ease-out ${
                       isActive
                         ? "opacity-95"

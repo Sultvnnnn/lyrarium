@@ -138,6 +138,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                   <img
                     src={artist.imageUrl}
                     alt={artist.name}
+                    loading={i === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    width={500}
+                    height={500}
                     className={`size-full object-cover transition-opacity duration-500 ease-out ${
                       isActive
                         ? "opacity-95"
