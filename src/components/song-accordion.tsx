@@ -10,7 +10,7 @@ export type AccordionSong = {
   title: string;
   artist: string;
   featuring?: string | null;
-  lyrics: string;
+  lyrics?: string | null;
   imageUrl: string | null;
   createdAt?: Date | null;
 };

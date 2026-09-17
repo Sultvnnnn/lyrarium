@@ -11,14 +11,35 @@ import { StatsLedger } from "@/components/stats-ledger";
 import { SiteFooter } from "@/components/site-footer";
 import type { HeroItem } from "@/components/lyric-poster";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 type Props = { searchParams: Promise<{ q?: string; artist?: string }> };
 
 export default async function Home({ searchParams }: Props) {
   const { q, artist } = await searchParams;
-  // Order latest added songs first
-  const all = await db.select().from(songs).orderBy(desc(songs.id));
+  // Order latest added songs first — only select columns needed for home and search, stripping heavy fields (aboutArtist, credits, youtubeUrl)
+  const all = await db
+    .select({
+      id: songs.id,
+      title: songs.title,
+      artist: songs.artist,
+      album: songs.album,
+      featuring: songs.featuring,
+      lyrics: songs.lyrics,
+      imageUrl: songs.imageUrl,
+      createdAt: songs.createdAt,
+    })
+    .from(songs)
+    .orderBy(desc(songs.id));
   const allDbArtists = await db.select().from(artistsTable).orderBy(asc(artistsTable.name));
 
   const pool1: HeroItem[] = [];
@@ -82,12 +103,11 @@ export default async function Home({ searchParams }: Props) {
   }
 
   // Ambil sampling variatif 1, 2, dan 3 baris
-  const shuffled1 = pool1.sort(() => Math.random() - 0.5).slice(0, 5);
-  const shuffled2 = pool2.sort(() => Math.random() - 0.5).slice(0, 5);
-  const shuffled3 = pool3.sort(() => Math.random() - 0.5).slice(0, 5);
+  const shuffled1 = shuffle(pool1).slice(0, 5);
+  const shuffled2 = shuffle(pool2).slice(0, 5);
+  const shuffled3 = shuffle(pool3).slice(0, 5);
 
-  const heroItems: HeroItem[] = [...shuffled1, ...shuffled2, ...shuffled3]
-    .sort(() => Math.random() - 0.5);
+  const heroItems: HeroItem[] = shuffle([...shuffled1, ...shuffled2, ...shuffled3]);
 
   const allArtistNames = new Set<string>();
   for (const s of all) {

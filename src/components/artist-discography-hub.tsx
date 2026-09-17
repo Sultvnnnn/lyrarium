@@ -215,7 +215,7 @@ export function ArtistDiscographyHub({
               ? tab.songs.filter(
                   (s) =>
                     s.title.toLowerCase().includes(search.toLowerCase().trim()) ||
-                    s.lyrics.toLowerCase().includes(search.toLowerCase().trim()) ||
+                    (s.lyrics?.toLowerCase().includes(search.toLowerCase().trim()) ?? false) ||
                     (s.featuring &&
                       s.featuring.toLowerCase().includes(search.toLowerCase().trim()))
                 )

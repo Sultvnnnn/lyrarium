@@ -9,11 +9,21 @@ import { LyricPoster, type HeroItem } from "@/components/lyric-poster";
 import type { Song } from "@/db/schema";
 import type { AccordionArtist } from "@/components/artist-accordion";
 
+export type SearchableSong = {
+  id: number;
+  title: string;
+  artist: string;
+  album?: string | null;
+  featuring?: string | null;
+  lyrics: string;
+  imageUrl?: string | null;
+};
+
 type HeroSearchProps = {
   items: HeroItem[];
   initialQuery?: string;
   artist?: string;
-  searchableSongs?: Song[];
+  searchableSongs?: SearchableSong[];
   searchableArtists?: AccordionArtist[];
 };
 
@@ -560,7 +570,7 @@ export function HeroSearch({
     }
 
     // 1. Filter songs
-    const matchingSongs: Array<Song & { matchedLyric?: string | null }> = [];
+    const matchingSongs: Array<SearchableSong & { matchedLyric?: string | null }> = [];
     for (const song of searchableSongs) {
       const matchTitle = song.title.toLowerCase().includes(q);
       const matchArtist = song.artist.toLowerCase().includes(q);
