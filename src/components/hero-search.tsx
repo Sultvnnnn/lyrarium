@@ -85,14 +85,6 @@ export function HeroSearch({
         activeEl?.tagName === "TEXTAREA" ||
         (activeEl as HTMLElement)?.isContentEditable;
 
-      // "/" untuk membuka search (hanya jika cursor tidak sedang aktif di dalam form/input lain)
-      if (e.key === "/" && !isInputActive) {
-        e.preventDefault();
-        inputRef.current?.focus();
-        setIsFocused(true);
-        return;
-      }
-
       // "Ctrl+K" atau "Cmd+K" untuk membuka search
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -375,13 +367,9 @@ export function HeroSearch({
         <div className="mt-2.5 flex items-center justify-between px-1 text-caption uppercase tracking-widest text-muted-foreground select-none">
           <div className="flex items-center gap-1.5">
             <kbd className="font-mono text-[10px] border border-border bg-muted/40 px-1.5 py-0.5 text-foreground leading-none">
-              /
-            </kbd>
-            <span className="text-[11px] text-muted-foreground">or</span>
-            <kbd className="font-mono text-[10px] border border-border bg-muted/40 px-1.5 py-0.5 text-foreground leading-none">
               {isMac ? "⌘" : "Ctrl"} K
             </kbd>
-            <span className="text-[11px] text-muted-foreground ml-0.5">to find something?</span>
+            <span className="text-[11px] text-muted-foreground ml-0.5">quick search</span>
           </div>
 
           <div className="flex items-center gap-3">
