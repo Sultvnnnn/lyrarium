@@ -32,23 +32,10 @@ function getMatchingLyricLine(lyrics: string, query: string): string | null {
   return null;
 }
 
-// Helper: deteksi otomatis bahasa speech recognition (prioritas Bahasa Indonesia untuk pengguna Indonesia)
+// Helper: fallback bahasa speech recognition
 function getAutoSpeechLanguage(): string {
-  if (typeof navigator === "undefined") return "id-ID";
-
-  const langs = navigator.languages || [navigator.language];
-  for (const l of langs) {
-    if (l && l.toLowerCase().startsWith("id")) return "id-ID";
-  }
-
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (/Jakarta|Makassar|Jayapura|Pontianak/i.test(tz)) {
-      return "id-ID";
-    }
-  } catch {}
-
-  return navigator.language || "id-ID";
+  if (typeof navigator === "undefined") return "en-US";
+  return navigator.language || "en-US";
 }
 
 export function HeroSearch({
@@ -62,6 +49,7 @@ export function HeroSearch({
   const [query, setQuery] = useState(initialQuery ?? "");
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isMac, setIsMac] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -69,6 +57,10 @@ export function HeroSearch({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Deteksi Mac OS untuk label shortcut (⌘ K vs Ctrl K)
   useEffect(() => {
@@ -77,21 +69,26 @@ export function HeroSearch({
     }
   }, []);
 
-  // Bersihkan recognition saat unmount
+  // Bersihkan audio stream & timers saat unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, []);
 
   // Global Keyboard shortcuts:
-  // 1. "/" atau "Ctrl+K" / "Cmd+K" untuk memfokuskan search bar
-  // 2. "ESC" untuk keluar/unfocus
+  // "Ctrl+K" atau "Cmd+K" untuk memfokuskan search bar
+  // "ESC" untuk keluar/unfocus
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // ESC: tutup dan blur
       if (e.key === "Escape" && isFocused) {
         setIsFocused(false);
         inputRef.current?.blur();
@@ -104,7 +101,6 @@ export function HeroSearch({
         activeEl?.tagName === "TEXTAREA" ||
         (activeEl as HTMLElement)?.isContentEditable;
 
-      // "Ctrl+K" atau "Cmd+K" untuk membuka search
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         inputRef.current?.focus();
@@ -132,24 +128,14 @@ export function HeroSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isFocused]);
 
-  // Speech-to-Text
-  const toggleListening = () => {
-    setSpeechError(null);
-
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-
+  // Fallback: Web Speech API jika MediaRecorder tidak tersedia
+  const startWebSpeechFallback = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setSpeechError("Browser does not support speech recognition.");
+      setSpeechError("Browser does not support microphone input.");
       setTimeout(() => setSpeechError(null), 4000);
       return;
     }
@@ -159,7 +145,6 @@ export function HeroSearch({
       recognition.lang = getAutoSpeechLanguage();
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -180,7 +165,7 @@ export function HeroSearch({
 
       recognition.onerror = (event: any) => {
         if (event.error !== "no-speech") {
-          setSpeechError("Microphone permission denied.");
+          setSpeechError("Microphone error or permission denied.");
           setTimeout(() => setSpeechError(null), 4000);
         }
         setIsListening(false);
@@ -196,6 +181,124 @@ export function HeroSearch({
       setSpeechError("Unable to access microphone.");
       setIsListening(false);
       setTimeout(() => setSpeechError(null), 4000);
+    }
+  };
+
+  // Stop recording audio
+  const stopRecording = () => {
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsListening(false);
+  };
+
+  // Start recording audio for Whisper auto-detect transcription
+  const startRecording = async () => {
+    setSpeechError(null);
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      startWebSpeechFallback();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+
+        if (audioBlob.size < 500) {
+          setIsTranscribing(false);
+          return;
+        }
+
+        setIsTranscribing(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", audioBlob, "audio.webm");
+
+          const res = await fetch("/api/transcribe", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (res.ok && data.text) {
+            setQuery(data.text);
+            if (inputRef.current) {
+              inputRef.current.value = data.text;
+              inputRef.current.focus();
+            }
+            setIsFocused(true);
+          } else if (res.ok && !data.text) {
+            setSpeechError("No speech detected. Please try again.");
+            setTimeout(() => setSpeechError(null), 4000);
+          } else if (data.error && data.error.includes("GROQ_API_KEY")) {
+            setSpeechError("Please add GROQ_API_KEY to .env.local for Whisper auto-detect.");
+            setTimeout(() => setSpeechError(null), 6000);
+          } else if (data.error) {
+            setSpeechError(data.error);
+            setTimeout(() => setSpeechError(null), 4000);
+          }
+        } catch {
+          setSpeechError("Transcription failed. Check connection.");
+          setTimeout(() => setSpeechError(null), 4000);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      recorder.start(250);
+      setIsListening(true);
+      setIsFocused(true);
+
+      if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, 10000);
+    } catch {
+      setSpeechError("Microphone permission denied.");
+      setIsListening(false);
+      setTimeout(() => setSpeechError(null), 4000);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
@@ -372,42 +475,69 @@ export function HeroSearch({
             <button
               type="button"
               onClick={toggleListening}
-              aria-label={isListening ? "Stop voice search" : "Voice search"}
+              disabled={isTranscribing}
+              aria-label={
+                isTranscribing
+                  ? "Transcribing voice..."
+                  : isListening
+                  ? "Stop voice search"
+                  : "Voice search"
+              }
               className={`flex size-9 shrink-0 items-center justify-center border transition-colors ${
                 isListening
                   ? "border-accent bg-accent text-accent-foreground"
+                  : isTranscribing
+                  ? "border-accent bg-muted text-accent cursor-wait"
                   : "border-border bg-muted text-foreground hover:border-accent hover:text-accent"
               }`}
             >
-              <Mic size={16} strokeWidth={1} />
+              <Mic size={16} strokeWidth={1} className={isTranscribing ? "animate-pulse" : ""} />
             </button>
           </div>
         </form>
 
-        {/* ── Editorial Keyboard Shortcut Indicator (Penanda di bawahnya) ── */}
+        {/* ── Status or Keyboard Shortcut Indicator ── */}
         <div className="mt-2.5 flex items-center justify-between px-1 text-caption uppercase tracking-widest text-muted-foreground select-none">
-          <div className="flex items-center gap-1.5">
-            <kbd className="font-mono text-[10px] border border-border bg-muted/40 px-1.5 py-0.5 text-foreground leading-none">
-              {isMac ? "⌘" : "Ctrl"} K
-            </kbd>
-            <span className="text-[11px] text-muted-foreground ml-0.5">quick search</span>
-          </div>
+          {isListening ? (
+            <div className="flex items-center gap-2 text-accent">
+              <span className="inline-block size-1.5 bg-accent animate-pulse shrink-0" />
+              <span>// Listening // Sing or speak lyrics (click mic to finish)</span>
+            </div>
+          ) : isTranscribing ? (
+            <div className="flex items-center gap-2 text-accent">
+              <span className="inline-block size-1.5 bg-accent animate-pulse shrink-0" />
+              <span>// Whisper AI // Auto-detecting lyrics & language...</span>
+            </div>
+          ) : speechError ? (
+            <div className="text-destructive">
+              // {speechError}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-1.5">
+                <kbd className="font-mono text-[10px] border border-border bg-muted/40 px-1.5 py-0.5 text-foreground leading-none">
+                  {isMac ? "⌘" : "Ctrl"} K
+                </kbd>
+                <span className="text-[11px] text-muted-foreground ml-0.5">quick search</span>
+              </div>
 
-          <div className="flex items-center gap-3">
-            {showDropdown && flatResults.length > 0 && (
-              <span className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
-                <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↑</kbd>
-                <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↓</kbd>
-                <span>navigate</span>
-              </span>
-            )}
-            {isFocused && (
-              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <kbd className="font-mono text-[10px] border border-border px-1.5 py-0.5 leading-none">ESC</kbd>
-                <span>close</span>
-              </span>
-            )}
-          </div>
+              <div className="flex items-center gap-3">
+                {showDropdown && flatResults.length > 0 && (
+                  <span className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↑</kbd>
+                    <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↓</kbd>
+                    <span>navigate</span>
+                  </span>
+                )}
+                {isFocused && (
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <kbd className="font-mono text-[10px] border border-border px-1.5 py-0.5 leading-none">ESC</kbd>
+                    <span>close</span>
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── Realtime Results Dropdown (Attached Hairline Ledger) ── */}
