@@ -15,7 +15,7 @@
   --color-navy-ink: #101731;
   --color-signal-yellow: #ffd001;
 
-  --font-switzer: "Switzer", ui-sans-serif, system-ui, sans-serif;
+  --font-switzer: var(--font-switzer), "Switzer", ui-sans-serif, system-ui, sans-serif;
 
   --text-caption: 12px;
   --leading-caption: 1.43;

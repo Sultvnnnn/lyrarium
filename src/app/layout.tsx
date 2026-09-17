@@ -1,7 +1,25 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { ThemeProvider } from "next-themes";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import "./globals.css";
+
+const switzer = localFont({
+  src: [
+    {
+      path: "../fonts/Switzer-Light.woff2",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../fonts/Switzer-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+  ],
+  variable: "--font-switzer",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Lyrarium",
@@ -12,14 +30,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=switzer@300,400&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html
+      lang="id"
+      className={switzer.variable}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
