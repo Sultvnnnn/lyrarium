@@ -52,7 +52,7 @@ export function SiteHeader() {
           <div className="flex items-center">
             <span className="text-subheading font-light">Lyrarium</span>
 
-            <div className="grid grid-cols-[0fr] transition-all duration-500 ease-out group-hover:grid-cols-[1fr]">
+            <div className="grid grid-cols-[0fr] transition-[grid-template-columns] duration-500 ease-out group-hover:grid-cols-[1fr]">
               <div className="overflow-hidden">
                 <span
                   className={`whitespace-nowrap text-subheading font-light ${
@@ -114,7 +114,7 @@ export function SiteHeader() {
                 {l.num}
               </span>
               <span
-                className={`text-[clamp(1.625rem,min(4.8vw,6.2vh),4.75rem)] font-light leading-[1.08] tracking-[-0.03em] transition-all duration-500 group-hover:pl-4 group-hover:text-signal-yellow dark:group-hover:text-magenta-bloom ${
+                className={`inline-block text-[clamp(1.625rem,min(4.8vw,6.2vh),4.75rem)] font-light leading-[1.08] tracking-[-0.03em] transition-[color,opacity,transform] duration-500 group-hover:translate-x-4 group-hover:text-signal-yellow dark:group-hover:text-magenta-bloom ${
                   open ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
                 }`}
                 style={{ transitionDelay: `${150 + i * 100}ms` }}

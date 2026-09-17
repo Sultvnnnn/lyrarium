@@ -168,7 +168,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
 
               {/* === ACTIVE / EXPANDED VIEW === */}
               <div
-                className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-all duration-500 ease-[0.22,1,0.36,1] ${
+                className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-[opacity,transform] duration-500 ease-[0.22,1,0.36,1] ${
                   isActive
                     ? "opacity-100 translate-y-0 pointer-events-auto delay-150"
                     : "opacity-0 translate-y-1 pointer-events-none"

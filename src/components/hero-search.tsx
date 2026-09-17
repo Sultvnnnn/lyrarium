@@ -669,7 +669,7 @@ export function HeroSearch({
       <section className="flex flex-col items-center justify-center pt-8 pb-10 px-4 md:px-8 relative">
         {/* 1. Kinetic Typographic Lyric Poster */}
         <div
-          className={`mb-8 w-full flex justify-center transition-all duration-500 ease-[0.22,1,0.36,1] ${
+          className={`mb-8 w-full flex justify-center transition-[opacity,filter] duration-500 ease-[0.22,1,0.36,1] ${
             isFocused ? "opacity-20 pointer-events-none filter blur-[1px]" : "opacity-100"
           }`}
         >
@@ -688,7 +688,7 @@ export function HeroSearch({
 
             {/* Search Box Input Bar */}
             <div
-              className={`relative flex items-center gap-2 border bg-background py-3 pl-5 pr-2.5 transition-all duration-500 ease-[0.22,1,0.36,1] ${
+              className={`relative flex items-center gap-2 border bg-background py-3 pl-5 pr-2.5 transition-[border-color,box-shadow] duration-500 ease-[0.22,1,0.36,1] ${
                 isFocused
                   ? "border-accent shadow-[0_16px_36px_-8px_rgba(0,0,0,0.35)] dark:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.8)]"
                   : "border-border hover:border-accent/60 shadow-none"
@@ -770,19 +770,19 @@ export function HeroSearch({
               {/* Dynamic Live Equalizer (Voice Activity Wave) */}
               <span className="flex items-end gap-0.5 h-3" aria-hidden="true">
                 <span
-                  className="w-0.5 bg-accent transition-all duration-75"
+                  className="w-0.5 bg-accent transition-[height] duration-75"
                   style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.15))}px` }}
                 />
                 <span
-                  className="w-0.5 bg-accent transition-all duration-75"
+                  className="w-0.5 bg-accent transition-[height] duration-75"
                   style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.28))}px` }}
                 />
                 <span
-                  className="w-0.5 bg-accent transition-all duration-75"
+                  className="w-0.5 bg-accent transition-[height] duration-75"
                   style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.22))}px` }}
                 />
                 <span
-                  className="w-0.5 bg-accent transition-all duration-75"
+                  className="w-0.5 bg-accent transition-[height] duration-75"
                   style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.12))}px` }}
                 />
               </span>
