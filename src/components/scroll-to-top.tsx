@@ -7,6 +7,8 @@ export function ScrollToTop() {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
@@ -21,9 +23,18 @@ export function ScrollToTop() {
       setVisible(scrollTop > 200);
     };
 
+    const handleMenu = (e: Event) => {
+      const custom = e as CustomEvent<{ open: boolean }>;
+      setMenuOpen(Boolean(custom.detail?.open));
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("lyrarium-menu-toggle", handleMenu);
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("lyrarium-menu-toggle", handleMenu);
+    };
   }, []);
 
   const scrollToTop = () => {
@@ -39,7 +50,7 @@ export function ScrollToTop() {
       onClick={scrollToTop}
       aria-label="Scroll back to top"
       className={`group fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 flex size-10 sm:size-11 items-center justify-center border border-border bg-background text-foreground transition-all duration-300 ease-out hover:border-accent hover:text-accent active:scale-95 overflow-hidden ${
-        visible
+        visible && !menuOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-3 pointer-events-none"
       }`}

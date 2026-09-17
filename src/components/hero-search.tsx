@@ -202,6 +202,9 @@ export function HeroSearch({
   // "ESC" untuk keluar/unfocus
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      // Abaikan shortcut jika fullscreen menu sedang terbuka
+      if (document.body.getAttribute("data-menu-open") === "true") return;
+
       if (e.key === "Escape" && isFocused) {
         setIsFocused(false);
         inputRef.current?.blur();
@@ -225,6 +228,20 @@ export function HeroSearch({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFocused]);
+
+  // Listener saat fullscreen menu overlay dibuka oleh user: otomatis unfocus searchbar
+  useEffect(() => {
+    const handleMenuToggle = (e: Event) => {
+      const customEvent = e as CustomEvent<{ open: boolean }>;
+      if (customEvent.detail?.open) {
+        setIsFocused(false);
+        inputRef.current?.blur();
+      }
+    };
+
+    window.addEventListener("lyrarium-menu-toggle", handleMenuToggle);
+    return () => window.removeEventListener("lyrarium-menu-toggle", handleMenuToggle);
+  }, []);
 
   // Click outside listener
   useEffect(() => {
@@ -633,7 +650,7 @@ export function HeroSearch({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => setIsFocused(false)}
-            className="fixed inset-0 z-30 bg-background/50 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 z-20 bg-background/50 backdrop-blur-md cursor-pointer"
             aria-hidden="true"
           />
         )}
@@ -652,8 +669,8 @@ export function HeroSearch({
         {/* 2. Search Container with smooth editorial width expansion & lift animation on focus */}
         <div
           ref={containerRef}
-          className={`w-full transition-[max-width,transform] duration-500 ease-[0.22,1,0.36,1] relative z-40 ${
-            isFocused ? "max-w-3xl -translate-y-2.5" : "max-w-xl translate-y-0"
+          className={`w-full transition-[max-width,transform] duration-500 ease-[0.22,1,0.36,1] relative ${
+            isFocused ? "z-30 max-w-3xl -translate-y-2.5" : "z-10 max-w-xl translate-y-0"
           }`}
         >
           <form action="/" method="get">
@@ -810,7 +827,7 @@ export function HeroSearch({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute left-0 right-0 top-[49px] border-x border-b border-accent bg-background max-h-[60vh] overflow-y-auto z-50 divide-y divide-border [contain:layout]"
+              className="absolute left-0 right-0 top-[49px] border-x border-b border-accent bg-background max-h-[60vh] overflow-y-auto z-30 divide-y divide-border [contain:layout]"
             >
               {searchResults.total > 0 ? (
                 <>

@@ -20,14 +20,26 @@ export function SiteHeader() {
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
+    if (open) {
+      document.body.setAttribute("data-menu-open", "true");
+      window.dispatchEvent(
+        new CustomEvent("lyrarium-menu-toggle", { detail: { open: true } })
+      );
+    } else {
+      document.body.removeAttribute("data-menu-open");
+      window.dispatchEvent(
+        new CustomEvent("lyrarium-menu-toggle", { detail: { open: false } })
+      );
+    }
     return () => {
       document.body.style.overflow = "";
+      document.body.removeAttribute("data-menu-open");
     };
   }, [open]);
 
   return (
     <>
-      <header className="relative z-50 flex items-center justify-between px-8 py-4">
+      <header className="relative z-[60] flex items-center justify-between px-8 py-4">
         <Link
           href="/"
           className={`group flex items-center gap-4 ${
@@ -86,7 +98,7 @@ export function SiteHeader() {
 
       {/* Overlay: navy di light, bone-white di dark */}
       <div
-        className={`fixed inset-0 z-40 flex flex-col justify-between bg-navy-ink px-8 pt-24 pb-8 text-bone-white transition-transform duration-500 ease-in-out dark:bg-bone-white dark:text-navy-ink ${
+        className={`fixed inset-0 z-50 flex flex-col justify-between bg-navy-ink px-8 pt-24 pb-8 text-bone-white transition-transform duration-500 ease-in-out dark:bg-bone-white dark:text-navy-ink ${
           open ? "translate-y-0" : "-translate-y-full"
         }`}
       >
