@@ -50,6 +50,7 @@ export function HeroSearch({
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [audioLevel, setAudioLevel] = useState<number>(0);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isMac, setIsMac] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -61,6 +62,14 @@ export function HeroSearch({
   const streamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const vadAnimationRef = useRef<number | null>(null);
+  const isTranscribingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isTranscribingRef.current = isTranscribing;
+  }, [isTranscribing]);
 
   // Deteksi Mac OS untuk label shortcut (⌘ K vs Ctrl K)
   useEffect(() => {
@@ -77,6 +86,12 @@ export function HeroSearch({
       }
       if (autoStopTimerRef.current) {
         clearTimeout(autoStopTimerRef.current);
+      }
+      if (vadAnimationRef.current) {
+        cancelAnimationFrame(vadAnimationRef.current);
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        audioContextRef.current.close().catch(() => {});
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -184,12 +199,24 @@ export function HeroSearch({
     }
   };
 
-  // Stop recording audio
+  // Stop recording audio and cleanup VAD audio context
   const stopRecording = () => {
     if (autoStopTimerRef.current) {
       clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = null;
     }
+
+    if (vadAnimationRef.current) {
+      cancelAnimationFrame(vadAnimationRef.current);
+      vadAnimationRef.current = null;
+    }
+
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    setAudioLevel(0);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
@@ -197,7 +224,35 @@ export function HeroSearch({
     setIsListening(false);
   };
 
-  // Start recording audio for Whisper auto-detect transcription
+  // Helper for realtime speech feedback while user is actively talking
+  const sendInterimSnapshot = async () => {
+    if (isTranscribingRef.current || audioChunksRef.current.length < 2) return;
+    const partialBlob = new Blob(audioChunksRef.current, {
+      type: mediaRecorderRef.current?.mimeType || "audio/webm",
+    });
+    if (partialBlob.size < 800) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", partialBlob, "interim.webm");
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.text && mediaRecorderRef.current?.state === "recording") {
+          setQuery(data.text);
+          if (inputRef.current) {
+            inputRef.current.value = data.text;
+          }
+          setIsFocused(true);
+        }
+      }
+    } catch {}
+  };
+
+  // Start recording audio with Voice Activity Detection (VAD) & auto-stop
   const startRecording = async () => {
     setSpeechError(null);
 
@@ -209,6 +264,69 @@ export function HeroSearch({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+
+      // ── Setup AudioContext & AnalyserNode for Real-Time VAD & Equalizer ──
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      let hasSpoken = false;
+      let silenceStartTime: number | null = null;
+      let lastInterimSnapshotTime = Date.now();
+      const SILENCE_TIMEOUT = 1100; // 1.1 detik hening setelah bicara -> otomatis selesai!
+      const SPEECH_THRESHOLD = 14; // Ambang batas volume bicara
+
+      if (AudioCtxClass) {
+        const audioCtx = new AudioCtxClass();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.3;
+        source.connect(analyser);
+
+        audioContextRef.current = audioCtx;
+        analyserRef.current = analyser;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const checkAudioActivity = () => {
+          if (!analyserRef.current) return;
+          analyserRef.current.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+          const avg = sum / bufferLength;
+
+          // Update audioLevel (0 - 100) untuk visualizer equalizer
+          setAudioLevel(Math.min(100, Math.round(avg * 2.8)));
+
+          const now = Date.now();
+          if (avg > SPEECH_THRESHOLD) {
+            hasSpoken = true;
+            silenceStartTime = null;
+
+            // Periodic snapshot: kirim potongan audio ke Whisper secara realtime setiap ~1.2 detik saat berbicara
+            if (
+              now - lastInterimSnapshotTime > 1200 &&
+              audioChunksRef.current.length > 2 &&
+              !isTranscribingRef.current
+            ) {
+              lastInterimSnapshotTime = now;
+              sendInterimSnapshot();
+            }
+          } else if (hasSpoken) {
+            if (!silenceStartTime) {
+              silenceStartTime = now;
+            } else if (now - silenceStartTime >= SILENCE_TIMEOUT) {
+              // Pengguna sudah selesai bicara & jeda hening terpenuhi -> Auto-stop!
+              stopRecording();
+              return;
+            }
+          }
+
+          vadAnimationRef.current = requestAnimationFrame(checkAudioActivity);
+        };
+
+        vadAnimationRef.current = requestAnimationFrame(checkAudioActivity);
+      }
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -283,10 +401,11 @@ export function HeroSearch({
       setIsListening(true);
       setIsFocused(true);
 
+      // Safety timeout: jika tidak ada suara sama sekali selama 7 detik, auto stop
       if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = setTimeout(() => {
         stopRecording();
-      }, 10000);
+      }, 7000);
     } catch {
       setSpeechError("Microphone permission denied.");
       setIsListening(false);
@@ -499,17 +618,35 @@ export function HeroSearch({
         {/* ── Status or Keyboard Shortcut Indicator ── */}
         <div className="mt-2.5 flex items-center justify-between px-1 text-caption uppercase tracking-widest text-muted-foreground select-none">
           {isListening ? (
-            <div className="flex items-center gap-2 text-accent">
-              <span className="inline-block size-1.5 bg-accent animate-pulse shrink-0" />
-              <span>// Listening // Sing or speak lyrics (click mic to finish)</span>
+            <div className="flex items-center gap-2.5 text-accent text-caption uppercase tracking-widest">
+              {/* Dynamic Live Equalizer (Voice Activity Wave) */}
+              <span className="flex items-end gap-0.5 h-3" aria-hidden="true">
+                <span
+                  className="w-0.5 bg-accent transition-all duration-75"
+                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.15))}px` }}
+                />
+                <span
+                  className="w-0.5 bg-accent transition-all duration-75"
+                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.28))}px` }}
+                />
+                <span
+                  className="w-0.5 bg-accent transition-all duration-75"
+                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.22))}px` }}
+                />
+                <span
+                  className="w-0.5 bg-accent transition-all duration-75"
+                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.12))}px` }}
+                />
+              </span>
+              <span>// Listening...</span>
             </div>
           ) : isTranscribing ? (
-            <div className="flex items-center gap-2 text-accent">
+            <div className="flex items-center gap-2 text-accent text-caption uppercase tracking-widest">
               <span className="inline-block size-1.5 bg-accent animate-pulse shrink-0" />
-              <span>// Whisper AI // Auto-detecting lyrics & language...</span>
+              <span>// Transcribing...</span>
             </div>
           ) : speechError ? (
-            <div className="text-destructive">
+            <div className="text-destructive text-caption uppercase tracking-widest">
               // {speechError}
             </div>
           ) : (
@@ -681,20 +818,6 @@ export function HeroSearch({
           )}
         </AnimatePresence>
 
-        {/* Listening / Error feedback */}
-        {(isListening || speechError) && (
-          <div className="mt-2 flex items-center justify-between px-2 text-caption uppercase tracking-widest">
-            {isListening ? (
-              <span className="text-accent">
-                // Listening // Speak or sing lyrics
-              </span>
-            ) : (
-              <span className="text-destructive">
-                // {speechError}
-              </span>
-            )}
-          </div>
-        )}
 
         {/* Filter status & Clear filter link */}
         {(initialQuery || artist) && (
