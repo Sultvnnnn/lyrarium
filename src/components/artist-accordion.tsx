@@ -24,36 +24,40 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
   const router = useRouter();
 
   // ── Dynamic Screen-Fitting Calculation ──
+  // Menggunakan ResizeObserver terisolasi agar tidak memicu forced synchronous layout
   useEffect(() => {
-    function updateCapacity() {
-      if (!containerRef.current) return;
-      const width = containerRef.current.clientWidth;
-      const isDesktop = window.innerWidth >= 768;
+    const el = containerRef.current;
+    if (!el) return;
 
-      if (!isDesktop) {
-        setMaxVisible(5);
-        return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        const isDesktop = window.innerWidth >= 768;
+
+        if (!isDesktop) {
+          setMaxVisible(5);
+          return;
+        }
+
+        const isLarge = window.innerWidth >= 1024;
+        const activeWidth = isLarge ? 500 : 460;
+        const inactiveWidth = isLarge ? 84 : 72;
+        const gap = window.innerWidth >= 640 ? 12 : 10;
+
+        const remainingWidth = width - activeWidth;
+        if (remainingWidth <= 0) {
+          setMaxVisible(2);
+          return;
+        }
+
+        const inactiveCount = Math.floor(remainingWidth / (inactiveWidth + gap));
+        const totalFit = 1 + inactiveCount;
+        setMaxVisible(Math.max(3, totalFit));
       }
+    });
 
-      const isLarge = window.innerWidth >= 1024;
-      const activeWidth = isLarge ? 500 : 460;
-      const inactiveWidth = isLarge ? 84 : 72;
-      const gap = window.innerWidth >= 640 ? 12 : 10;
-
-      const remainingWidth = width - activeWidth;
-      if (remainingWidth <= 0) {
-        setMaxVisible(2);
-        return;
-      }
-
-      const inactiveCount = Math.floor(remainingWidth / (inactiveWidth + gap));
-      const totalFit = 1 + inactiveCount;
-      setMaxVisible(Math.max(3, totalFit));
-    }
-
-    updateCapacity();
-    window.addEventListener("resize", updateCapacity);
-    return () => window.removeEventListener("resize", updateCapacity);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // ── Transition lock ──
@@ -126,7 +130,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                 }
               }}
               onMouseEnter={() => activateCard(i)}
-              className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
+              className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
                 isActive
                   ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
                   : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
@@ -140,6 +144,8 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                     alt={artist.name}
                     loading={i === 0 ? "eager" : "lazy"}
                     decoding="async"
+                    // @ts-ignore
+                    fetchPriority={i === 0 ? "high" : "auto"}
                     width={500}
                     height={500}
                     className={`size-full object-cover transition-opacity duration-500 ease-out ${

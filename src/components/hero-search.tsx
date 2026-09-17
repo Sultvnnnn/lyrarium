@@ -137,7 +137,6 @@ export function HeroSearch({
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [audioLevel, setAudioLevel] = useState<number>(0);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isMac, setIsMac] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -345,7 +344,6 @@ export function HeroSearch({
       audioContextRef.current = null;
     }
     analyserRef.current = null;
-    setAudioLevel(0);
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
@@ -429,9 +427,6 @@ export function HeroSearch({
           let sum = 0;
           for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
           const avg = sum / bufferLength;
-
-          // Update audioLevel (0 - 100) untuk visualizer equalizer
-          setAudioLevel(Math.min(100, Math.round(avg * 2.8)));
 
           // Ambang batas vokal suara manusia yang jelas
           if (avg > 22) {
@@ -651,7 +646,7 @@ export function HeroSearch({
 
   return (
     <>
-      {/* ── Focus Mode Backdrop Blur (Spotlight Focus) ── */}
+      {/* ── Focus Mode Backdrop (Spotlight Focus) ── */}
       <AnimatePresence>
         {isFocused && (
           <motion.div
@@ -660,7 +655,7 @@ export function HeroSearch({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             onClick={() => setIsFocused(false)}
-            className="fixed inset-0 z-20 bg-background/50 backdrop-blur-md cursor-pointer"
+            className="fixed inset-0 z-20 bg-background/80 cursor-pointer"
             aria-hidden="true"
           />
         )}
@@ -669,8 +664,8 @@ export function HeroSearch({
       <section className="flex flex-col items-center justify-center pt-8 pb-10 px-4 md:px-8 relative">
         {/* 1. Kinetic Typographic Lyric Poster */}
         <div
-          className={`mb-8 w-full flex justify-center transition-[opacity,filter] duration-500 ease-[0.22,1,0.36,1] ${
-            isFocused ? "opacity-20 pointer-events-none filter blur-[1px]" : "opacity-100"
+          className={`mb-8 w-full flex justify-center transition-opacity duration-500 ease-[0.22,1,0.36,1] ${
+            isFocused ? "opacity-20 pointer-events-none" : "opacity-100"
           }`}
         >
           <LyricPoster items={items} centered={true} />
@@ -767,24 +762,12 @@ export function HeroSearch({
         <div className="mt-2.5 flex items-center justify-between px-1 text-caption uppercase tracking-widest text-muted-foreground select-none">
           {isListening ? (
             <div className="flex items-center gap-2.5 text-accent text-caption uppercase tracking-widest">
-              {/* Dynamic Live Equalizer (Voice Activity Wave) */}
+              {/* Dynamic Live Equalizer (Voice Activity Wave — GPU Compositor Keyframes) */}
               <span className="flex items-end gap-0.5 h-3" aria-hidden="true">
-                <span
-                  className="w-0.5 bg-accent transition-[height] duration-75"
-                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.15))}px` }}
-                />
-                <span
-                  className="w-0.5 bg-accent transition-[height] duration-75"
-                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.28))}px` }}
-                />
-                <span
-                  className="w-0.5 bg-accent transition-[height] duration-75"
-                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.22))}px` }}
-                />
-                <span
-                  className="w-0.5 bg-accent transition-[height] duration-75"
-                  style={{ height: `${Math.max(3, Math.min(12, audioLevel * 0.12))}px` }}
-                />
+                <span className="w-0.5 h-3 bg-accent animate-eq-1" />
+                <span className="w-0.5 h-3 bg-accent animate-eq-2" />
+                <span className="w-0.5 h-3 bg-accent animate-eq-3" />
+                <span className="w-0.5 h-3 bg-accent animate-eq-4" />
               </span>
               <span>// Listening... (click mic to finish)</span>
             </div>

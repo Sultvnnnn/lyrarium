@@ -317,7 +317,7 @@ const ArtistAccordionRow = React.memo(function ArtistAccordionRow({
               }
             }}
             onMouseEnter={() => activateCard(i)}
-            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex-basis,border-color] duration-500 ease-[0.25,1,0.35,1] will-change-[flex-basis] ${
+            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex-basis,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
               isActive
                 ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] w-full aspect-square md:aspect-auto md:h-full border-accent z-10"
                 : "md:flex-[0_0_72px] lg:flex-[0_0_84px] h-14 md:h-full border-border hover:border-accent/60 z-0"
