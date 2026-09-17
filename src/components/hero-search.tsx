@@ -46,6 +46,7 @@ export function HeroSearch({
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isMac, setIsMac] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [voiceLang, setVoiceLang] = useState<"id-ID" | "en-US">("id-ID");
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -137,9 +138,10 @@ export function HeroSearch({
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = "en-US";
+      recognition.lang = voiceLang;
       recognition.continuous = false;
       recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -347,6 +349,23 @@ export function HeroSearch({
               )}
             </AnimatePresence>
 
+            {/* Voice Recognition Language Switcher */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextLang = voiceLang === "id-ID" ? "en-US" : "id-ID";
+                setVoiceLang(nextLang);
+                if (isListening && recognitionRef.current) {
+                  recognitionRef.current.abort();
+                  setIsListening(false);
+                }
+              }}
+              title={`Speech Recognition Language: ${voiceLang === "id-ID" ? "Bahasa Indonesia (id-ID)" : "English (en-US)"}. Click to switch.`}
+              className="h-9 px-2 border border-border bg-muted/30 text-[11px] font-mono uppercase text-muted-foreground hover:border-accent hover:text-accent transition-colors select-none"
+            >
+              {voiceLang === "id-ID" ? "ID" : "EN"}
+            </button>
+
             {/* Mic Voice Search Button */}
             <button
               type="button"
@@ -535,7 +554,7 @@ export function HeroSearch({
           <div className="mt-2 flex items-center justify-between px-2 text-caption uppercase tracking-widest">
             {isListening ? (
               <span className="text-accent">
-                // Listening // Speak or sing lyrics
+                // Listening ({voiceLang === "id-ID" ? "ID" : "EN"}) // {voiceLang === "id-ID" ? "Nyanyikan atau ucapkan lirik" : "Sing or speak lyrics"}
               </span>
             ) : (
               <span className="text-destructive">
