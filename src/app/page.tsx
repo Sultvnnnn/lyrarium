@@ -40,7 +40,10 @@ export default async function Home({ searchParams }: Props) {
     })
     .from(songs)
     .orderBy(desc(songs.id));
-  const allDbArtists = await db.select().from(artistsTable).orderBy(asc(artistsTable.name));
+  const allDbArtists = await db
+    .select()
+    .from(artistsTable)
+    .orderBy(desc(artistsTable.id));
 
   const pool1: HeroItem[] = [];
   const pool2: HeroItem[] = [];
@@ -138,13 +141,12 @@ export default async function Home({ searchParams }: Props) {
     }
   }
 
-  const artistsList = [...artistMap.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
-
-  // Prepare ArtistAccordion items
+  // Prepare ArtistAccordion items — recently added artists first
   const artistAccordionItems: AccordionArtist[] = [];
+  const seenArtistNames = new Set<string>();
+
   for (const a of allDbArtists) {
+    seenArtistNames.add(a.name.toLowerCase());
     const count = artistMap.get(a.name) ?? 0;
     artistAccordionItems.push({
       name: a.name,
@@ -154,20 +156,32 @@ export default async function Home({ searchParams }: Props) {
       songCount: count,
     });
   }
-  // Include any artist from songs not in artists table yet
-  for (const [name, count] of artistsList) {
-    if (!artistAccordionItems.some((x) => x.name.toLowerCase() === name.toLowerCase())) {
-      artistAccordionItems.push({
-        name,
-        slug: name
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, ""),
-        about: null,
-        imageUrl: null,
-        songCount: count,
-      });
+
+  // Include any artist from songs not in artists table yet (in order of latest added songs)
+  for (const s of all) {
+    const candidateNames = [s.artist.trim()];
+    if (s.featuring) {
+      candidateNames.push(
+        ...s.featuring.split(/,\s*/).map((f) => f.trim()).filter(Boolean),
+      );
+    }
+    for (const name of candidateNames) {
+      const lower = name.toLowerCase();
+      if (!seenArtistNames.has(lower)) {
+        seenArtistNames.add(lower);
+        const count = artistMap.get(name) ?? 0;
+        artistAccordionItems.push({
+          name,
+          slug: name
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
+          about: null,
+          imageUrl: null,
+          songCount: count,
+        });
+      }
     }
   }
 
@@ -252,15 +266,15 @@ export default async function Home({ searchParams }: Props) {
         )}
       </section>
 
-      {/* 4. Artists Section (Distinct Artist Dossier Accordion Strip) */}
+      {/* 4. Artists Section (Recent Artists Accordion Strip) */}
       <section id="artists" className="px-8 pt-20">
         <div className="flex flex-wrap items-end justify-between gap-8 border-b border-border pb-4 mb-8">
           <div>
             <p className="text-caption uppercase text-muted-foreground tracking-widest">
-              Archive Index
+              Artists
             </p>
             <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
-              Artists.
+              Recent Artists.
             </h2>
           </div>
 
