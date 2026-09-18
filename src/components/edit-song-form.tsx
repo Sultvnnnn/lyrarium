@@ -19,6 +19,11 @@ import {
   serializeCredits,
   type StructuredCredit,
 } from "@/lib/credits";
+import {
+  type YouTubeVideo,
+  parseYouTubeVideos,
+  serializeYouTubeVideos,
+} from "@/lib/youtube";
 
 type CustomCreditRow = {
   id: string;
@@ -143,7 +148,13 @@ export function EditSongForm({
 
   // Media & Context
   const [aboutArtist, setAboutArtist] = useState(song.aboutArtist || "");
-  const [youtubeUrl, setYoutubeUrl] = useState(song.youtubeUrl || "");
+  const initialYoutubeVideos = useMemo(() => {
+    const parsed = parseYouTubeVideos(song.youtubeUrl);
+    if (parsed.length > 0) return parsed;
+    return [{ title: "Music Video", url: "" }];
+  }, [song.youtubeUrl]);
+  const [youtubeVideos, setYoutubeVideos] =
+    useState<YouTubeVideo[]>(initialYoutubeVideos);
   const [imagePreview, setImagePreview] = useState<string | null>(song.imageUrl);
   const [removeImage, setRemoveImage] = useState(false);
 
@@ -290,6 +301,35 @@ export function EditSongForm({
     );
   };
 
+  const addYoutubeVideo = () => {
+    setYoutubeVideos((prev) => [
+      ...prev,
+      { title: "", url: "" },
+    ]);
+  };
+
+  const removeYoutubeVideo = (index: number) => {
+    setYoutubeVideos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateYoutubeVideo = (
+    index: number,
+    field: "title" | "url",
+    value: string
+  ) => {
+    setYoutubeVideos((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              [field]: value,
+              ...(index === 0 && field === "title" ? { title: "Music Video" } : {}),
+            }
+          : item
+      )
+    );
+  };
+
   const handleSubmit = (formData: FormData) => {
     formData.set("id", String(song.id));
     formData.set("artist", artist);
@@ -352,6 +392,13 @@ export function EditSongForm({
     const json = serializeCredits(creditsList);
     if (json) {
       formData.set("credits_json", json);
+    }
+
+    const serializedVideos = serializeYouTubeVideos(youtubeVideos);
+    if (serializedVideos) {
+      formData.set("youtubeUrl", serializedVideos);
+    } else {
+      formData.delete("youtubeUrl");
     }
 
     startTransition(async () => {
@@ -1114,24 +1161,101 @@ export function EditSongForm({
           )}
         </div>
 
-        {/* YouTube Embed URL */}
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="youtubeUrl"
-            className="text-caption uppercase text-muted-foreground"
-          >
-            YouTube Video URL
-          </label>
-          <input
-            id="youtubeUrl"
-            name="youtubeUrl"
-            value={youtubeUrl}
-            onChange={(e) => setYoutubeUrl(e.target.value)}
-            className={inputCls}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
+        {/* YouTube Videos Section */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <label className="text-caption uppercase text-muted-foreground">
+              YouTube Videos <span className="text-muted-foreground/60">(Optional)</span>
+            </label>
+            <span className="text-caption text-muted-foreground font-mono text-[11px]">
+              {youtubeVideos.length} {youtubeVideos.length === 1 ? "video" : "videos"}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {youtubeVideos.map((vid, idx) => (
+              <div
+                key={idx}
+                className="border border-border p-4 bg-muted/10 flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-caption uppercase tracking-wider text-foreground font-normal">
+                    {idx === 0
+                      ? "01 // Main Video (Music Video)"
+                      : `0${idx + 1} // Additional Video`}
+                  </span>
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removeYoutubeVideo(idx)}
+                      aria-label={`Remove video ${idx + 1}`}
+                      className="flex size-7 items-center justify-center border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                    >
+                      <X size={16} strokeWidth={1} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
+                  {/* Video Title / Label */}
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      Title / Label
+                    </label>
+                    {idx === 0 ? (
+                      <input
+                        type="text"
+                        value="Music Video"
+                        readOnly
+                        disabled
+                        className="w-full border border-border bg-muted/40 px-3 py-2 text-body-sm font-light text-muted-foreground cursor-not-allowed select-none"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={vid.title}
+                        onChange={(e) =>
+                          updateYoutubeVideo(idx, "title", e.target.value)
+                        }
+                        placeholder="e.g. Live Performance, Acoustic"
+                        className="w-full border border-border bg-transparent px-3 py-2 text-body-sm font-light text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none transition-colors"
+                      />
+                    )}
+                  </div>
+
+                  {/* Video URL */}
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      YouTube URL
+                    </label>
+                    <input
+                      type="text"
+                      value={vid.url}
+                      onChange={(e) =>
+                        updateYoutubeVideo(idx, "url", e.target.value)
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full border border-border bg-transparent px-3 py-2 text-body-sm font-light text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={addYoutubeVideo}
+              className="inline-flex items-center gap-2 border border-dashed border-border px-4 py-2.5 text-caption uppercase text-foreground hover:border-accent hover:text-accent transition-colors"
+            >
+              <Plus size={16} strokeWidth={1} />
+              <span>Add Another YouTube Video</span>
+            </button>
+          </div>
+
           <p className="text-caption text-muted-foreground">
-            Embedded as a responsive video player on the lyrics page.
+            Music video and additional performances will appear in an editorial sliding carousel on the lyrics page.
           </p>
         </div>
 

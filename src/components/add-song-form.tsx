@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Plus, X, Upload, ArrowRight, Music, Disc, Check, UserPlus, ChevronDown, Layers } from "lucide-react";
 import { addSong } from "@/app/actions/songs";
 import { serializeCredits, type StructuredCredit } from "@/lib/credits";
+import {
+  type YouTubeVideo,
+  serializeYouTubeVideos,
+} from "@/lib/youtube";
 
 type CustomCreditRow = {
   id: string;
@@ -51,6 +55,11 @@ export function AddSongForm({
   const [featSearch, setFeatSearch] = useState("");
   const [featDropdownOpen, setFeatDropdownOpen] = useState(false);
 
+  // Multi-video YouTube state (Video 1 is always Music Video)
+  const [youtubeVideos, setYoutubeVideos] = useState<YouTubeVideo[]>([
+    { title: "Music Video", url: "" },
+  ]);
+
   // Restore draft from sessionStorage on initial mount
   useEffect(() => {
     try {
@@ -69,6 +78,9 @@ export function AddSongForm({
         if (draft.engineering) setEngineering(draft.engineering);
         if (Array.isArray(draft.customCredits) && draft.customCredits.length > 0) {
           setCustomCredits(draft.customCredits);
+        }
+        if (Array.isArray(draft.youtubeVideos) && draft.youtubeVideos.length > 0) {
+          setYoutubeVideos(draft.youtubeVideos);
         }
       }
     } catch {
@@ -171,14 +183,23 @@ export function AddSongForm({
         producers,
         engineering,
         customCredits,
+        youtubeVideos,
       };
-      if (title || lyrics || album || featuringList.length > 0 || writers || producers) {
+      if (
+        title ||
+        lyrics ||
+        album ||
+        featuringList.length > 0 ||
+        writers ||
+        producers ||
+        youtubeVideos.some((v) => v.url.trim())
+      ) {
         sessionStorage.setItem("lyrarium_add_song_draft", JSON.stringify(draft));
       }
     } catch {
       // ignore
     }
-  }, [title, artist, album, featuringList, lyrics, writers, producers, engineering, customCredits]);
+  }, [title, artist, album, featuringList, lyrics, writers, producers, engineering, customCredits, youtubeVideos]);
 
   // Lyrics statistics
   const lineCount = lyrics.split("\n").filter((l) => l.trim().length > 0).length;
@@ -264,6 +285,35 @@ export function AddSongForm({
     );
   };
 
+  const addYoutubeVideo = () => {
+    setYoutubeVideos((prev) => [
+      ...prev,
+      { title: "", url: "" },
+    ]);
+  };
+
+  const removeYoutubeVideo = (index: number) => {
+    setYoutubeVideos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateYoutubeVideo = (
+    index: number,
+    field: "title" | "url",
+    value: string
+  ) => {
+    setYoutubeVideos((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              [field]: value,
+              ...(index === 0 && field === "title" ? { title: "Music Video" } : {}),
+            }
+          : item
+      )
+    );
+  };
+
   const handleSubmit = (formData: FormData) => {
     try {
       sessionStorage.removeItem("lyrarium_add_song_draft");
@@ -328,6 +378,13 @@ export function AddSongForm({
     const json = serializeCredits(creditsList);
     if (json) {
       formData.set("credits_json", json);
+    }
+
+    const serializedVideos = serializeYouTubeVideos(youtubeVideos);
+    if (serializedVideos) {
+      formData.set("youtubeUrl", serializedVideos);
+    } else {
+      formData.delete("youtubeUrl");
     }
 
     startTransition(async () => {
@@ -1078,22 +1135,101 @@ export function AddSongForm({
           )}
         </div>
 
-        {/* YouTube Embed URL */}
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="youtubeUrl"
-            className="text-caption uppercase text-muted-foreground"
-          >
-            YouTube Video URL
-          </label>
-          <input
-            id="youtubeUrl"
-            name="youtubeUrl"
-            className={inputCls}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
+        {/* YouTube Videos Section */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <label className="text-caption uppercase text-muted-foreground">
+              YouTube Videos <span className="text-muted-foreground/60">(Optional)</span>
+            </label>
+            <span className="text-caption text-muted-foreground font-mono text-[11px]">
+              {youtubeVideos.length} {youtubeVideos.length === 1 ? "video" : "videos"}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {youtubeVideos.map((vid, idx) => (
+              <div
+                key={idx}
+                className="border border-border p-4 bg-muted/10 flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-caption uppercase tracking-wider text-foreground font-normal">
+                    {idx === 0
+                      ? "01 // Main Video (Music Video)"
+                      : `0${idx + 1} // Additional Video`}
+                  </span>
+                  {idx > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removeYoutubeVideo(idx)}
+                      aria-label={`Remove video ${idx + 1}`}
+                      className="flex size-7 items-center justify-center border border-border text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                    >
+                      <X size={16} strokeWidth={1} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
+                  {/* Video Title / Label */}
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      Title / Label
+                    </label>
+                    {idx === 0 ? (
+                      <input
+                        type="text"
+                        value="Music Video"
+                        readOnly
+                        disabled
+                        className="w-full border border-border bg-muted/40 px-3 py-2 text-body-sm font-light text-muted-foreground cursor-not-allowed select-none"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={vid.title}
+                        onChange={(e) =>
+                          updateYoutubeVideo(idx, "title", e.target.value)
+                        }
+                        placeholder="e.g. Live Performance, Acoustic"
+                        className="w-full border border-border bg-transparent px-3 py-2 text-body-sm font-light text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none transition-colors"
+                      />
+                    )}
+                  </div>
+
+                  {/* Video URL */}
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                      YouTube URL
+                    </label>
+                    <input
+                      type="text"
+                      value={vid.url}
+                      onChange={(e) =>
+                        updateYoutubeVideo(idx, "url", e.target.value)
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full border border-border bg-transparent px-3 py-2 text-body-sm font-light text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={addYoutubeVideo}
+              className="inline-flex items-center gap-2 border border-dashed border-border px-4 py-2.5 text-caption uppercase text-foreground hover:border-accent hover:text-accent transition-colors"
+            >
+              <Plus size={16} strokeWidth={1} />
+              <span>Add Another YouTube Video</span>
+            </button>
+          </div>
+
           <p className="text-caption text-muted-foreground">
-            Will be embedded as a responsive video player on the lyrics page.
+            Music video and additional performances will appear in an editorial sliding carousel on the lyrics page.
           </p>
         </div>
       </section>

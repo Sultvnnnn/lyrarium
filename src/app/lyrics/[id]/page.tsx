@@ -8,7 +8,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
 import { LyricsBreadcrumb } from "@/components/lyrics-breadcrumb";
-import { YouTubeFacade } from "@/components/youtube-facade";
+import { YouTubeCarousel } from "@/components/youtube-carousel";
+import { parseYouTubeVideos } from "@/lib/youtube";
 import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
@@ -25,24 +26,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: song ? `${song.title} — ${song.artist}` : "Lyrarium",
   };
-}
-
-function getYouTubeVideoId(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    let id: string | null = null;
-    if (u.hostname.includes("youtu.be")) {
-      id = u.pathname.slice(1).split("/")[0];
-    } else if (u.hostname.includes("youtube.com")) {
-      if (u.pathname === "/watch") id = u.searchParams.get("v");
-      else if (u.pathname.startsWith("/embed/")) id = u.pathname.split("/")[2];
-      else if (u.pathname.startsWith("/shorts/")) id = u.pathname.split("/")[2];
-    }
-    return id;
-  } catch {
-    return null;
-  }
 }
 
 function getDynamicTitleSize(title: string): string {
@@ -79,7 +62,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
   const song = await db.query.songs.findFirst({ where: eq(songs.id, songId) });
   if (!song) notFound();
 
-  const videoId = getYouTubeVideoId(song.youtubeUrl);
+  const youtubeVideos = parseYouTubeVideos(song.youtubeUrl);
 
   const all = await db.select().from(songs).orderBy(songs.id);
   const i = all.findIndex((s) => s.id === song.id);
@@ -299,14 +282,13 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
           {/* Detail sticky di kanan — bersih */}
           <aside className="flex flex-col gap-12 lg:sticky lg:top-16 lg:self-start">
-            {/* YouTube embed facade */}
-            {videoId && (
-              <div>
-                <p className="text-caption uppercase text-muted-foreground">
-                  Music video
-                </p>
-                <YouTubeFacade videoId={videoId} title={`${song.title} — ${song.artist}`} />
-              </div>
+            {/* YouTube videos carousel */}
+            {youtubeVideos.length > 0 && (
+              <YouTubeCarousel
+                videos={youtubeVideos}
+                songTitle={song.title}
+                artistName={song.artist}
+              />
             )}
 
             {/* About artist */}
