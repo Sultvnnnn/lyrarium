@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import { db } from "@/db";
 import { artists, songs } from "@/db/schema";
 
@@ -54,12 +54,21 @@ export async function addArtist(formData: FormData) {
           ...(imageUrl ? { imageUrl } : {}),
         },
       });
+
+    if (about) {
+      await db
+        .update(songs)
+        .set({ aboutArtist: about })
+        .where(ilike(songs.artist, name));
+    }
   } catch (e) {
     console.error("Failed to insert artist:", e);
   }
 
   revalidatePath("/");
   revalidatePath("/add");
+  revalidatePath("/songs");
+  revalidatePath("/lyrics/[id]", "page");
   revalidatePath(`/artist/${slug}`);
 
   if (returnUrl) {
@@ -154,9 +163,19 @@ export async function updateArtist(
       .where(eq(songs.artist, oldName));
   }
 
+  // Also sync aboutArtist across songs table so all tracks reflect the latest bio
+  if (about) {
+    await db
+      .update(songs)
+      .set({ aboutArtist: about })
+      .where(ilike(songs.artist, name));
+  }
+
   revalidatePath("/");
   revalidatePath("/edit");
   revalidatePath("/add");
+  revalidatePath("/songs");
+  revalidatePath("/lyrics/[id]", "page");
   if (oldSlug) revalidatePath(`/artist/${oldSlug}`);
   revalidatePath(`/artist/${newSlug}`);
 

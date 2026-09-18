@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, or, ilike } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
@@ -86,12 +86,20 @@ export default async function LyricsPage({ params, searchParams }: Props) {
   const prev = i > 0 ? all[i - 1] : null;
   const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
 
+  const artistSlugified = song.artist
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
   const artistRecord = await db.query.artists.findFirst({
-    where: eq(artists.name, song.artist),
+    where: or(
+      ilike(artists.name, song.artist.trim()),
+      eq(artists.slug, artistSlugified)
+    ),
   });
-  const artistBio = song.aboutArtist || artistRecord?.about || null;
-  const artistSlug =
-    artistRecord?.slug || encodeURIComponent(song.artist.toLowerCase().trim());
+  const artistBio = artistRecord?.about || song.aboutArtist || null;
+  const artistSlug = artistRecord?.slug || artistSlugified;
   const credits = parseCredits(song.credits);
 
   // Fetch featuring artists
@@ -102,19 +110,20 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
   const allFeaturingArtists = await Promise.all(
     featuringNames.map(async (name) => {
+      const featSlug = name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
       const rec = await db.query.artists.findFirst({
-        where: eq(artists.name, name),
+        where: or(
+          ilike(artists.name, name),
+          eq(artists.slug, featSlug)
+        ),
       });
-      const slug =
-        rec?.slug ||
-        name
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
       return {
         name,
-        slug,
+        slug: rec?.slug || featSlug,
         about: rec?.about || null,
       };
     })

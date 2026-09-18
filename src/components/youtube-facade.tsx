@@ -45,10 +45,13 @@ export function YouTubeFacade({ videoId, title }: YouTubeFacadeProps) {
         className="size-full object-cover opacity-85 transition-opacity duration-300 group-hover:opacity-95"
       />
 
-      {/* Editorial Play Trigger Button (Sharp Square, Semantic Tokens, Lucide 16/1) */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex size-12 items-center justify-center border border-accent bg-background text-accent transition-transform duration-200 group-hover:scale-105 group-hover:bg-accent group-hover:text-accent-foreground">
-          <Play size={16} strokeWidth={1} className="translate-x-0.5" />
+      {/* Dim scrim for contrast */}
+      <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/45 pointer-events-none" />
+
+      {/* Editorial Play Trigger Button (Sharp, Balanced, Semantic Tokens) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-all duration-200 group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground active:scale-95">
+          <Play size={16} strokeWidth={1} />
         </div>
       </div>
     </div>
