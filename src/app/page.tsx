@@ -270,9 +270,6 @@ export default async function Home({ searchParams }: Props) {
       <section id="artists" className="px-8 pt-20">
         <div className="flex flex-wrap items-end justify-between gap-8 border-b border-border pb-4 mb-8">
           <div>
-            <p className="text-caption uppercase text-muted-foreground tracking-widest">
-              Artists
-            </p>
             <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
               Recent Artists.
             </h2>
