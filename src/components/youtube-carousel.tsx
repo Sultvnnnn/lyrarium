@@ -143,7 +143,7 @@ export function YouTubeCarousel({
     currentVideo.title || (activeIndex === 0 ? "Music Video" : `Video ${activeIndex + 1}`);
 
   return (
-    <div className="w-full">
+    <div className="w-full self-stretch">
       {/* Header bar: Title + Index Counter + Arrow Navigation */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">

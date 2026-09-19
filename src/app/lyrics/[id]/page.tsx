@@ -281,7 +281,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           </div>
 
           {/* Detail sticky di kanan — bersih */}
-          <aside className="flex flex-col gap-12 lg:sticky lg:top-16 lg:self-start">
+          <aside className="flex flex-col items-start gap-12 lg:sticky lg:top-16 lg:self-start">
             {/* YouTube videos carousel */}
             {youtubeVideos.length > 0 && (
               <YouTubeCarousel
@@ -293,7 +293,10 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
             {/* About artist */}
             {artistBio && (
-              <div className="w-full max-w-[360px]">
+              <div
+                className="w-[360px] max-w-full"
+                style={{ width: "360px", maxWidth: "100%" }}
+              >
                 <p className="text-caption uppercase text-muted-foreground">
                   About the artist
                 </p>
@@ -314,7 +317,11 @@ export default async function LyricsPage({ params, searchParams }: Props) {
             {allFeaturingArtists.map(
               (feat) =>
                 feat.about && (
-                  <div key={feat.name} className="border-t border-border pt-6 w-full max-w-[360px]">
+                  <div
+                    key={feat.name}
+                    className="border-t border-border pt-6 w-[360px] max-w-full"
+                    style={{ width: "360px", maxWidth: "100%" }}
+                  >
                     <p className="text-caption uppercase text-muted-foreground">
                       About {feat.name}
                     </p>
