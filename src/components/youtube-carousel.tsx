@@ -271,7 +271,7 @@ export function YouTubeCarousel({
           </AnimatePresence>
         </div>
 
-        {/* Siku-siku Line Resize Handle (Persis di Sudut Kiri Bawah Luar Frame) */}
+        {/* Siku-siku Line Resize Handle (Persis di Sudut Kiri Bawah Frame) */}
         <button
           type="button"
           onPointerDown={startDrag}
@@ -282,7 +282,8 @@ export function YouTubeCarousel({
               : "Drag or click to resize video frame (Max 640px)"
           }
           aria-label="Resize video frame"
-          className="group absolute top-full left-0 z-20 -mt-[1px] -ml-[1px] flex size-7 items-start justify-start text-muted-foreground hover:text-accent transition-colors cursor-nesw-resize select-none"
+          className="group absolute bottom-0 left-0 z-20 flex size-8 items-end justify-start p-1 text-muted-foreground hover:text-accent transition-colors cursor-nesw-resize select-none"
+          style={{ transform: "translate(-50%, 50%)" }}
         >
           <svg
             width="14"
