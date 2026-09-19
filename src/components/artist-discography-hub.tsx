@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { SongAccordion, type AccordionSong } from "@/components/song-accordion";
@@ -21,14 +21,15 @@ type ArtistDiscographyHubProps = {
   songs: ArtistSongItem[];
   artistName: string;
   artistSlug?: string;
+  initialAlbum?: string;
 };
 
 export function ArtistDiscographyHub({
   songs,
   artistName,
   artistSlug,
+  initialAlbum,
 }: ArtistDiscographyHubProps) {
-  const [activeTabId, setActiveTabId] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   // Build tabs dynamically: "All", each unique Album, and "Singles" (if mixed)
@@ -89,6 +90,59 @@ export function ArtistDiscographyHub({
 
     return result;
   }, [songs]);
+
+  const initialTabId = useMemo(() => {
+    if (!initialAlbum) return "all";
+    const target = initialAlbum.trim().toLowerCase();
+    const found = tabs.find(
+      (t) =>
+        t.id.toLowerCase() === target ||
+        t.id === `album-${target.replace(/[^a-z0-9]+/g, "-")}` ||
+        t.albumName?.toLowerCase() === target ||
+        t.label.toLowerCase() === target
+    );
+    return found ? found.id : "all";
+  }, [tabs, initialAlbum]);
+
+  const [activeTabId, setActiveTabId] = useState<string>(initialTabId);
+
+  useEffect(() => {
+    if (initialTabId !== "all") {
+      setActiveTabId(initialTabId);
+    }
+  }, [initialTabId]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const albParam = params.get("album") || params.get("tab");
+      const hash = window.location.hash.replace(/^#/, "");
+      const target = albParam || (hash.startsWith("album-") ? hash : null);
+
+      if (target) {
+        const clean = target.trim().toLowerCase();
+        const found = tabs.find(
+          (t) =>
+            t.id.toLowerCase() === clean ||
+            t.id === `album-${clean.replace(/[^a-z0-9]+/g, "-")}` ||
+            t.albumName?.toLowerCase() === clean ||
+            t.label.toLowerCase() === clean
+        );
+        if (found) {
+          setActiveTabId(found.id);
+        }
+      }
+
+      if (albParam || window.location.hash === "#discography") {
+        setTimeout(() => {
+          const el = document.getElementById("discography");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 150);
+      }
+    }
+  }, [tabs]);
 
   const activeIndex = useMemo(() => {
     const idx = tabs.findIndex((t) => t.id === activeTabId);

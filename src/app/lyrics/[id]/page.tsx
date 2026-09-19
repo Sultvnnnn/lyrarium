@@ -278,7 +278,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                     <span>Album</span>
                     <span>//</span>
                     <Link
-                      href={`/artist/${artistSlug}`}
+                      href={`/artist/${artistSlug}?album=${encodeURIComponent(song.album)}#discography`}
                       className="text-foreground transition-colors hover:text-accent hover:underline underline-offset-4"
                     >
                       {song.album}

@@ -10,7 +10,10 @@ import { ArtistDiscographyHub } from "@/components/artist-discography-hub";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { Plus, Pencil } from "lucide-react";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ album?: string; tab?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -38,8 +41,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${displayName} — Lyrarium` };
 }
 
-export default async function ArtistPage({ params }: Props) {
+export default async function ArtistPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { album, tab } = await searchParams;
   const decoded = decodeURIComponent(slug).trim();
   const slugified = decoded
     .toLowerCase()
@@ -240,7 +244,7 @@ export default async function ArtistPage({ params }: Props) {
         </section>
       </div>
       {/* All songs & albums by artist (Discography) */}
-      <section className="px-8 pt-16 pb-24">
+      <section id="discography" className="scroll-mt-8 px-8 pt-16 pb-24">
         <div className="mb-8">
           <p className="text-caption uppercase text-muted-foreground tracking-widest">
             Discography & Albums
@@ -268,6 +272,7 @@ export default async function ArtistPage({ params }: Props) {
             songs={artistSongs}
             artistName={displayName}
             artistSlug={artistRecord?.slug || slugified}
+            initialAlbum={album || tab}
           />
         )}
       </section>

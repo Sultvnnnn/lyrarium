@@ -328,9 +328,13 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                   [{indexNum}]
                 </span>
                 {song.album && (
-                  <span className="text-caption uppercase text-bone-white/70 tracking-widest truncate max-w-[55%] select-none">
+                  <Link
+                    href={`/artist/${song.artist.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}?album=${encodeURIComponent(song.album)}#discography`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-caption uppercase text-bone-white/70 hover:text-accent tracking-widest truncate max-w-[55%] transition-colors hover:underline underline-offset-2"
+                  >
                     {song.album}
-                  </span>
+                  </Link>
                 )}
               </div>
 
