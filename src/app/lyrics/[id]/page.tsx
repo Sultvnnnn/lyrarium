@@ -10,7 +10,7 @@ import { LyricsCopy } from "@/components/lyrics-copy";
 import { LyricsBreadcrumb } from "@/components/lyrics-breadcrumb";
 import { YouTubeCarousel } from "@/components/youtube-carousel";
 import { parseYouTubeVideos } from "@/lib/youtube";
-import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Pencil, Minus } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
 
 type Props = {
@@ -359,58 +359,81 @@ export default async function LyricsPage({ params, searchParams }: Props) {
       </section>
 
       {/* 3 — Editorial prev/next nav (hanya lagu terkait artis ini) */}
-      {(prev || next) && (
-        <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
-          {prev ? (
-            <Link
-              href={`/lyrics/${prev.id}${from === "artist" ? "?from=artist" : ""}`}
-              className="group flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r"
-            >
-              <ChevronLeft
-                size={16}
-                strokeWidth={1}
-                className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
-              />
-              <span className="min-w-0">
-                <span className="block text-caption uppercase text-muted-foreground">
-                  Previous
-                </span>
-                <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
-                  {prev.title}
-                </span>
-              </span>
-            </Link>
-          ) : (
-            <span
-              className="border-b border-border px-8 py-8 md:border-b-0 md:border-r"
-              aria-hidden
+      <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
+        {prev ? (
+          <Link
+            href={`/lyrics/${prev.id}${from === "artist" ? "?from=artist" : ""}`}
+            className="group flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r"
+          >
+            <ChevronLeft
+              size={16}
+              strokeWidth={1}
+              className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
             />
-          )}
-
-          {next ? (
-            <Link
-              href={`/lyrics/${next.id}${from === "artist" ? "?from=artist" : ""}`}
-              className="group flex items-center justify-end gap-6 px-8 py-8 text-right"
-            >
-              <span className="min-w-0">
-                <span className="block text-caption uppercase text-muted-foreground">
-                  Next
-                </span>
-                <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
-                  {next.title}
-                </span>
+            <span className="min-w-0">
+              <span className="block text-caption uppercase text-muted-foreground">
+                Previous
               </span>
-              <ChevronRight
-                size={16}
-                strokeWidth={1}
-                className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
-              />
-            </Link>
-          ) : (
-            <span aria-hidden />
-          )}
-        </nav>
-      )}
+              <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
+                {prev.title}
+              </span>
+            </span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r select-none">
+            <Minus
+              size={16}
+              strokeWidth={1}
+              className="shrink-0 text-muted-foreground/30"
+            />
+            <span className="min-w-0">
+              <span className="block text-caption uppercase text-muted-foreground/50">
+                Previous
+              </span>
+              <span className="mt-2 block truncate text-subheading font-light text-muted-foreground/50">
+                First entry.
+              </span>
+            </span>
+          </div>
+        )}
+
+        {next ? (
+          <Link
+            href={`/lyrics/${next.id}${from === "artist" ? "?from=artist" : ""}`}
+            className="group flex items-center justify-end gap-6 px-8 py-8 text-right"
+          >
+            <span className="min-w-0">
+              <span className="block text-caption uppercase text-muted-foreground">
+                Next
+              </span>
+              <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
+                {next.title}
+              </span>
+            </span>
+            <ChevronRight
+              size={16}
+              strokeWidth={1}
+              className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
+            />
+          </Link>
+        ) : (
+          <div className="flex items-center justify-end gap-6 px-8 py-8 text-right select-none">
+            <span className="min-w-0">
+              <span className="block text-caption uppercase text-muted-foreground/50">
+                Next
+              </span>
+              <span className="mt-2 block truncate text-subheading font-light text-muted-foreground/50">
+                Latest entry.
+              </span>
+            </span>
+            <Minus
+              size={16}
+              strokeWidth={1}
+              className="shrink-0 text-muted-foreground/30"
+            />
+          </div>
+        )}
+      </nav>
 
       <SiteFooter />
     </main>
