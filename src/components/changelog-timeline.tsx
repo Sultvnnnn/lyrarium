@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { GitCommit, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 export type MilestoneCategory =
   | "All"
@@ -19,7 +19,6 @@ export type Milestone = {
   category: MilestoneCategory;
   summary: string;
   details: string[];
-  commits: string[];
   tag: string;
 };
 
@@ -49,7 +48,6 @@ const MILESTONES: Milestone[] = [
       "Deep-linking to album tabs on artist profile pages via #discography and query parameters.",
       "Cleaned up redundant explore cards from artist discography to preserve artist focus.",
     ],
-    commits: ["9295561", "0cc0cce", "fef4de4", "92e020d"],
   },
   {
     id: "v1.8",
@@ -66,7 +64,6 @@ const MILESTONES: Milestone[] = [
       "Corner-bracket (siku-siku) resize handle for YouTube player with 360px default and max limits.",
       "Right-pinned sidebar layout with rigidly constrained 360px about section.",
     ],
-    commits: ["27388b8", "a11892c", "6db566a", "a7ddb98", "552fcf1", "63579b5", "1991527"],
   },
   {
     id: "v1.7",
@@ -83,7 +80,6 @@ const MILESTONES: Milestone[] = [
       "Synced artist about summaries directly with the database artists table.",
       "Redesigned video play button with editorial hairline styling.",
     ],
-    commits: ["4d79dc8", "41fee04", "31919c3", "c9e0174"],
   },
   {
     id: "v1.6",
@@ -102,7 +98,6 @@ const MILESTONES: Milestone[] = [
       "Pre-computed search haystack index with useDeferredValue to unblock main thread.",
       "Hardware-accelerated CSS containment (contain: layout_paint) and compositor keyframe animations.",
     ],
-    commits: ["36bf809", "3e0d8fb", "6047bab", "2233402", "7bec8ca", "8eac0e7", "e83e47e", "ba7feda", "e1d00b0"],
   },
   {
     id: "v1.5",
@@ -120,7 +115,6 @@ const MILESTONES: Milestone[] = [
       "Focus Search mode with background spotlight dimming and elevated card lift.",
       "Global Ctrl+K keyboard shortcut with arrow key navigation for instant query results.",
     ],
-    commits: ["bf8533f", "f779545", "0452036", "c3f73ab", "efaa475", "2f7f3b7", "8428d3e", "7321dac"],
   },
   {
     id: "v1.4",
@@ -137,7 +131,6 @@ const MILESTONES: Milestone[] = [
       "Hover transition lock to completely eliminate mouseover glitching and accordion jitter.",
       "Viewport clamp scaling on fullscreen menu overlay preventing item overflow on small displays.",
     ],
-    commits: ["3ecc990", "c0d75e6", "869bd6f", "5773628", "19e6d3d", "8b77091"],
   },
   {
     id: "v1.3",
@@ -154,7 +147,6 @@ const MILESTONES: Milestone[] = [
       "Content-hash (SHA-256) artwork deduplication and safe reference-counted Supabase storage deletion.",
       "Kinetic sliding album discography tab switcher on artist profile pages.",
     ],
-    commits: ["c7c12ae", "c185035", "f58ceb2", "c5d116d", "08b7228", "7b35054", "cb8d9d3", "587ac9f"],
   },
   {
     id: "v1.2",
@@ -172,7 +164,6 @@ const MILESTONES: Milestone[] = [
       "Editorial 'To lyrics' direct smooth jump button in song hero gatefold.",
       "Relocated credits to dedicated liner notes section beneath the full lyric canvas.",
     ],
-    commits: ["aaa38d2", "3105279", "677220e", "4b34462", "79d30b2", "0d857dd", "58b561f"],
   },
   {
     id: "v1.1",
@@ -189,7 +180,6 @@ const MILESTONES: Milestone[] = [
       "Hero search box with conditional animated submit button.",
       "First iteration of the expandable collection accordion strip.",
     ],
-    commits: ["c9053f8", "c253529", "e7e2597", "a673f46", "6636b94", "1425bec", "c4ab03f"],
   },
   {
     id: "v1.0",
@@ -207,7 +197,6 @@ const MILESTONES: Milestone[] = [
       "Structured credits system supporting Songwriters, Producers, and Custom Personnel roles.",
       "Dedicated artist database entities, biographical migration, and Supabase image storage.",
     ],
-    commits: ["4d9bb2d", "881dd5e", "4a903af", "6fce000", "d516d21", "863ff29", "7e00984"],
   },
 ];
 
@@ -251,22 +240,22 @@ export function ChangelogTimeline() {
         </div>
 
         {/* Header Stats */}
-        <div className="flex items-center gap-4 text-caption uppercase tracking-widest text-muted-foreground shrink-0 select-none">
+        <div className="flex items-center gap-3 text-caption uppercase tracking-widest text-muted-foreground shrink-0 select-none">
           <span>{filteredMilestones.length} of {MILESTONES.length} milestones</span>
           <span>//</span>
-          <span>128 commits</span>
+          <span>Sep 2026</span>
         </div>
       </div>
 
       {/* Alternating Zigzag Timeline Stream */}
-      <div className="relative w-full max-w-6xl mx-auto py-6">
-        {/* Central Vertical Spine (Desktop) */}
-        <div className="hidden md:block absolute left-1/2 top-4 bottom-4 w-[1px] -translate-x-1/2 bg-border pointer-events-none" />
+      <div className="relative w-full max-w-5xl mx-auto py-8">
+        {/* Central Vertical Spine (Desktop) - 2px solid hairline */}
+        <div className="hidden md:block absolute left-1/2 -ml-[1px] top-2 bottom-2 w-[2px] bg-border z-0 pointer-events-none" />
 
-        {/* Left Vertical Spine (Mobile) */}
-        <div className="block md:hidden absolute left-3.5 top-4 bottom-4 w-[1px] bg-border pointer-events-none" />
+        {/* Left Vertical Spine (Mobile) - 2px solid hairline */}
+        <div className="block md:hidden absolute left-4 -ml-[1px] top-2 bottom-2 w-[2px] bg-border z-0 pointer-events-none" />
 
-        <div className="space-y-10 md:space-y-14">
+        <div className="space-y-12 md:space-y-16">
           {filteredMilestones.map((m, idx) => {
             // Alternating zigzag: even items on Left, odd items on Right
             const isLeft = idx % 2 === 0;
@@ -277,10 +266,10 @@ export function ChangelogTimeline() {
                 className="relative flex flex-col md:flex-row items-center w-full group"
               >
                 {/* Center Node on Spine (Desktop) */}
-                <div className="hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 -translate-y-1/2 size-3.5 border border-border bg-background group-hover:border-accent group-hover:bg-accent transition-colors z-20" />
+                <div className="hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 -translate-y-1/2 size-3.5 border-2 border-border bg-background group-hover:border-accent group-hover:bg-accent transition-colors z-20" />
 
                 {/* Left Node on Spine (Mobile) */}
-                <div className="flex md:hidden absolute left-3.5 top-8 -translate-x-1/2 -translate-y-1/2 size-3 border border-border bg-background group-hover:border-accent group-hover:bg-accent transition-colors z-20" />
+                <div className="flex md:hidden absolute left-4 top-8 -translate-x-1/2 -translate-y-1/2 size-3.5 border-2 border-border bg-background group-hover:border-accent group-hover:bg-accent transition-colors z-20" />
 
                 {isLeft ? (
                   /* ========================================================================= */
@@ -288,11 +277,11 @@ export function ChangelogTimeline() {
                   /* ========================================================================= */
                   <>
                     {/* Left Side: The Card */}
-                    <div className="w-full md:w-1/2 pl-9 md:pl-0 md:pr-10 relative">
+                    <div className="w-full md:w-1/2 pl-12 md:pl-0 md:pr-10 relative">
                       {/* Horizontal Connecting Stem to Center Spine (Desktop) */}
-                      <div className="hidden md:block absolute right-0 top-8 w-10 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+                      <div className="hidden md:block absolute right-0 top-8 w-10 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
                       {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
-                      <div className="block md:hidden absolute left-3.5 top-8 w-5.5 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+                      <div className="block md:hidden absolute left-4 top-8 w-8 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
 
                       {/* Card Surface */}
                       <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
@@ -303,7 +292,7 @@ export function ChangelogTimeline() {
                             <span>{m.date}</span>
                           </div>
 
-                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-accent bg-accent text-accent-foreground font-medium">
+                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-border text-foreground font-medium group-hover:border-accent group-hover:text-accent transition-colors">
                             {m.version}
                           </span>
                         </div>
@@ -336,13 +325,10 @@ export function ChangelogTimeline() {
                           </ul>
                         </div>
 
-                        {/* Bottom Bar: Commits & Category */}
-                        <div className="mt-4 pt-3 border-t border-border/80 flex flex-wrap items-center justify-between gap-2 text-caption uppercase tracking-widest text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <GitCommit size={14} strokeWidth={1} />
-                            <span className="font-mono text-[11px]">{m.commits.join(", ")}</span>
-                          </div>
+                        {/* Bottom Bar: Category Tag & Index */}
+                        <div className="mt-4 pt-3 border-t border-border/80 flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground">
                           <span className="font-light text-foreground">{m.tag}</span>
+                          <span className="font-mono text-[11px] opacity-60">[{String(MILESTONES.length - idx).padStart(2, "0")}]</span>
                         </div>
                       </div>
                     </div>
@@ -356,7 +342,7 @@ export function ChangelogTimeline() {
                         {m.date}
                       </p>
                       <p className="text-caption uppercase tracking-widest text-muted-foreground/60">
-                        {m.commits.length} commits // {m.tag}
+                        {m.tag}
                       </p>
                     </div>
                   </>
@@ -374,16 +360,16 @@ export function ChangelogTimeline() {
                         {m.date}
                       </p>
                       <p className="text-caption uppercase tracking-widest text-muted-foreground/60">
-                        {m.commits.length} commits // {m.tag}
+                        {m.tag}
                       </p>
                     </div>
 
                     {/* Right Side: The Card */}
-                    <div className="w-full md:w-1/2 pl-9 md:pl-10 md:pr-0 relative">
+                    <div className="w-full md:w-1/2 pl-12 md:pl-10 md:pr-0 relative">
                       {/* Horizontal Connecting Stem to Center Spine (Desktop) */}
-                      <div className="hidden md:block absolute left-0 top-8 w-10 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+                      <div className="hidden md:block absolute left-0 top-8 w-10 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
                       {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
-                      <div className="block md:hidden absolute left-3.5 top-8 w-5.5 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+                      <div className="block md:hidden absolute left-4 top-8 w-8 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
 
                       {/* Card Surface */}
                       <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
@@ -394,7 +380,7 @@ export function ChangelogTimeline() {
                             <span>{m.date}</span>
                           </div>
 
-                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-accent bg-accent text-accent-foreground font-medium">
+                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-border text-foreground font-medium group-hover:border-accent group-hover:text-accent transition-colors">
                             {m.version}
                           </span>
                         </div>
@@ -427,13 +413,10 @@ export function ChangelogTimeline() {
                           </ul>
                         </div>
 
-                        {/* Bottom Bar: Commits & Category */}
-                        <div className="mt-4 pt-3 border-t border-border/80 flex flex-wrap items-center justify-between gap-2 text-caption uppercase tracking-widest text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <GitCommit size={14} strokeWidth={1} />
-                            <span className="font-mono text-[11px]">{m.commits.join(", ")}</span>
-                          </div>
+                        {/* Bottom Bar: Category Tag & Index */}
+                        <div className="mt-4 pt-3 border-t border-border/80 flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground">
                           <span className="font-light text-foreground">{m.tag}</span>
+                          <span className="font-mono text-[11px] opacity-60">[{String(MILESTONES.length - idx).padStart(2, "0")}]</span>
                         </div>
                       </div>
                     </div>
