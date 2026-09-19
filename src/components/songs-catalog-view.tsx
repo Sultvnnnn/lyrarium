@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
 import type { Song } from "@/db/schema";
+import { CatalogPagination } from "@/components/catalog-pagination";
 
 const ALPHABET = [
   "ALL",
@@ -14,6 +15,7 @@ const ALPHABET = [
 ];
 
 const ITEMS_PER_ROW = 6;
+const ITEMS_PER_PAGE = 18; // 6 cards * 3 rows = 18 cards per page
 
 type SongsCatalogViewProps = {
   songs: Song[];
@@ -22,6 +24,13 @@ type SongsCatalogViewProps = {
 export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
   const [selectedLetter, setSelectedLetter] = useState<string>("ALL");
   const [search, setSearch] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset to page 1 whenever search or alphabet filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedLetter, search]);
 
   // Letter distribution counts
   const letterCounts = useMemo(() => {
@@ -69,17 +78,36 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
     });
   }, [songs, selectedLetter, search]);
 
-  // Chunk songs into rows of 6 items
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+
+  // Paginated songs slice for current page
+  const pagedSongs = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredSongs.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredSongs, safePage]);
+
+  // Chunk paginated songs into rows of 6 items
   const songChunks = useMemo(() => {
     const chunks: Song[][] = [];
-    for (let i = 0; i < filteredSongs.length; i += ITEMS_PER_ROW) {
-      chunks.push(filteredSongs.slice(i, i + ITEMS_PER_ROW));
+    for (let i = 0; i < pagedSongs.length; i += ITEMS_PER_ROW) {
+      chunks.push(pagedSongs.slice(i, i + ITEMS_PER_ROW));
     }
     return chunks;
-  }, [filteredSongs]);
+  }, [pagedSongs]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    if (containerRef.current) {
+      const yOffset = -80;
+      const y = containerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    }
+  };
 
   return (
-    <div className="w-full space-y-10">
+    <div ref={containerRef} className="w-full space-y-10">
       {/* Controls Bar: Search & Alphabet Filter */}
       <div className="space-y-6">
         {/* Search Input Box */}
@@ -190,15 +218,25 @@ export function SongsCatalogView({ songs }: SongsCatalogViewProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-8">
-          {songChunks.map((chunk, chunkIdx) => (
-            <SongAccordionRow
-              key={`row-${chunkIdx}-${chunk[0]?.id}`}
-              songs={chunk}
-              startIndex={chunkIdx * ITEMS_PER_ROW}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-8">
+            {songChunks.map((chunk, chunkIdx) => (
+              <SongAccordionRow
+                key={`row-${chunkIdx}-${chunk[0]?.id}`}
+                songs={chunk}
+                startIndex={(safePage - 1) * ITEMS_PER_PAGE + chunkIdx * ITEMS_PER_ROW}
+              />
+            ))}
+          </div>
+
+          <CatalogPagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={filteredSongs.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
     </div>
   );

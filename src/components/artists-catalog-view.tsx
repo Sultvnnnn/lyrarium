@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Search, X } from "lucide-react";
 import type { AccordionArtist } from "@/components/artist-accordion";
+import { CatalogPagination } from "@/components/catalog-pagination";
 
 const ALPHABET = [
   "ALL",
@@ -14,6 +15,7 @@ const ALPHABET = [
 ];
 
 const ITEMS_PER_ROW = 6;
+const ITEMS_PER_PAGE = 18; // 6 cards * 3 rows = 18 cards per page
 
 type ArtistsCatalogViewProps = {
   artists: AccordionArtist[];
@@ -22,6 +24,13 @@ type ArtistsCatalogViewProps = {
 export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
   const [selectedLetter, setSelectedLetter] = useState<string>("ALL");
   const [search, setSearch] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset to page 1 whenever search or alphabet filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedLetter, search]);
 
   // Letter distribution counts
   const letterCounts = useMemo(() => {
@@ -66,17 +75,36 @@ export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
     });
   }, [artists, selectedLetter, search]);
 
-  // Chunk artists into rows of 6 items
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredArtists.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+
+  // Paginated artists slice for current page
+  const pagedArtists = useMemo(() => {
+    const start = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredArtists.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredArtists, safePage]);
+
+  // Chunk paginated artists into rows of 6 items
   const artistChunks = useMemo(() => {
     const chunks: AccordionArtist[][] = [];
-    for (let i = 0; i < filteredArtists.length; i += ITEMS_PER_ROW) {
-      chunks.push(filteredArtists.slice(i, i + ITEMS_PER_ROW));
+    for (let i = 0; i < pagedArtists.length; i += ITEMS_PER_ROW) {
+      chunks.push(pagedArtists.slice(i, i + ITEMS_PER_ROW));
     }
     return chunks;
-  }, [filteredArtists]);
+  }, [pagedArtists]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    if (containerRef.current) {
+      const yOffset = -80;
+      const y = containerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    }
+  };
 
   return (
-    <div className="w-full space-y-10">
+    <div ref={containerRef} className="w-full space-y-10">
       {/* Controls Bar: Search & Alphabet Filter */}
       <div className="space-y-6">
         {/* Search Input Box */}
@@ -187,15 +215,25 @@ export function ArtistsCatalogView({ artists }: ArtistsCatalogViewProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-8">
-          {artistChunks.map((chunk, chunkIdx) => (
-            <ArtistAccordionRow
-              key={`row-${chunkIdx}-${chunk[0]?.slug}`}
-              artists={chunk}
-              startIndex={chunkIdx * ITEMS_PER_ROW}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-8">
+            {artistChunks.map((chunk, chunkIdx) => (
+              <ArtistAccordionRow
+                key={`row-${chunkIdx}-${chunk[0]?.slug}`}
+                artists={chunk}
+                startIndex={(safePage - 1) * ITEMS_PER_PAGE + chunkIdx * ITEMS_PER_ROW}
+              />
+            ))}
+          </div>
+
+          <CatalogPagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={filteredArtists.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
     </div>
   );
