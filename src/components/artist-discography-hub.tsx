@@ -20,11 +20,13 @@ type TabItem = {
 type ArtistDiscographyHubProps = {
   songs: ArtistSongItem[];
   artistName: string;
+  artistSlug?: string;
 };
 
 export function ArtistDiscographyHub({
   songs,
   artistName,
+  artistSlug,
 }: ArtistDiscographyHubProps) {
   const [activeTabId, setActiveTabId] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -245,6 +247,7 @@ export function ArtistDiscographyHub({
                     key={tab.id}
                     songs={filteredSongs}
                     fromArtist
+                    artistSlug={artistSlug}
                   />
                 )}
               </div>

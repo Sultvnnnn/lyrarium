@@ -9,6 +9,8 @@ type LyricsBreadcrumbProps = {
   artistSlug: string;
   fromParam?: string;
   featuringArtists?: { name: string; slug: string }[];
+  scopedArtistName?: string;
+  scopedArtistSlug?: string;
 };
 
 export function LyricsBreadcrumb({
@@ -17,14 +19,21 @@ export function LyricsBreadcrumb({
   artistSlug,
   fromParam,
   featuringArtists = [],
+  scopedArtistName,
+  scopedArtistSlug,
 }: LyricsBreadcrumbProps) {
   const [fromArtist, setFromArtist] = useState(Boolean(fromParam));
   const [activeArtist, setActiveArtist] = useState({
-    name: artistName,
-    slug: artistSlug,
+    name: scopedArtistName || artistName,
+    slug: scopedArtistSlug || artistSlug,
   });
 
   useEffect(() => {
+    if (scopedArtistName && scopedArtistSlug) {
+      setActiveArtist({ name: scopedArtistName, slug: scopedArtistSlug });
+      return;
+    }
+
     // If not passed via query param, check if user navigated from artist page via referrer
     if (typeof document !== "undefined") {
       const ref = document.referrer;
@@ -43,7 +52,7 @@ export function LyricsBreadcrumb({
         }
       }
     }
-  }, [artistName, artistSlug, featuringArtists]);
+  }, [artistName, artistSlug, featuringArtists, scopedArtistName, scopedArtistSlug]);
 
   const items: BreadcrumbItem[] = fromArtist
     ? [

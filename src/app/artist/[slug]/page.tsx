@@ -267,6 +267,7 @@ export default async function ArtistPage({ params }: Props) {
           <ArtistDiscographyHub
             songs={artistSongs}
             artistName={displayName}
+            artistSlug={artistRecord?.slug || slugified}
           />
         )}
       </section>

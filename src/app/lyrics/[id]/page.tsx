@@ -15,7 +15,7 @@ import { parseCredits } from "@/lib/credits";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; artist?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -55,7 +55,7 @@ function getDynamicTitleSize(title: string): string {
 
 export default async function LyricsPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const { from } = await searchParams;
+  const { from, artist: queryArtist } = await searchParams;
   const songId = Number(id);
   if (!Number.isInteger(songId)) notFound();
 
@@ -80,26 +80,84 @@ export default async function LyricsPage({ params, searchParams }: Props) {
   const artistSlug = artistRecord?.slug || artistSlugified;
   const credits = parseCredits(song.credits);
 
-  // Navigasi Previous / Next hanya untuk lagu yang terkait dengan artis ini
-  const artistNameLower = song.artist.trim().toLowerCase();
-  const artistRecordNameLower = artistRecord?.name?.toLowerCase();
+  // Tentukan scoped artist untuk navigasi prev/next:
+  // Termasuk lagu original si artist dan juga lagu featuring (misal Le Sserafim ft. Katseye masuk scope Katseye).
+  let targetArtistQuery = queryArtist?.trim() || song.artist.trim();
+  let targetArtistSlugified = targetArtistQuery
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  let targetArtistUnhyphenated = targetArtistQuery.replace(/-/g, " ").toLowerCase();
 
-  const artistSongs = await db
-    .select()
-    .from(songs)
-    .where(
-      artistRecordNameLower
-        ? sql`LOWER(TRIM(${songs.artist})) = ${artistNameLower}
-           OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${artistSlugified}
-           OR LOWER(TRIM(${songs.artist})) = ${artistRecordNameLower}`
-        : sql`LOWER(TRIM(${songs.artist})) = ${artistNameLower}
-           OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${artistSlugified}`
-    )
-    .orderBy(asc(songs.id));
+  let targetArtistRecord = await db.query.artists.findFirst({
+    where: or(
+      eq(artists.slug, targetArtistSlugified),
+      eq(artists.slug, targetArtistQuery.toLowerCase()),
+      ilike(artists.name, targetArtistQuery),
+      ilike(artists.name, targetArtistUnhyphenated)
+    ),
+  });
 
-  const i = artistSongs.findIndex((s) => s.id === song.id);
+  let scopedArtistName = targetArtistRecord?.name || targetArtistQuery;
+  let scopedArtistSlug = targetArtistRecord?.slug || targetArtistSlugified;
+
+  const fetchArtistScopedSongs = async (name: string, slug: string, rawQuery: string) => {
+    const nameLower = name.toLowerCase().trim();
+    const rawLower = rawQuery.toLowerCase().trim();
+    const unhyphenated = rawQuery.replace(/-/g, " ").toLowerCase().trim();
+
+    return db
+      .select()
+      .from(songs)
+      .where(
+        sql`LOWER(TRIM(${songs.artist})) = ${nameLower}
+         OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${slug}
+         OR LOWER(TRIM(${songs.artist})) = ${rawLower}
+         OR LOWER(TRIM(${songs.artist})) = ${unhyphenated}
+         OR LOWER(COALESCE(${songs.featuring}, '')) ILIKE ${`%${nameLower}%`}
+         OR LOWER(COALESCE(${songs.featuring}, '')) ILIKE ${`%${rawLower}%`}
+         OR LOWER(COALESCE(${songs.featuring}, '')) ILIKE ${`%${unhyphenated}%`}
+         OR LOWER(COALESCE(${songs.credits}, '')) ILIKE ${`%${nameLower}%`}
+         OR LOWER(COALESCE(${songs.credits}, '')) ILIKE ${`%${rawLower}%`}`
+      )
+      .orderBy(asc(songs.id));
+  };
+
+  let artistSongs = await fetchArtistScopedSongs(
+    scopedArtistName,
+    scopedArtistSlug,
+    targetArtistQuery
+  );
+
+  let i = artistSongs.findIndex((s) => s.id === song.id);
+
+  // Jika lagu yang dibuka bukan bagian dari scope queryArtist, fallback ke artist utama lagu ini
+  if (i === -1 && queryArtist) {
+    scopedArtistName = artistRecord?.name || song.artist.trim();
+    scopedArtistSlug = artistRecord?.slug || artistSlugified;
+    targetArtistQuery = song.artist.trim();
+    artistSongs = await fetchArtistScopedSongs(
+      scopedArtistName,
+      scopedArtistSlug,
+      targetArtistQuery
+    );
+    i = artistSongs.findIndex((s) => s.id === song.id);
+  }
+
   const prev = i > 0 ? artistSongs[i - 1] : null;
   const next = i >= 0 && i < artistSongs.length - 1 ? artistSongs[i + 1] : null;
+
+  const createNavHref = (targetId: number) => {
+    const navParams = new URLSearchParams();
+    if (from === "artist") {
+      navParams.set("from", "artist");
+    }
+    if (scopedArtistSlug) {
+      navParams.set("artist", scopedArtistSlug);
+    }
+    const qs = navParams.toString();
+    return `/lyrics/${targetId}${qs ? `?${qs}` : ""}`;
+  };
 
   // Fetch featuring artists
   const rawFeaturing = song.featuring || "";
@@ -140,6 +198,8 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           artistSlug={artistSlug}
           fromParam={from}
           featuringArtists={allFeaturingArtists}
+          scopedArtistName={scopedArtistName}
+          scopedArtistSlug={scopedArtistSlug}
         />
       </div>
 
@@ -362,7 +422,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
       <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
         {prev ? (
           <Link
-            href={`/lyrics/${prev.id}${from === "artist" ? "?from=artist" : ""}`}
+            href={createNavHref(prev.id)}
             className="group flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r"
           >
             <ChevronLeft
@@ -399,7 +459,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
         {next ? (
           <Link
-            href={`/lyrics/${next.id}${from === "artist" ? "?from=artist" : ""}`}
+            href={createNavHref(next.id)}
             className="group flex items-center justify-end gap-6 px-8 py-8 text-right"
           >
             <span className="min-w-0">
