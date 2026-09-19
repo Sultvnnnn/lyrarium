@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { GitCommit, Calendar, Tag, ArrowUpRight } from "lucide-react";
+import { GitCommit, Calendar } from "lucide-react";
 
 export type MilestoneCategory =
   | "All"
@@ -221,9 +221,9 @@ export function ChangelogTimeline() {
 
   return (
     <div className="w-full space-y-12">
-      {/* Category Filter Pills & Archive Metrics */}
+      {/* Category Filter Bar & Metric Summary */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border pb-6">
-        {/* Category Filters */}
+        {/* Category Filter Tabs */}
         <div className="flex flex-wrap items-center gap-1.5">
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat;
@@ -250,99 +250,199 @@ export function ChangelogTimeline() {
           })}
         </div>
 
-        {/* Overview Stats */}
-        <div className="flex items-center gap-4 text-caption uppercase tracking-widest text-muted-foreground shrink-0">
+        {/* Header Stats */}
+        <div className="flex items-center gap-4 text-caption uppercase tracking-widest text-muted-foreground shrink-0 select-none">
           <span>{filteredMilestones.length} of {MILESTONES.length} milestones</span>
           <span>//</span>
           <span>128 commits</span>
         </div>
       </div>
 
-      {/* Timeline Stream */}
-      <div className="relative pl-6 md:pl-10 space-y-12 before:absolute before:left-[7px] md:before:left-[11px] before:top-3 before:bottom-3 before:w-[1px] before:bg-border">
-        {filteredMilestones.map((m, idx) => {
-          return (
-            <article
-              key={m.id}
-              className="relative group"
-            >
-              {/* Timeline Node Marker */}
-              <div className="absolute -left-[29px] md:-left-[45px] top-4 size-3 border border-border bg-background transition-colors group-hover:border-accent group-hover:bg-accent" />
+      {/* Alternating Zigzag Timeline Stream */}
+      <div className="relative w-full max-w-6xl mx-auto py-6">
+        {/* Central Vertical Spine (Desktop) */}
+        <div className="hidden md:block absolute left-1/2 top-4 bottom-4 w-[1px] -translate-x-1/2 bg-border pointer-events-none" />
 
-              {/* Milestone Card */}
-              <div className="border border-border bg-muted/10 p-6 md:p-8 transition-colors hover:border-accent">
-                {/* Header Meta: Version, Date, Category */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4 mb-5">
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 text-caption font-mono uppercase tracking-wider border border-accent bg-accent text-accent-foreground font-medium">
-                      {m.version}
-                    </span>
-                    <span className="text-caption uppercase tracking-widest text-foreground font-light">
-                      {m.tag}
-                    </span>
-                  </div>
+        {/* Left Vertical Spine (Mobile) */}
+        <div className="block md:hidden absolute left-3.5 top-4 bottom-4 w-[1px] bg-border pointer-events-none" />
 
-                  <div className="flex items-center gap-2 text-caption uppercase tracking-widest text-muted-foreground">
-                    <Calendar size={16} strokeWidth={1} />
-                    <span>{m.date}</span>
-                  </div>
-                </div>
+        <div className="space-y-10 md:space-y-14">
+          {filteredMilestones.map((m, idx) => {
+            // Alternating zigzag: even items on Left, odd items on Right
+            const isLeft = idx % 2 === 0;
 
-                {/* Milestone Title & Summary */}
-                <div>
-                  <h2 className="text-heading-sm font-light text-foreground tracking-[-0.02em]">
-                    {m.title}.
-                  </h2>
-                  <p className="mt-3 text-body-sm text-muted-foreground leading-relaxed">
-                    {m.summary}
-                  </p>
-                </div>
+            return (
+              <div
+                key={m.id}
+                className="relative flex flex-col md:flex-row items-center w-full group"
+              >
+                {/* Center Node on Spine (Desktop) */}
+                <div className="hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 -translate-y-1/2 size-3.5 border border-border bg-background group-hover:border-accent group-hover:bg-accent transition-colors z-20" />
 
-                {/* Bullet Points */}
-                <div className="mt-6 border-t border-border pt-4">
-                  <p className="text-caption uppercase tracking-widest text-muted-foreground mb-3">
-                    Key Highlights //
-                  </p>
-                  <ul className="space-y-2">
-                    {m.details.map((item, dIdx) => (
-                      <li
-                        key={dIdx}
-                        className="text-body-sm text-foreground flex items-start gap-2.5 font-light"
-                      >
-                        <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Left Node on Spine (Mobile) */}
+                <div className="flex md:hidden absolute left-3.5 top-8 -translate-x-1/2 -translate-y-1/2 size-3 border border-border bg-background group-hover:border-accent group-hover:bg-accent transition-colors z-20" />
 
-                {/* Footer Meta: Related Git Commit Hashes */}
-                <div className="mt-6 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-caption uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                      <GitCommit size={16} strokeWidth={1} />
-                      <span>Commits:</span>
-                    </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {m.commits.map((hash) => (
-                        <span
-                          key={hash}
-                          className="px-2 py-0.5 border border-border font-mono text-caption text-muted-foreground uppercase"
-                        >
-                          {hash}
-                        </span>
-                      ))}
+                {isLeft ? (
+                  /* ========================================================================= */
+                  /* EVEN: CARD ON LEFT (Desktop), EDITORIAL META ON RIGHT                     */
+                  /* ========================================================================= */
+                  <>
+                    {/* Left Side: The Card */}
+                    <div className="w-full md:w-1/2 pl-9 md:pl-0 md:pr-10 relative">
+                      {/* Horizontal Connecting Stem to Center Spine (Desktop) */}
+                      <div className="hidden md:block absolute right-0 top-8 w-10 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+                      {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
+                      <div className="block md:hidden absolute left-3.5 top-8 w-5.5 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+
+                      {/* Card Surface */}
+                      <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
+                        {/* Top Bar: Date & Version Tag */}
+                        <div className="flex items-center justify-between gap-3 border-b border-border pb-3.5 mb-4">
+                          <div className="flex items-center gap-2 text-caption uppercase tracking-widest text-muted-foreground">
+                            <Calendar size={14} strokeWidth={1} />
+                            <span>{m.date}</span>
+                          </div>
+
+                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-accent bg-accent text-accent-foreground font-medium">
+                            {m.version}
+                          </span>
+                        </div>
+
+                        {/* Title & Summary */}
+                        <div>
+                          <h2 className="text-heading-sm md:text-subheading font-light text-foreground tracking-[-0.02em]">
+                            {m.title}.
+                          </h2>
+                          <p className="mt-2 text-body-sm text-muted-foreground font-light leading-relaxed">
+                            {m.summary}
+                          </p>
+                        </div>
+
+                        {/* Highlights */}
+                        <div className="mt-4 pt-3.5 border-t border-border/80">
+                          <p className="text-caption uppercase tracking-widest text-muted-foreground mb-2">
+                            Highlights //
+                          </p>
+                          <ul className="space-y-1.5">
+                            {m.details.map((item, dIdx) => (
+                              <li
+                                key={dIdx}
+                                className="text-body-sm text-foreground flex items-start gap-2 font-light"
+                              >
+                                <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Bottom Bar: Commits & Category */}
+                        <div className="mt-4 pt-3 border-t border-border/80 flex flex-wrap items-center justify-between gap-2 text-caption uppercase tracking-widest text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <GitCommit size={14} strokeWidth={1} />
+                            <span className="font-mono text-[11px]">{m.commits.join(", ")}</span>
+                          </div>
+                          <span className="font-light text-foreground">{m.tag}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <span className="text-caption uppercase tracking-widest text-muted-foreground font-mono">
-                    [{String(MILESTONES.length - idx).padStart(2, "0")}]
-                  </span>
-                </div>
+                    {/* Right Side: Editorial Meta Stamp (Desktop) */}
+                    <div className="hidden md:flex md:w-1/2 pl-12 flex-col justify-center select-none">
+                      <span className="text-display-sm lg:text-display font-light text-muted-foreground/15 group-hover:text-foreground/30 transition-colors font-mono leading-none">
+                        {m.version}
+                      </span>
+                      <p className="mt-2 text-caption uppercase tracking-widest text-muted-foreground">
+                        {m.date}
+                      </p>
+                      <p className="text-caption uppercase tracking-widest text-muted-foreground/60">
+                        {m.commits.length} commits // {m.tag}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  /* ========================================================================= */
+                  /* ODD: EDITORIAL META ON LEFT, CARD ON RIGHT (Desktop)                      */
+                  /* ========================================================================= */
+                  <>
+                    {/* Left Side: Editorial Meta Stamp (Desktop) */}
+                    <div className="hidden md:flex md:w-1/2 pr-12 flex-col justify-center items-end text-right select-none">
+                      <span className="text-display-sm lg:text-display font-light text-muted-foreground/15 group-hover:text-foreground/30 transition-colors font-mono leading-none">
+                        {m.version}
+                      </span>
+                      <p className="mt-2 text-caption uppercase tracking-widest text-muted-foreground">
+                        {m.date}
+                      </p>
+                      <p className="text-caption uppercase tracking-widest text-muted-foreground/60">
+                        {m.commits.length} commits // {m.tag}
+                      </p>
+                    </div>
+
+                    {/* Right Side: The Card */}
+                    <div className="w-full md:w-1/2 pl-9 md:pl-10 md:pr-0 relative">
+                      {/* Horizontal Connecting Stem to Center Spine (Desktop) */}
+                      <div className="hidden md:block absolute left-0 top-8 w-10 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+                      {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
+                      <div className="block md:hidden absolute left-3.5 top-8 w-5.5 h-[1px] bg-border group-hover:bg-accent transition-colors z-10" />
+
+                      {/* Card Surface */}
+                      <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
+                        {/* Top Bar: Date & Version Tag */}
+                        <div className="flex items-center justify-between gap-3 border-b border-border pb-3.5 mb-4">
+                          <div className="flex items-center gap-2 text-caption uppercase tracking-widest text-muted-foreground">
+                            <Calendar size={14} strokeWidth={1} />
+                            <span>{m.date}</span>
+                          </div>
+
+                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-accent bg-accent text-accent-foreground font-medium">
+                            {m.version}
+                          </span>
+                        </div>
+
+                        {/* Title & Summary */}
+                        <div>
+                          <h2 className="text-heading-sm md:text-subheading font-light text-foreground tracking-[-0.02em]">
+                            {m.title}.
+                          </h2>
+                          <p className="mt-2 text-body-sm text-muted-foreground font-light leading-relaxed">
+                            {m.summary}
+                          </p>
+                        </div>
+
+                        {/* Highlights */}
+                        <div className="mt-4 pt-3.5 border-t border-border/80">
+                          <p className="text-caption uppercase tracking-widest text-muted-foreground mb-2">
+                            Highlights //
+                          </p>
+                          <ul className="space-y-1.5">
+                            {m.details.map((item, dIdx) => (
+                              <li
+                                key={dIdx}
+                                className="text-body-sm text-foreground flex items-start gap-2 font-light"
+                              >
+                                <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Bottom Bar: Commits & Category */}
+                        <div className="mt-4 pt-3 border-t border-border/80 flex flex-wrap items-center justify-between gap-2 text-caption uppercase tracking-widest text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <GitCommit size={14} strokeWidth={1} />
+                            <span className="font-mono text-[11px]">{m.commits.join(", ")}</span>
+                          </div>
+                          <span className="font-light text-foreground">{m.tag}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            </article>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
