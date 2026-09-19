@@ -238,7 +238,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
       {/* 2 — Lirik + detail (sticky kanan) */}
       <section id="lyrics" className="scroll-mt-8 px-8 pt-4 pb-24">
-        <div className="grid grid-cols-1 gap-16 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-16 lyrics-grid-layout">
           {/* Kolom lirik */}
           <div>
             <div className="mb-6 flex items-center justify-between border-b border-border pb-3">
