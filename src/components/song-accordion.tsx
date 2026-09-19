@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 
 export type AccordionSong = {
   id: number;
   title: string;
   artist: string;
+  album?: string | null;
   featuring?: string | null;
   lyrics?: string | null;
   imageUrl: string | null;
@@ -19,13 +20,26 @@ type SongAccordionProps = {
   songs: AccordionSong[];
   fromArtist?: boolean;
   artistSlug?: string;
+  showExploreAll?: boolean;
 };
 
-export function SongAccordion({
+interface SingleAccordionRowProps {
+  songs: AccordionSong[];
+  fromArtist?: boolean;
+  artistSlug?: string;
+  startIndex: number;
+  hasExploreCard?: boolean;
+  remainingCount?: number;
+}
+
+const SingleAccordionRow = React.memo(function SingleAccordionRow({
   songs,
   fromArtist = false,
   artistSlug,
-}: SongAccordionProps) {
+  startIndex,
+  hasExploreCard = false,
+  remainingCount = 0,
+}: SingleAccordionRowProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
 
@@ -67,254 +81,297 @@ export function SongAccordion({
     [activeIndex],
   );
 
-  if (!songs || songs.length === 0) return null;
-
-  // Batasi maksimal 5 card data, card ke-6 adalah "Explore All Songs"
-  const MAX_DISPLAY = 5;
-  const hasMore = songs.length > MAX_DISPLAY;
-  const displaySongs = hasMore ? songs.slice(0, MAX_DISPLAY) : songs;
-  const remainingCount = songs.length - displaySongs.length;
-  const viewAllIndex = displaySongs.length;
+  const viewAllIndex = songs.length;
 
   return (
-    <div className="w-full">
-      {/* 
-        Accordion Container:
-        - Full Width (w-full): Mengisi 100% lebar kontainer tanpa ruang kosong di kanan.
-        - Active card: strictly 1:1 square (460px di md, 500px di lg).
-        - Inactive cards: fleksibel (flex-1) membagi rata sisa ruang kontainer.
-      */}
-      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
-        {displaySongs.map((song, i) => {
-          const isActive = activeIndex === i;
-          const indexNum = String(i + 1).padStart(2, "0");
-          const artistDisplay = song.featuring
-            ? `${song.artist} ft. ${song.featuring}`
-            : song.artist;
+    <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 md:h-[460px] lg:h-[500px] w-full overflow-hidden pb-2 [contain:layout]">
+      {songs.map((song, i) => {
+        const isActive = activeIndex === i;
+        const indexNum = String(startIndex + i + 1).padStart(2, "0");
+        const artistDisplay = song.featuring
+          ? `${song.artist} ft. ${song.featuring}`
+          : song.artist;
 
-          const lyricsUrl = fromArtist
-            ? `/lyrics/${song.id}?from=artist${artistSlug ? `&artist=${encodeURIComponent(artistSlug)}` : ""}`
-            : `/lyrics/${song.id}`;
+        const lyricsUrl = fromArtist
+          ? `/lyrics/${song.id}?from=artist${artistSlug ? `&artist=${encodeURIComponent(artistSlug)}` : ""}`
+          : `/lyrics/${song.id}`;
 
-          return (
-            <div
-              key={song.id}
-              onClick={() => {
-                if (isActive) {
-                  router.push(lyricsUrl);
-                } else {
-                  activateCard(i);
-                }
-              }}
-              onMouseEnter={() => activateCard(i)}
-              className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
-                isActive
-                  ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
-                  : "md:flex-1 md:min-w-[60px] h-14 md:h-full border-border hover:border-accent/60 z-0"
-              }`}
-            >
-              {/* Cover Image Wrapper — Full cover across dynamic inactive widths & 1:1 active width */}
-              <div className="absolute inset-0 w-full h-full pointer-events-none">
-                {song.imageUrl ? (
-                  <img
-                    src={song.imageUrl}
-                    alt={`${song.title} — ${artistDisplay}`}
-                    loading={i === 0 ? "eager" : "lazy"}
-                    decoding="async"
-                    // @ts-ignore
-                    fetchPriority={i === 0 ? "high" : "auto"}
-                    width={500}
-                    height={500}
-                    className={`size-full object-cover transition-opacity duration-500 ease-out ${
-                      isActive
-                        ? "opacity-95"
-                        : "opacity-40 grayscale group-hover:opacity-60"
-                    }`}
-                  />
-                ) : (
-                  <div className="size-full flex items-center justify-center bg-muted">
-                    <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
-                      {song.title.charAt(0)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Scrim Overlay untuk kontras teks */}
-                <div
-                  className={`absolute inset-0 transition-opacity duration-500 ease-out ${
-                    isActive
-                      ? "bg-gradient-to-t from-black/90 via-black/40 to-black/20"
-                      : "bg-black/60 group-hover:bg-black/40"
-                  }`}
-                />
-              </div>
-
-              {/* === ACTIVE / EXPANDED VIEW === */}
-              <div
-                className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
-                  isActive
-                    ? "opacity-100 pointer-events-auto delay-150"
-                    : "opacity-0 pointer-events-none"
-                }`}
-              >
-                {/* Top: Nomor Indeks */}
-                <div className="flex items-center justify-between">
-                  <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
-                    [{indexNum}]
-                  </span>
-                </div>
-
-                {/* Bottom: Judul, Artis & Link Arrow */}
-                <div className="flex items-end justify-between gap-4">
-                  <div className="max-w-md">
-                    <p className="text-caption uppercase text-accent tracking-widest font-medium">
-                      {artistDisplay}
-                    </p>
-                    <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em]">
-                      {song.title}
-                    </h3>
-                  </div>
-
-                  <Link
-                    href={lyricsUrl}
-                    aria-label={`Open lyrics for ${song.title}`}
-                    className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ArrowUpRight size={16} strokeWidth={1.5} />
-                  </Link>
-                </div>
-              </div>
-
-              {/* === COLLAPSED VIEW (DESKTOP: Vertical Text Strip) === */}
-              <div
-                className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
-                  !isActive
-                    ? "opacity-100 pointer-events-auto delay-100"
-                    : "opacity-0 pointer-events-none"
-                }`}
-              >
-                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
-                  {indexNum}
-                </span>
-
-                <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
-                  {song.title} — {artistDisplay}
-                </span>
-              </div>
-
-              {/* === COLLAPSED VIEW (MOBILE: Horizontal Strip Bar) === */}
-              <div
-                className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
-                  !isActive
-                    ? "opacity-100 pointer-events-auto"
-                    : "opacity-0 pointer-events-none"
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
-                    {indexNum}
-                  </span>
-                  <span className="text-caption uppercase tracking-wide text-bone-white truncate">
-                    {song.title}
-                  </span>
-                </div>
-                <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
-                  {artistDisplay}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* ── CARD KHUSUS: VIEW ALL SONGS (jika lagu melebihi kapasitas layar) ── */}
-        {hasMore && (
+        return (
           <div
+            key={song.id}
             onClick={() => {
-              if (activeIndex === viewAllIndex) {
-                router.push("/songs");
+              if (isActive) {
+                router.push(lyricsUrl);
               } else {
-                activateCard(viewAllIndex);
+                activateCard(i);
               }
             }}
-            onMouseEnter={() => activateCard(viewAllIndex)}
-            className={`group relative overflow-hidden border bg-muted/40 cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
-              activeIndex === viewAllIndex
+            onMouseEnter={() => activateCard(i)}
+            className={`group relative overflow-hidden border bg-muted cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
+              isActive
                 ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
                 : "md:flex-1 md:min-w-[60px] h-14 md:h-full border-border hover:border-accent/60 z-0"
             }`}
           >
-            {/* Background Texture Minimalis */}
-            <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-muted/80 pointer-events-none" />
+            {/* Cover Image Wrapper — Full cover across dynamic inactive widths & 1:1 active width */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+              {song.imageUrl ? (
+                <img
+                  src={song.imageUrl}
+                  alt={`${song.title} — ${artistDisplay}`}
+                  loading={startIndex === 0 && i === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                  // @ts-ignore
+                  fetchPriority={startIndex === 0 && i === 0 ? "high" : "auto"}
+                  width={500}
+                  height={500}
+                  className={`size-full object-cover transition-opacity duration-500 ease-out ${
+                    isActive
+                      ? "opacity-95"
+                      : "opacity-40 grayscale group-hover:opacity-60"
+                  }`}
+                />
+              ) : (
+                <div className="size-full flex items-center justify-center bg-muted">
+                  <span className="text-display font-light text-muted-foreground/20 leading-none select-none">
+                    {song.title.charAt(0)}
+                  </span>
+                </div>
+              )}
+
+              {/* Scrim Overlay untuk kontras teks */}
+              <div
+                className={`absolute inset-0 transition-opacity duration-500 ease-out ${
+                  isActive
+                    ? "bg-gradient-to-t from-black/90 via-black/40 to-black/20"
+                    : "bg-black/60 group-hover:bg-black/40"
+                }`}
+              />
+            </div>
 
             {/* === ACTIVE / EXPANDED VIEW === */}
             <div
               className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
-                activeIndex === viewAllIndex
+                isActive
                   ? "opacity-100 pointer-events-auto delay-150"
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              {/* Top: Header Tag */}
-              <div className="flex items-center justify-between">
-                <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
-                  +{remainingCount} more
+              {/* Top: Nomor Indeks & Album */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                  [{indexNum}]
                 </span>
+                {song.album && (
+                  <span className="text-caption uppercase text-bone-white/70 tracking-widest truncate max-w-[55%] select-none">
+                    {song.album}
+                  </span>
+                )}
               </div>
 
-              {/* Middle: Editorial Callout */}
-              <div className="my-auto py-6">
-                <h3 className="text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
-                  Explore all songs.
-                </h3>
-              </div>
+              {/* Bottom: Judul, Artis & Link Arrow */}
+              <div className="flex items-end justify-between gap-4">
+                <div className="max-w-md">
+                  <p className="text-caption uppercase text-accent tracking-widest font-medium">
+                    {artistDisplay}
+                  </p>
+                  <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em]">
+                    {song.title}
+                  </h3>
+                </div>
 
-              {/* Bottom: Action Button to /songs */}
-              <div className="flex items-end justify-end pt-4 border-t border-border">
                 <Link
-                  href="/songs"
-                  className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  href={lyricsUrl}
+                  aria-label={`Open lyrics for ${song.title}`}
+                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <span>Browse</span>
-                  <ArrowUpRight size={16} strokeWidth={1} />
+                  <ArrowUpRight size={16} strokeWidth={1.5} />
                 </Link>
               </div>
             </div>
 
-            {/* === COLLAPSED VIEW (DESKTOP) === */}
+            {/* === COLLAPSED VIEW (DESKTOP: Vertical Text Strip) === */}
             <div
               className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
-                activeIndex !== viewAllIndex
+                !isActive
                   ? "opacity-100 pointer-events-auto delay-100"
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
-                [→]
+              <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                {indexNum}
               </span>
 
-              <span className="text-caption uppercase tracking-widest text-foreground font-medium [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
-                EXPLORE ALL // +{remainingCount} MORE
+              <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+                {song.title} — {artistDisplay}
               </span>
             </div>
 
-            {/* === COLLAPSED VIEW (MOBILE) === */}
+            {/* === COLLAPSED VIEW (MOBILE: Horizontal Strip Bar) === */}
             <div
               className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
-                activeIndex !== viewAllIndex
+                !isActive
                   ? "opacity-100 pointer-events-auto"
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              <span className="text-caption uppercase tracking-wide text-foreground font-medium">
-                VIEW ALL SONGS (+{remainingCount} MORE)
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
+                  {indexNum}
+                </span>
+                <span className="text-caption uppercase tracking-wide text-bone-white truncate">
+                  {song.title}
+                </span>
+              </div>
+              <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
+                {artistDisplay}
               </span>
-              <ArrowUpRight size={16} strokeWidth={1} className="text-accent" />
             </div>
           </div>
-        )}
+        );
+      })}
+
+      {/* ── CARD KHUSUS: VIEW ALL SONGS (HANYA JIKA hasExploreCard == true) ── */}
+      {hasExploreCard && (
+        <div
+          onClick={() => {
+            if (activeIndex === viewAllIndex) {
+              router.push("/songs");
+            } else {
+              activateCard(viewAllIndex);
+            }
+          }}
+          onMouseEnter={() => activateCard(viewAllIndex)}
+          className={`group relative overflow-hidden border bg-muted/40 cursor-pointer transition-[flex,border-color] duration-500 ease-[0.25,1,0.35,1] [contain:layout_paint] ${
+            activeIndex === viewAllIndex
+              ? "md:flex-[0_0_460px] lg:flex-[0_0_500px] h-[360px] sm:h-[400px] md:h-full border-accent z-10"
+              : "md:flex-1 md:min-w-[60px] h-14 md:h-full border-border hover:border-accent/60 z-0"
+          }`}
+        >
+          {/* Background Texture Minimalis */}
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-muted/80 pointer-events-none" />
+
+          {/* === ACTIVE / EXPANDED VIEW === */}
+          <div
+            className={`relative z-10 size-full md:w-[460px] lg:w-[500px] flex flex-col justify-between p-5 md:p-7 transition-opacity duration-400 ease-out ${
+              activeIndex === viewAllIndex
+                ? "opacity-100 pointer-events-auto delay-150"
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            {/* Top: Header Tag */}
+            <div className="flex items-center justify-between">
+              <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
+                +{remainingCount} more
+              </span>
+            </div>
+
+            {/* Middle: Editorial Callout */}
+            <div className="my-auto py-6">
+              <h3 className="text-heading-sm md:text-heading font-light tracking-[-0.03em] text-foreground">
+                Explore all songs.
+              </h3>
+            </div>
+
+            {/* Bottom: Action Button to /songs */}
+            <div className="flex items-end justify-end pt-4 border-t border-border">
+              <Link
+                href="/songs"
+                className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span>Browse</span>
+                <ArrowUpRight size={16} strokeWidth={1} />
+              </Link>
+            </div>
+          </div>
+
+          {/* === COLLAPSED VIEW (DESKTOP) === */}
+          <div
+            className={`absolute inset-0 z-10 hidden md:flex flex-col justify-between items-center py-6 px-2 transition-opacity duration-300 ease-out ${
+              activeIndex !== viewAllIndex
+                ? "opacity-100 pointer-events-auto delay-100"
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <span className="text-caption font-mono uppercase text-accent tracking-widest select-none">
+              [→]
+            </span>
+
+            <span className="text-caption uppercase tracking-widest text-foreground font-medium [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+              EXPLORE ALL // +{remainingCount} MORE
+            </span>
+          </div>
+
+          {/* === COLLAPSED VIEW (MOBILE) === */}
+          <div
+            className={`absolute inset-0 z-10 flex md:hidden items-center justify-between px-4 transition-opacity duration-300 ease-out ${
+              activeIndex !== viewAllIndex
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <span className="text-caption uppercase tracking-wide text-foreground font-medium">
+              VIEW ALL SONGS (+{remainingCount} MORE)
+            </span>
+            <ArrowUpRight size={16} strokeWidth={1} className="text-accent" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+export function SongAccordion({
+  songs,
+  fromArtist = false,
+  artistSlug,
+  showExploreAll,
+}: SongAccordionProps) {
+  if (!songs || songs.length === 0) return null;
+
+  const canShowExploreAll = showExploreAll ?? !fromArtist;
+
+  if (canShowExploreAll) {
+    const MAX_DISPLAY = 5;
+    const hasMore = songs.length > MAX_DISPLAY;
+    const displaySongs = hasMore ? songs.slice(0, MAX_DISPLAY) : songs;
+    const remainingCount = songs.length - displaySongs.length;
+
+    return (
+      <div className="w-full">
+        <SingleAccordionRow
+          songs={displaySongs}
+          fromArtist={fromArtist}
+          artistSlug={artistSlug}
+          startIndex={0}
+          hasExploreCard={hasMore}
+          remainingCount={remainingCount}
+        />
       </div>
+    );
+  }
+
+  // If not showing explore all (e.g. on artist page), chunk into rows of 6
+  const ITEMS_PER_ROW = 6;
+  const chunks: AccordionSong[][] = [];
+  for (let i = 0; i < songs.length; i += ITEMS_PER_ROW) {
+    chunks.push(songs.slice(i, i + ITEMS_PER_ROW));
+  }
+
+  return (
+    <div className="w-full space-y-6">
+      {chunks.map((chunk, chunkIdx) => (
+        <SingleAccordionRow
+          key={`row-${chunkIdx}-${chunk[0]?.id}`}
+          songs={chunk}
+          fromArtist={fromArtist}
+          artistSlug={artistSlug}
+          startIndex={chunkIdx * ITEMS_PER_ROW}
+          hasExploreCard={false}
+        />
+      ))}
     </div>
   );
 }
