@@ -11,8 +11,8 @@ type YouTubeCarouselProps = {
   artistName: string;
 };
 
-const MIN_WIDTH = 220;
-const DEFAULT_WIDTH = 260;
+const MIN_WIDTH = 360;
+const DEFAULT_WIDTH = 360;
 const MAX_WIDTH = 640;
 
 export function YouTubeCarousel({
@@ -26,17 +26,18 @@ export function YouTubeCarousel({
   const [direction, setDirection] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Video Frame Size State (default small 260px, with 640px max limit)
+  // Video Frame Size State (default 360px, with 640px max limit)
   const [frameWidth, setFrameWidth] = useState<number>(DEFAULT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Restore saved width on mount or enforce default small size
+  // Restore saved width on mount or enforce default 360px
   useEffect(() => {
     try {
-      // Clear legacy storage key if present
+      // Clear legacy storage keys if present
       localStorage.removeItem("lyrarium_video_width");
+      localStorage.removeItem("lyrarium_video_width_v2");
 
-      const saved = localStorage.getItem("lyrarium_video_width_v2");
+      const saved = localStorage.getItem("lyrarium_video_width_v3");
       if (saved) {
         const parsed = parseInt(saved, 10);
         if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
@@ -52,7 +53,7 @@ export function YouTubeCarousel({
       // ignore
     }
 
-    // Default small size
+    // Default 360px size
     setFrameWidth(DEFAULT_WIDTH);
     document.documentElement.style.setProperty(
       "--sidebar-video-w",
@@ -66,19 +67,18 @@ export function YouTubeCarousel({
     setFrameWidth(clamped);
     document.documentElement.style.setProperty("--sidebar-video-w", `${clamped}px`);
     try {
-      localStorage.setItem("lyrarium_video_width_v2", String(clamped));
+      localStorage.setItem("lyrarium_video_width_v3", String(clamped));
     } catch {
       // ignore
     }
   }, []);
 
-  // Cycle through preset sizes: 260 -> 360 -> 480 -> 640 (Max) -> 260
+  // Cycle through preset sizes: 360 -> 480 -> 640 (Max) -> 360
   const cyclePreset = () => {
     let next = DEFAULT_WIDTH;
-    if (frameWidth < 340) next = 360;
-    else if (frameWidth < 460) next = 480;
+    if (frameWidth < 460) next = 480;
     else if (frameWidth < 620) next = 640;
-    else if (frameWidth >= 620) next = DEFAULT_WIDTH;
+    else next = DEFAULT_WIDTH;
     applyWidth(next);
   };
 
@@ -134,7 +134,7 @@ export function YouTubeCarousel({
         cyclePreset();
       } else {
         try {
-          localStorage.setItem("lyrarium_video_width_v2", String(frameWidth));
+          localStorage.setItem("lyrarium_video_width_v3", String(frameWidth));
         } catch {
           // ignore
         }

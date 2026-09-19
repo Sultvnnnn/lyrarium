@@ -57,7 +57,7 @@
   --border: #aaaaaa;
   --input: #aaaaaa;
   --ring: #000000;
-  --sidebar-video-w: 260px;
+  --sidebar-video-w: 360px;
 }
 
 @theme inline {
@@ -137,6 +137,6 @@ body {
 
 @media (min-width: 1024px) {
   .lyrics-grid-layout {
-    grid-template-columns: minmax(0, 1fr) var(--sidebar-video-w, 260px);
+    grid-template-columns: minmax(0, 1fr) var(--sidebar-video-w, 360px);
   }
 }
