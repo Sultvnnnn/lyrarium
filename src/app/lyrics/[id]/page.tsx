@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, or, ilike } from "drizzle-orm";
+import { eq, or, ilike, asc, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
@@ -64,11 +64,6 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
   const youtubeVideos = parseYouTubeVideos(song.youtubeUrl);
 
-  const all = await db.select().from(songs).orderBy(songs.id);
-  const i = all.findIndex((s) => s.id === song.id);
-  const prev = i > 0 ? all[i - 1] : null;
-  const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
-
   const artistSlugified = song.artist
     .toLowerCase()
     .trim()
@@ -84,6 +79,27 @@ export default async function LyricsPage({ params, searchParams }: Props) {
   const artistBio = artistRecord?.about || song.aboutArtist || null;
   const artistSlug = artistRecord?.slug || artistSlugified;
   const credits = parseCredits(song.credits);
+
+  // Navigasi Previous / Next hanya untuk lagu yang terkait dengan artis ini
+  const artistNameLower = song.artist.trim().toLowerCase();
+  const artistRecordNameLower = artistRecord?.name?.toLowerCase();
+
+  const artistSongs = await db
+    .select()
+    .from(songs)
+    .where(
+      artistRecordNameLower
+        ? sql`LOWER(TRIM(${songs.artist})) = ${artistNameLower}
+           OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${artistSlugified}
+           OR LOWER(TRIM(${songs.artist})) = ${artistRecordNameLower}`
+        : sql`LOWER(TRIM(${songs.artist})) = ${artistNameLower}
+           OR LOWER(REPLACE(TRIM(${songs.artist}), ' ', '-')) = ${artistSlugified}`
+    )
+    .orderBy(asc(songs.id));
+
+  const i = artistSongs.findIndex((s) => s.id === song.id);
+  const prev = i > 0 ? artistSongs[i - 1] : null;
+  const next = i >= 0 && i < artistSongs.length - 1 ? artistSongs[i + 1] : null;
 
   // Fetch featuring artists
   const rawFeaturing = song.featuring || "";
@@ -342,57 +358,59 @@ export default async function LyricsPage({ params, searchParams }: Props) {
         </div>
       </section>
 
-      {/* 3 — Editorial prev/next nav */}
-      <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
-        {prev ? (
-          <Link
-            href={`/lyrics/${prev.id}${from === "artist" ? "?from=artist" : ""}`}
-            className="group flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r"
-          >
-            <ChevronLeft
-              size={16}
-              strokeWidth={1}
-              className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
+      {/* 3 — Editorial prev/next nav (hanya lagu terkait artis ini) */}
+      {(prev || next) && (
+        <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
+          {prev ? (
+            <Link
+              href={`/lyrics/${prev.id}${from === "artist" ? "?from=artist" : ""}`}
+              className="group flex items-center gap-6 border-b border-border px-8 py-8 md:border-b-0 md:border-r"
+            >
+              <ChevronLeft
+                size={16}
+                strokeWidth={1}
+                className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
+              />
+              <span className="min-w-0">
+                <span className="block text-caption uppercase text-muted-foreground">
+                  Previous
+                </span>
+                <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
+                  {prev.title}
+                </span>
+              </span>
+            </Link>
+          ) : (
+            <span
+              className="border-b border-border px-8 py-8 md:border-b-0 md:border-r"
+              aria-hidden
             />
-            <span className="min-w-0">
-              <span className="block text-caption uppercase text-muted-foreground">
-                Previous
-              </span>
-              <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
-                {prev.title}
-              </span>
-            </span>
-          </Link>
-        ) : (
-          <span
-            className="border-b border-border px-8 py-8 md:border-b-0 md:border-r"
-            aria-hidden
-          />
-        )}
+          )}
 
-        {next ? (
-          <Link
-            href={`/lyrics/${next.id}${from === "artist" ? "?from=artist" : ""}`}
-            className="group flex items-center justify-end gap-6 px-8 py-8 text-right"
-          >
-            <span className="min-w-0">
-              <span className="block text-caption uppercase text-muted-foreground">
-                Next
+          {next ? (
+            <Link
+              href={`/lyrics/${next.id}${from === "artist" ? "?from=artist" : ""}`}
+              className="group flex items-center justify-end gap-6 px-8 py-8 text-right"
+            >
+              <span className="min-w-0">
+                <span className="block text-caption uppercase text-muted-foreground">
+                  Next
+                </span>
+                <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
+                  {next.title}
+                </span>
               </span>
-              <span className="mt-2 block truncate text-subheading font-light transition-colors group-hover:text-accent">
-                {next.title}
-              </span>
-            </span>
-            <ChevronRight
-              size={16}
-              strokeWidth={1}
-              className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
-            />
-          </Link>
-        ) : (
-          <span aria-hidden />
-        )}
-      </nav>
+              <ChevronRight
+                size={16}
+                strokeWidth={1}
+                className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent"
+              />
+            </Link>
+          ) : (
+            <span aria-hidden />
+          )}
+        </nav>
+      )}
 
       <SiteFooter />
     </main>
