@@ -293,7 +293,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
 
             {/* About artist */}
             {artistBio && (
-              <div>
+              <div className="w-full max-w-[360px]">
                 <p className="text-caption uppercase text-muted-foreground">
                   About the artist
                 </p>
@@ -314,7 +314,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
             {allFeaturingArtists.map(
               (feat) =>
                 feat.about && (
-                  <div key={feat.name} className="border-t border-border pt-6">
+                  <div key={feat.name} className="border-t border-border pt-6 w-full max-w-[360px]">
                     <p className="text-caption uppercase text-muted-foreground">
                       About {feat.name}
                     </p>

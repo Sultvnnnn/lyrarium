@@ -30,30 +30,16 @@ export function YouTubeCarousel({
   const [frameWidth, setFrameWidth] = useState<number>(DEFAULT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Restore saved width on mount or enforce default 360px
+  // Always initialize to clean default 360px and clear any legacy saved keys
   useEffect(() => {
     try {
-      // Clear legacy storage keys if present
       localStorage.removeItem("lyrarium_video_width");
       localStorage.removeItem("lyrarium_video_width_v2");
-
-      const saved = localStorage.getItem("lyrarium_video_width_v3");
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
-          setFrameWidth(parsed);
-          document.documentElement.style.setProperty(
-            "--sidebar-video-w",
-            `${parsed}px`
-          );
-          return;
-        }
-      }
+      localStorage.removeItem("lyrarium_video_width_v3");
     } catch {
       // ignore
     }
 
-    // Default 360px size
     setFrameWidth(DEFAULT_WIDTH);
     document.documentElement.style.setProperty(
       "--sidebar-video-w",
@@ -66,11 +52,6 @@ export function YouTubeCarousel({
     const clamped = Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth)));
     setFrameWidth(clamped);
     document.documentElement.style.setProperty("--sidebar-video-w", `${clamped}px`);
-    try {
-      localStorage.setItem("lyrarium_video_width_v3", String(clamped));
-    } catch {
-      // ignore
-    }
   }, []);
 
   // Cycle through preset sizes: 360 -> 480 -> 640 (Max) -> 360
@@ -132,12 +113,6 @@ export function YouTubeCarousel({
       if (!hasMoved) {
         // Click without drag -> cycle preset sizes
         cyclePreset();
-      } else {
-        try {
-          localStorage.setItem("lyrarium_video_width_v3", String(frameWidth));
-        } catch {
-          // ignore
-        }
       }
     };
 
@@ -168,7 +143,7 @@ export function YouTubeCarousel({
     currentVideo.title || (activeIndex === 0 ? "Music Video" : `Video ${activeIndex + 1}`);
 
   return (
-    <div className="w-full max-w-full" style={{ maxWidth: `${frameWidth}px` }}>
+    <div className="w-full">
       {/* Header bar: Title + Index Counter + Arrow Navigation */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
