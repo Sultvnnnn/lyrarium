@@ -66,6 +66,7 @@ Terse editorial statements with a period: "The archive.", "Artists.", "Every wor
 - YouTube: store raw URL; embed via `getYouTubeEmbedUrl()`; iframe `aspect-video`, `loading="lazy"`.
 - Theme: next-themes `attribute="class"`; `@custom-variant dark (&:where(.dark, .dark *))` must stay; never rely on `prefers-color-scheme`.
 - Optional fields (`imageUrl`, `aboutArtist`, `credits`, `youtubeUrl`) render nothing when null — always guard.
+- Changelog: Every new feature, update, or milestone must be added to the timeline in `src/components/changelog-timeline.tsx`.
 
 ## 5. Workflow
 
@@ -73,7 +74,8 @@ Terse editorial statements with a period: "The archive.", "Artists.", "Every wor
 2. Inspect the existing file first; reuse established patterns (card grid, hairline rows, stats trio, editorial prev/next nav, art-book spread).
 3. Smallest diff that satisfies the request. No drive-by refactors.
 4. Mentally verify light theme, dark theme, and overlay-open state: contrast + correct accent per surface.
-5. Reply in Indonesian, concise, code-first.
+5. Record update/milestone in `src/components/changelog-timeline.tsx` when adding features or significant updates.
+6. Reply in Indonesian, concise, code-first.
 
 ## 6. Definition of done (UI change)
 
@@ -86,3 +88,5 @@ Terse editorial statements with a period: "The archive.", "Artists.", "Every wor
 - [ ] Light + dark + overlay states checked
 - [ ] No new dependencies
 - [ ] Migration generated & pushed if schema touched
+- [ ] Changelog updated in `src/components/changelog-timeline.tsx` if new feature or update introduced
+
