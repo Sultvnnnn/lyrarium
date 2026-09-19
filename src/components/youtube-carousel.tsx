@@ -193,85 +193,85 @@ export function YouTubeCarousel({
         )}
       </div>
 
-      {/* Video Frame with Sliding Carousel */}
-      <div className="relative mt-4 aspect-video w-full overflow-hidden border border-border bg-muted">
-        {/* Global drag shield to prevent iframe event interception while dragging */}
-        {isDragging && (
-          <div className="fixed inset-0 z-50 cursor-nesw-resize select-none bg-transparent" />
-        )}
+      {/* Video Frame Container */}
+      <div className="relative mt-4 w-full">
+        {/* Video Frame with Sliding Carousel */}
+        <div className="relative aspect-video w-full overflow-hidden border border-border bg-muted">
+          {/* Global drag shield to prevent iframe event interception while dragging */}
+          {isDragging && (
+            <div className="fixed inset-0 z-50 cursor-nesw-resize select-none bg-transparent" />
+          )}
 
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={`${activeIndex}-${videoId}`}
-            custom={direction}
-            variants={{
-              enter: (dir: number) => ({
-                x: dir > 0 ? "100%" : "-100%",
-                opacity: 0,
-              }),
-              center: {
-                x: 0,
-                opacity: 1,
-              },
-              exit: (dir: number) => ({
-                x: dir > 0 ? "-100%" : "100%",
-                opacity: 0,
-              }),
-            }}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="size-full"
-          >
-            {isPlaying && videoId ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-                title={`${songTitle} — ${currentDisplayTitle}`}
-                className="size-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : videoId ? (
-              <div
-                onClick={() => setIsPlaying(true)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setIsPlaying(true);
-                  }
-                }}
-                aria-label={`Play video: ${currentDisplayTitle}`}
-                className="group relative size-full cursor-pointer transition-colors"
-              >
-                <img
-                  src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
-                  alt={`${songTitle} — ${currentDisplayTitle}`}
-                  loading="lazy"
-                  decoding="async"
-                  className="size-full object-cover opacity-85 transition-opacity duration-300 group-hover:opacity-95"
+          <AnimatePresence initial={false} custom={direction} mode="wait">
+            <motion.div
+              key={`${activeIndex}-${videoId}`}
+              custom={direction}
+              variants={{
+                enter: (dir: number) => ({
+                  x: dir > 0 ? "100%" : "-100%",
+                  opacity: 0,
+                }),
+                center: {
+                  x: 0,
+                  opacity: 1,
+                },
+                exit: (dir: number) => ({
+                  x: dir > 0 ? "-100%" : "100%",
+                  opacity: 0,
+                }),
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="size-full"
+            >
+              {isPlaying && videoId ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                  title={`${songTitle} — ${currentDisplayTitle}`}
+                  className="size-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
                 />
+              ) : videoId ? (
+                <div
+                  onClick={() => setIsPlaying(true)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setIsPlaying(true);
+                    }
+                  }}
+                  aria-label={`Play video: ${currentDisplayTitle}`}
+                  className="group relative size-full cursor-pointer transition-colors"
+                >
+                  <img
+                    src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+                    alt={`${songTitle} — ${currentDisplayTitle}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="size-full object-cover opacity-85 transition-opacity duration-300 group-hover:opacity-95"
+                  />
 
-                {/* Dim scrim for contrast */}
-                <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/45 pointer-events-none" />
+                  {/* Dim scrim for contrast */}
+                  <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/45 pointer-events-none" />
 
-                {/* Editorial Play Trigger Button (Sharp, Balanced, Semantic Tokens) */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-all duration-200 group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground active:scale-95">
-                    <Play size={16} strokeWidth={1} />
+                  {/* Editorial Play Trigger Button (Sharp, Balanced, Semantic Tokens) */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-all duration-200 group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground active:scale-95">
+                      <Play size={16} strokeWidth={1} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-      {/* Outside Frame Bottom Area: Single Siku-siku Handle on Bottom-Left & Limit Indicator */}
-      <div className="mt-2 flex items-center justify-between min-h-[16px]">
-        {/* Siku-siku Line Resize Handle (Bottom-Left) */}
+        {/* Siku-siku Line Resize Handle (Persis di Sudut Kiri Bawah Luar Frame) */}
         <button
           type="button"
           onPointerDown={startDrag}
@@ -282,30 +282,30 @@ export function YouTubeCarousel({
               : "Drag or click to resize video frame (Max 640px)"
           }
           aria-label="Resize video frame"
-          className="group flex size-5 items-center justify-center text-muted-foreground transition-colors hover:text-accent cursor-nesw-resize select-none"
+          className="group absolute top-full left-0 z-20 -mt-[1px] -ml-[1px] flex size-7 items-start justify-start text-muted-foreground hover:text-accent transition-colors cursor-nesw-resize select-none"
         >
           <svg
             width="14"
             height="14"
             viewBox="0 0 14 14"
             fill="none"
-            xmlns="http://www.w3.org/2000/svg"
             className="transition-colors group-hover:text-accent"
           >
             <path
-              d="M1 1V13H13"
+              d="M1 0V13H14"
               stroke="currentColor"
-              strokeWidth="1.25"
-              strokeLinecap="square"
+              strokeWidth="1.5"
             />
           </svg>
         </button>
 
-        {/* Limit indicator: only shown when size reaches max limit */}
+        {/* Limit indicator: persis di kanan bawah luar frame saat ukuran mencapai limit */}
         {frameWidth >= MAX_WIDTH && (
-          <span className="text-caption uppercase text-accent font-normal select-none tracking-widest">
-            Limit
-          </span>
+          <div className="absolute top-full right-0 z-20 pt-1 select-none">
+            <span className="text-caption uppercase text-accent font-normal tracking-widest">
+              Limit
+            </span>
+          </div>
         )}
       </div>
     </div>
