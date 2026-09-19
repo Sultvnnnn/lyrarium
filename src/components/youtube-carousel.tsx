@@ -11,8 +11,8 @@ type YouTubeCarouselProps = {
   artistName: string;
 };
 
-const MIN_WIDTH = 280;
-const DEFAULT_WIDTH = 360;
+const MIN_WIDTH = 220;
+const DEFAULT_WIDTH = 260;
 const MAX_WIDTH = 640;
 
 export function YouTubeCarousel({
@@ -26,14 +26,17 @@ export function YouTubeCarousel({
   const [direction, setDirection] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Video Frame Size State (with 640px max limit)
+  // Video Frame Size State (default small 260px, with 640px max limit)
   const [frameWidth, setFrameWidth] = useState<number>(DEFAULT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Restore saved width on mount
+  // Restore saved width on mount or enforce default small size
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("lyrarium_video_width");
+      // Clear legacy storage key if present
+      localStorage.removeItem("lyrarium_video_width");
+
+      const saved = localStorage.getItem("lyrarium_video_width_v2");
       if (saved) {
         const parsed = parseInt(saved, 10);
         if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
@@ -42,11 +45,19 @@ export function YouTubeCarousel({
             "--sidebar-video-w",
             `${parsed}px`
           );
+          return;
         }
       }
     } catch {
       // ignore
     }
+
+    // Default small size
+    setFrameWidth(DEFAULT_WIDTH);
+    document.documentElement.style.setProperty(
+      "--sidebar-video-w",
+      `${DEFAULT_WIDTH}px`
+    );
   }, []);
 
   // Update CSS variable whenever frameWidth changes
@@ -55,19 +66,19 @@ export function YouTubeCarousel({
     setFrameWidth(clamped);
     document.documentElement.style.setProperty("--sidebar-video-w", `${clamped}px`);
     try {
-      localStorage.setItem("lyrarium_video_width", String(clamped));
+      localStorage.setItem("lyrarium_video_width_v2", String(clamped));
     } catch {
       // ignore
     }
   }, []);
 
-  // Cycle through preset sizes: 360 -> 480 -> 640 (Max) -> 280 (Min) -> 360
+  // Cycle through preset sizes: 260 -> 360 -> 480 -> 640 (Max) -> 260
   const cyclePreset = () => {
     let next = DEFAULT_WIDTH;
-    if (frameWidth < 360) next = 360;
-    else if (frameWidth < 480) next = 480;
-    else if (frameWidth < 640) next = 640;
-    else if (frameWidth >= 640) next = 280;
+    if (frameWidth < 340) next = 360;
+    else if (frameWidth < 460) next = 480;
+    else if (frameWidth < 620) next = 640;
+    else if (frameWidth >= 620) next = DEFAULT_WIDTH;
     applyWidth(next);
   };
 
@@ -123,7 +134,7 @@ export function YouTubeCarousel({
         cyclePreset();
       } else {
         try {
-          localStorage.setItem("lyrarium_video_width", String(frameWidth));
+          localStorage.setItem("lyrarium_video_width_v2", String(frameWidth));
         } catch {
           // ignore
         }
@@ -157,7 +168,7 @@ export function YouTubeCarousel({
     currentVideo.title || (activeIndex === 0 ? "Music Video" : `Video ${activeIndex + 1}`);
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full" style={{ maxWidth: `${frameWidth}px` }}>
       {/* Header bar: Title + Index Counter + Arrow Navigation */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -283,7 +294,7 @@ export function YouTubeCarousel({
           }
           aria-label="Resize video frame"
           className="group absolute bottom-0 left-0 z-20 flex size-8 items-end justify-start p-1 text-muted-foreground hover:text-accent transition-colors cursor-nesw-resize select-none"
-          style={{ transform: "translate(-50%, 50%)" }}
+          style={{ transform: "translate(-30%, 30%)" }}
         >
           <svg
             width="14"
@@ -300,14 +311,7 @@ export function YouTubeCarousel({
           </svg>
         </button>
 
-        {/* Limit indicator: persis di kanan bawah luar frame saat ukuran mencapai limit */}
-        {frameWidth >= MAX_WIDTH && (
-          <div className="absolute top-full right-0 z-20 pt-1 select-none">
-            <span className="text-caption uppercase text-accent font-normal tracking-widest">
-              Limit
-            </span>
-          </div>
-        )}
+
       </div>
     </div>
   );
