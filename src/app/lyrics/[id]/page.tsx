@@ -151,6 +151,8 @@ export default async function LyricsPage({ params, searchParams }: Props) {
     const navParams = new URLSearchParams();
     if (from === "artist") {
       navParams.set("from", "artist");
+    } else if (from === "songs") {
+      navParams.set("from", "songs");
     }
     if (scopedArtistSlug) {
       navParams.set("artist", scopedArtistSlug);

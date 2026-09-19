@@ -22,7 +22,7 @@ export function LyricsBreadcrumb({
   scopedArtistName,
   scopedArtistSlug,
 }: LyricsBreadcrumbProps) {
-  const [fromArtist, setFromArtist] = useState(Boolean(fromParam));
+  const [isFromSongs, setIsFromSongs] = useState(fromParam === "songs");
   const [activeArtist, setActiveArtist] = useState({
     name: scopedArtistName || artistName,
     slug: scopedArtistSlug || artistSlug,
@@ -34,12 +34,14 @@ export function LyricsBreadcrumb({
       return;
     }
 
-    // If not passed via query param, check if user navigated from artist page via referrer
     if (typeof document !== "undefined") {
       const ref = document.referrer;
-      if (ref.includes("/artist/")) {
-        setFromArtist(true);
+      if (!fromParam && ref.includes("/songs")) {
+        setIsFromSongs(true);
+        return;
+      }
 
+      if (ref.includes("/artist/")) {
         // Check if referrer matches any featuring artist
         const matchedFeat = featuringArtists.find((feat) =>
           ref.includes(`/artist/${feat.slug}`)
@@ -52,18 +54,18 @@ export function LyricsBreadcrumb({
         }
       }
     }
-  }, [artistName, artistSlug, featuringArtists, scopedArtistName, scopedArtistSlug]);
+  }, [artistName, artistSlug, featuringArtists, scopedArtistName, scopedArtistSlug, fromParam]);
 
-  const items: BreadcrumbItem[] = fromArtist
+  const items: BreadcrumbItem[] = isFromSongs
     ? [
         { label: "Home", href: "/" },
-        { label: "Artists", href: "/#artists" },
-        { label: activeArtist.name, href: `/artist/${activeArtist.slug}` },
+        { label: "Songs", href: "/songs" },
         { label: songTitle },
       ]
     : [
         { label: "Home", href: "/" },
-        { label: "Lyrics", href: "/#collection" },
+        { label: "Artists", href: "/artist" },
+        { label: activeArtist.name, href: `/artist/${activeArtist.slug}` },
         { label: songTitle },
       ];
 

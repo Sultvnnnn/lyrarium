@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { asc, desc, eq, isNotNull } from "drizzle-orm";
+import { asc, desc, eq, isNotNull, or, ilike } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
 import { songs, artists } from "@/db/schema";
@@ -84,6 +84,22 @@ export default async function EditSongPage({ params, searchParams }: Props) {
     }
   }
 
+  const artistSlugified = song.artist
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  const artistRecord = await db.query.artists.findFirst({
+    where: or(
+      ilike(artists.name, song.artist.trim()),
+      eq(artists.slug, artistSlugified)
+    ),
+  });
+
+  const artistName = artistRecord?.name || song.artist;
+  const artistSlug = artistRecord?.slug || artistSlugified;
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -93,7 +109,8 @@ export default async function EditSongPage({ params, searchParams }: Props) {
         <Breadcrumb
           items={[
             { label: "Home", href: "/" },
-            { label: "Lyrics", href: "/#collection" },
+            { label: "Artists", href: "/artist" },
+            { label: artistName, href: `/artist/${artistSlug}` },
             { label: song.title, href: `/lyrics/${song.id}` },
             { label: "Edit" },
           ]}

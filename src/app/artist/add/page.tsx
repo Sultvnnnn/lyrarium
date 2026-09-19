@@ -21,7 +21,7 @@ export default async function AddArtistPage({ searchParams }: Props) {
         <Breadcrumb
           items={[
             { label: "Home", href: "/" },
-            { label: "Artists", href: "/#artists" },
+            { label: "Artists", href: "/artist" },
             { label: "Add Artist" },
           ]}
         />

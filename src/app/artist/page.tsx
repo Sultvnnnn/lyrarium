@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ArtistsCatalogView } from "@/components/artists-catalog-view";
 import type { AccordionArtist } from "@/components/artist-accordion";
+import { Breadcrumb } from "@/components/breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -70,8 +71,18 @@ export default async function ArtistIndexPage() {
       <div>
         <SiteHeader />
 
+        {/* Breadcrumb navigation */}
+        <div className="px-8 pt-8">
+          <Breadcrumb
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Artists" },
+            ]}
+          />
+        </div>
+
         {/* Editorial Section Header */}
-        <section className="px-8 pt-8 pb-4">
+        <section className="px-8 pt-6 pb-4">
           <div className="border-b border-border pb-6 mb-8">
             <div>
               <p className="text-caption uppercase text-muted-foreground tracking-widest">

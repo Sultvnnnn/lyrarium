@@ -268,7 +268,7 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
             key={song.id}
             onClick={() => {
               if (isActive) {
-                router.push(`/lyrics/${song.id}`);
+                router.push(`/lyrics/${song.id}?from=songs`);
               } else {
                 activateCard(i);
               }
@@ -346,7 +346,7 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                 </div>
 
                 <Link
-                  href={`/lyrics/${song.id}`}
+                  href={`/lyrics/${song.id}?from=songs`}
                   aria-label={`Open lyrics for ${song.title}`}
                   className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
                   onClick={(e) => e.stopPropagation()}

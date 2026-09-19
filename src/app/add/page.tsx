@@ -1,4 +1,4 @@
-import { asc, desc, isNotNull } from "drizzle-orm";
+import { asc, desc, isNotNull, eq, or, ilike } from "drizzle-orm";
 import { db } from "@/db";
 import { artists, songs } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
@@ -52,18 +52,50 @@ export default async function AddPage({ searchParams }: Props) {
     }
   }
 
+  let artistSlug: string | null = null;
+  let artistDisplayName: string | null = null;
+
+  if (artist) {
+    const artistQuery = artist.trim();
+    const slugified = artistQuery
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const unhyphenated = artistQuery.replace(/-/g, " ").toLowerCase();
+
+    const artistRec = await db.query.artists.findFirst({
+      where: or(
+        eq(artists.slug, slugified),
+        eq(artists.slug, artistQuery.toLowerCase()),
+        ilike(artists.name, artistQuery),
+        ilike(artists.name, unhyphenated)
+      ),
+    });
+
+    artistDisplayName = artistRec?.name || artistQuery;
+    artistSlug = artistRec?.slug || slugified;
+  }
+
+  const breadcrumbItems = artistDisplayName && artistSlug
+    ? [
+        { label: "Home", href: "/" },
+        { label: "Artists", href: "/artist" },
+        { label: artistDisplayName, href: `/artist/${artistSlug}` },
+        { label: "Add Song" },
+      ]
+    : [
+        { label: "Home", href: "/" },
+        { label: "Songs", href: "/songs" },
+        { label: "Add Song" },
+      ];
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
 
       {/* Breadcrumb navigation */}
       <div className="px-8 pt-8">
-        <Breadcrumb
-          items={[
-            { label: "Home", href: "/" },
-            { label: "Add Song" },
-          ]}
-        />
+        <Breadcrumb items={breadcrumbItems} />
       </div>
 
       <div className="px-8 pt-10 pb-24">

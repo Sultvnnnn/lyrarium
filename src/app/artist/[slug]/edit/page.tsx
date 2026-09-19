@@ -72,7 +72,7 @@ export default async function EditArtistPage({ params, searchParams }: Props) {
         <Breadcrumb
           items={[
             { label: "Home", href: "/" },
-            { label: "Artists", href: "/#artists" },
+            { label: "Artists", href: "/artist" },
             { label: artistRecord.name, href: `/artist/${artistRecord.slug}` },
             { label: "Edit" },
           ]}
