@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, ChevronLeft, ChevronRight, MoveDiagonal2, MoveDiagonal, RotateCcw } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { type YouTubeVideo, extractYouTubeVideoId } from "@/lib/youtube";
 
 type YouTubeCarouselProps = {
@@ -29,8 +29,6 @@ export function YouTubeCarousel({
   // Video Frame Size State (with 640px max limit)
   const [frameWidth, setFrameWidth] = useState<number>(DEFAULT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
-  const [showSizeBadge, setShowSizeBadge] = useState(false);
-  const badgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Restore saved width on mount
   useEffect(() => {
@@ -63,14 +61,6 @@ export function YouTubeCarousel({
     }
   }, []);
 
-  const triggerBadge = () => {
-    setShowSizeBadge(true);
-    if (badgeTimeoutRef.current) clearTimeout(badgeTimeoutRef.current);
-    badgeTimeoutRef.current = setTimeout(() => {
-      setShowSizeBadge(false);
-    }, 1800);
-  };
-
   // Cycle through preset sizes: 360 -> 480 -> 640 (Max) -> 280 (Min) -> 360
   const cyclePreset = () => {
     let next = DEFAULT_WIDTH;
@@ -79,16 +69,14 @@ export function YouTubeCarousel({
     else if (frameWidth < 640) next = 640;
     else if (frameWidth >= 640) next = 280;
     applyWidth(next);
-    triggerBadge();
   };
 
   const resetToDefault = () => {
     applyWidth(DEFAULT_WIDTH);
-    triggerBadge();
   };
 
-  // Pointer drag handling for corner resize
-  const startDrag = (e: React.PointerEvent, corner: "bottom-right" | "bottom-left") => {
+  // Pointer drag handling for bottom-left siku-siku resize handle
+  const startDrag = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -98,31 +86,27 @@ export function YouTubeCarousel({
     let hasMoved = false;
 
     setIsDragging(true);
-    setShowSizeBadge(true);
 
     const onPointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
+      const deltaX = startX - moveEvent.clientX; // moving left increases width
+      const deltaY = moveEvent.clientY - startY; // moving down increases width in 16:9
 
       if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
         hasMoved = true;
       }
 
-      // Calculate new width:
-      // In right sidebar layout, moving downwards or expanding horizontally scales the 16:9 frame
-      let calculatedW = startW;
-      if (corner === "bottom-right") {
-        // Dragging bottom-right: moving down increases height -> scales width
-        // Moving left inwards shrinks, moving right outwards expands
-        calculatedW = startW + (deltaY * (16 / 9) - deltaX) / 2;
-      } else {
-        // Dragging bottom-left: moving left outwards expands, moving right inwards shrinks
-        calculatedW = startW + (-deltaX + deltaY * (16 / 9)) / 2;
-      }
+      // Responsive calculation: moving left or downwards scales the frame outwards
+      const delta =
+        Math.abs(deltaX) >= Math.abs(deltaY * (16 / 9))
+          ? deltaX
+          : deltaY * (16 / 9);
 
-      const maxSafe = typeof window !== "undefined"
-        ? Math.min(MAX_WIDTH, Math.max(460, window.innerWidth - 400))
-        : MAX_WIDTH;
+      const calculatedW = startW + delta;
+
+      const maxSafe =
+        typeof window !== "undefined"
+          ? Math.min(MAX_WIDTH, Math.max(460, window.innerWidth - 400))
+          : MAX_WIDTH;
 
       const clamped = Math.round(Math.min(maxSafe, Math.max(MIN_WIDTH, calculatedW)));
       setFrameWidth(clamped);
@@ -135,7 +119,7 @@ export function YouTubeCarousel({
       setIsDragging(false);
 
       if (!hasMoved) {
-        // Simple click without drag -> cycle preset sizes
+        // Click without drag -> cycle preset sizes
         cyclePreset();
       } else {
         try {
@@ -143,7 +127,6 @@ export function YouTubeCarousel({
         } catch {
           // ignore
         }
-        triggerBadge();
       }
     };
 
@@ -172,8 +155,6 @@ export function YouTubeCarousel({
 
   const currentDisplayTitle =
     currentVideo.title || (activeIndex === 0 ? "Music Video" : `Video ${activeIndex + 1}`);
-
-  const frameHeight = Math.round(frameWidth * (9 / 16));
 
   return (
     <div className="w-full">
@@ -212,11 +193,11 @@ export function YouTubeCarousel({
         )}
       </div>
 
-      {/* Video Frame with Sliding Animation & Corner Resize Handles */}
-      <div className="group/frame relative mt-4 aspect-video w-full overflow-hidden border border-border bg-muted">
-        {/* Global drag shield to prevent iframe event interception */}
+      {/* Video Frame with Sliding Carousel */}
+      <div className="relative mt-4 aspect-video w-full overflow-hidden border border-border bg-muted">
+        {/* Global drag shield to prevent iframe event interception while dragging */}
         {isDragging && (
-          <div className="fixed inset-0 z-50 cursor-nwse-resize select-none bg-transparent" />
+          <div className="fixed inset-0 z-50 cursor-nesw-resize select-none bg-transparent" />
         )}
 
         <AnimatePresence initial={false} custom={direction} mode="wait">
@@ -286,67 +267,45 @@ export function YouTubeCarousel({
             ) : null}
           </motion.div>
         </AnimatePresence>
-
-        {/* Live Dimensions Feedback Badge */}
-        {(isDragging || showSizeBadge) && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-            <div className="flex items-center gap-2 border border-border bg-background/95 px-3 py-1 text-[11px] font-mono uppercase tracking-wider text-foreground shadow-none">
-              <span>
-                {frameWidth} × {frameHeight}
-              </span>
-              <span className="text-muted-foreground">//</span>
-              <span className={frameWidth === MAX_WIDTH ? "text-accent font-medium" : "text-muted-foreground"}>
-                {frameWidth === MAX_WIDTH
-                  ? "MAX LIMIT"
-                  : frameWidth === DEFAULT_WIDTH
-                  ? "DEFAULT"
-                  : frameWidth === MIN_WIDTH
-                  ? "MIN LIMIT"
-                  : "CUSTOM"}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Sudut Bawah Kiri (Bottom-Left Corner Resize Handle) */}
-        <button
-          type="button"
-          onPointerDown={(e) => startDrag(e, "bottom-left")}
-          onDoubleClick={resetToDefault}
-          title="Drag to resize / Click to toggle size / Double-click to reset (Max 640px)"
-          aria-label="Resize video frame from bottom-left"
-          className="absolute bottom-0 left-0 z-20 flex size-7 items-center justify-center border-t border-r border-border bg-background/90 text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground cursor-nesw-resize select-none"
-        >
-          <MoveDiagonal size={16} strokeWidth={1} />
-        </button>
-
-        {/* Sudut Bawah Kanan (Bottom-Right Corner Resize Handle) */}
-        <button
-          type="button"
-          onPointerDown={(e) => startDrag(e, "bottom-right")}
-          onDoubleClick={resetToDefault}
-          title="Drag to resize / Click to toggle size / Double-click to reset (Max 640px)"
-          aria-label="Resize video frame from bottom-right"
-          className="absolute bottom-0 right-0 z-20 flex size-7 items-center justify-center border-t border-l border-border bg-background/90 text-muted-foreground transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground cursor-nwse-resize select-none"
-        >
-          <MoveDiagonal2 size={16} strokeWidth={1} />
-        </button>
       </div>
 
-      {/* Subtle Frame Size Sub-controls & Reset Bar */}
-      <div className="mt-2 flex items-center justify-between text-caption text-muted-foreground">
-        <span className="text-[11px] font-mono tracking-wider">
-          SIZE: {frameWidth}PX (MAX 640PX)
-        </span>
-        {frameWidth !== DEFAULT_WIDTH && (
-          <button
-            type="button"
-            onClick={resetToDefault}
-            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground hover:text-accent transition-colors"
+      {/* Outside Frame Bottom Area: Single Siku-siku Handle on Bottom-Left & Limit Indicator */}
+      <div className="mt-2 flex items-center justify-between min-h-[16px]">
+        {/* Siku-siku Line Resize Handle (Bottom-Left) */}
+        <button
+          type="button"
+          onPointerDown={startDrag}
+          onDoubleClick={resetToDefault}
+          title={
+            frameWidth >= MAX_WIDTH
+              ? "Max limit reached (640px) // Click to cycle or drag to resize"
+              : "Drag or click to resize video frame (Max 640px)"
+          }
+          aria-label="Resize video frame"
+          className="group flex size-5 items-center justify-center text-muted-foreground transition-colors hover:text-accent cursor-nesw-resize select-none"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-colors group-hover:text-accent"
           >
-            <RotateCcw size={16} strokeWidth={1} />
-            <span>Reset Size</span>
-          </button>
+            <path
+              d="M1 1V13H13"
+              stroke="currentColor"
+              strokeWidth="1.25"
+              strokeLinecap="square"
+            />
+          </svg>
+        </button>
+
+        {/* Limit indicator: only shown when size reaches max limit */}
+        {frameWidth >= MAX_WIDTH && (
+          <span className="text-caption uppercase text-accent font-normal select-none tracking-widest">
+            Limit
+          </span>
         )}
       </div>
     </div>
