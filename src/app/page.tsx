@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { X } from "lucide-react";
+import { ArrowUpRight, X } from "lucide-react";
 import { asc, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { songs, artists as artistsTable } from "@/db/schema";
@@ -305,6 +305,31 @@ export default async function Home({ searchParams }: Props) {
         totalArtists={totalArtists}
         totalWords={totalWords}
       />
+
+      {/* 6. Archive Evolution & Changelog Banner */}
+      <section className="px-8 pt-16 pb-4">
+        <div className="border border-border p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:border-accent transition-colors group bg-muted/10">
+          <div>
+            <p className="text-caption uppercase tracking-widest text-muted-foreground">
+              Project Evolution // 2026
+            </p>
+            <h3 className="mt-2 text-heading-sm font-light tracking-[-0.02em] text-foreground">
+              Archive Changelog.
+            </h3>
+            <p className="mt-2 text-body-sm text-muted-foreground max-w-xl font-light">
+              Chronological timeline of architectural milestones, design refinements, and feature updates since Lyrarium was built.
+            </p>
+          </div>
+
+          <Link
+            href="/changelog"
+            className="inline-flex items-center gap-2 border border-border px-6 py-3 text-caption uppercase tracking-widest text-foreground group-hover:border-accent group-hover:text-accent transition-colors shrink-0 select-none"
+          >
+            <span>Explore timeline</span>
+            <ArrowUpRight size={16} strokeWidth={1} />
+          </Link>
+        </div>
+      </section>
 
       <SiteFooter />
     </main>
