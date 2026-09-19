@@ -43,7 +43,7 @@ export function YouTubeCarousel({
         if (!isNaN(parsed) && parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
           setFrameWidth(parsed);
           document.documentElement.style.setProperty(
-            "--video-frame-w",
+            "--sidebar-video-w",
             `${parsed}px`
           );
           return;
@@ -56,7 +56,7 @@ export function YouTubeCarousel({
     // Default 360px size
     setFrameWidth(DEFAULT_WIDTH);
     document.documentElement.style.setProperty(
-      "--video-frame-w",
+      "--sidebar-video-w",
       `${DEFAULT_WIDTH}px`
     );
   }, []);
@@ -65,7 +65,7 @@ export function YouTubeCarousel({
   const applyWidth = useCallback((newWidth: number) => {
     const clamped = Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth)));
     setFrameWidth(clamped);
-    document.documentElement.style.setProperty("--video-frame-w", `${clamped}px`);
+    document.documentElement.style.setProperty("--sidebar-video-w", `${clamped}px`);
     try {
       localStorage.setItem("lyrarium_video_width_v3", String(clamped));
     } catch {
@@ -121,7 +121,7 @@ export function YouTubeCarousel({
 
       const clamped = Math.round(Math.min(maxSafe, Math.max(MIN_WIDTH, calculatedW)));
       setFrameWidth(clamped);
-      document.documentElement.style.setProperty("--video-frame-w", `${clamped}px`);
+      document.documentElement.style.setProperty("--sidebar-video-w", `${clamped}px`);
     };
 
     const onPointerUp = () => {
@@ -168,10 +168,7 @@ export function YouTubeCarousel({
     currentVideo.title || (activeIndex === 0 ? "Music Video" : `Video ${activeIndex + 1}`);
 
   return (
-    <div
-      className="video-frame-resizable relative z-10 w-full max-w-full"
-      style={{ ["--video-frame-w" as string]: `${frameWidth}px` }}
-    >
+    <div className="w-full max-w-full" style={{ maxWidth: `${frameWidth}px` }}>
       {/* Header bar: Title + Index Counter + Arrow Navigation */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">

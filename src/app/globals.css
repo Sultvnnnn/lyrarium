@@ -58,7 +58,6 @@
   --input: #aaaaaa;
   --ring: #000000;
   --sidebar-video-w: 360px;
-  --video-frame-w: 360px;
 }
 
 @theme inline {
@@ -138,10 +137,6 @@ body {
 
 @media (min-width: 1024px) {
   .lyrics-grid-layout {
-    grid-template-columns: minmax(0, 1fr) 360px;
-  }
-  .video-frame-resizable {
-    width: var(--video-frame-w, 360px) !important;
-    margin-left: calc(360px - var(--video-frame-w, 360px)) !important;
+    grid-template-columns: minmax(0, 1fr) var(--sidebar-video-w, 360px);
   }
 }
