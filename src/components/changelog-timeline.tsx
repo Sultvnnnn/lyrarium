@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export type MilestoneCategory =
   | "All"
@@ -33,8 +34,8 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
-    id: "v0.9",
-    version: "v0.9",
+    id: "v0.10.0",
+    version: "v0.10.0",
     date: "Sep 20, 2026",
     title: "18-Card Catalog Pagination & Navigation Polish",
     category: "Core & Navigation",
@@ -50,8 +51,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.8",
-    version: "v0.8",
+    id: "v0.9.0",
+    version: "v0.9.0",
     date: "Sep 19, 2026",
     title: "Artist-Scoped Navigation & Responsive Video Framing",
     category: "Features",
@@ -66,8 +67,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.7",
-    version: "v0.7",
+    id: "v0.8.0",
+    version: "v0.8.0",
     date: "Sep 18, 2026",
     title: "Multi-Video Carousel & Recent Artists Showcase",
     category: "Features",
@@ -82,8 +83,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.6",
-    version: "v0.6",
+    id: "v0.7.0",
+    version: "v0.7.0",
     date: "Sep 17, 2026",
     title: "Deep Architecture & Rendering Performance Overhaul",
     category: "Performance",
@@ -100,8 +101,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.5",
-    version: "v0.5",
+    id: "v0.6.0",
+    version: "v0.6.0",
     date: "Sep 17, 2026",
     title: "Whisper Voice Search & Editorial Focus Mode",
     category: "Audio & Voice",
@@ -117,8 +118,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.4",
-    version: "v0.4",
+    id: "v0.5.0",
+    version: "v0.5.0",
     date: "Sep 15–16, 2026",
     title: "A–Z Catalog Archives & Accordion Standardization",
     category: "Core & Navigation",
@@ -133,8 +134,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.3",
-    version: "v0.3",
+    id: "v0.4.0",
+    version: "v0.4.0",
     date: "Sep 14, 2026",
     title: "Unified Edit Hub, Deduplication & Discography Tabs",
     category: "Features",
@@ -149,8 +150,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.2",
-    version: "v0.2",
+    id: "v0.3.0",
+    version: "v0.3.0",
     date: "Sep 12–13, 2026",
     title: "Accordion Motion Physics & Editorial Scroll Controls",
     category: "Design & UI",
@@ -166,8 +167,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.1",
-    version: "v0.1",
+    id: "v0.2.0",
+    version: "v0.2.0",
     date: "Sep 11, 2026",
     title: "Ambient Artist Backdrop & Dynamic Hero Poster",
     category: "Design & UI",
@@ -182,8 +183,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v0.0",
-    version: "v0.0",
+    id: "v0.1.0",
+    version: "v0.1.0",
     date: "Sep 06–10, 2026",
     title: "Lyrarium Foundation & Art-Book Gatefold Architecture",
     category: "Core & Navigation",
@@ -289,7 +290,7 @@ export function ChangelogTimeline() {
                       {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
                       <div className="block md:hidden absolute left-4 top-8 w-8 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
 
-                      {/* Card Surface (No version or date inside card) */}
+                      {/* Card Surface (Seamless, compact, no version or date inside) */}
                       <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
                         {/* Mobile-only date & version header above title */}
                         <div className="md:hidden flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground mb-3 font-mono">
@@ -308,43 +309,55 @@ export function ChangelogTimeline() {
                           {m.summary}
                         </p>
 
-                        {/* Highlights Toggle Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => toggleHighlights(m.id)}
-                          className="mt-4 pt-3.5 border-t border-border/80 flex items-center justify-between w-full text-caption uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors select-none group/toggle text-left"
-                          aria-expanded={isOpen}
-                        >
-                          <span className="group-hover/toggle:text-accent transition-colors font-medium">
-                            Highlights
-                          </span>
-                          <ChevronDown
-                            size={14}
-                            strokeWidth={1}
-                            className={`transition-transform duration-300 ${
-                              isOpen ? "rotate-180 text-accent" : ""
-                            }`}
-                          />
-                        </button>
+                        {/* Highlights Toggle Trigger (Seamless, borderless inline button) */}
+                        <div className="mt-3.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleHighlights(m.id)}
+                            className="inline-flex items-center gap-1.5 text-caption uppercase tracking-widest text-muted-foreground/70 hover:text-accent transition-colors select-none cursor-pointer group/toggle"
+                            aria-expanded={isOpen}
+                          >
+                            <span className="group-hover/toggle:text-accent transition-colors font-medium">
+                              Highlights
+                            </span>
+                            <ChevronDown
+                              size={12}
+                              strokeWidth={1.5}
+                              className={`transition-transform duration-300 text-muted-foreground/70 group-hover/toggle:text-accent ${
+                                isOpen ? "rotate-180 text-accent" : ""
+                              }`}
+                            />
+                          </button>
+                        </div>
 
-                        {/* Collapsible Highlights List */}
-                        {isOpen && (
-                          <ul className="mt-3 space-y-1.5 pt-1 border-t border-border/40">
-                            {m.details.map((item, dIdx) => (
-                              <li
-                                key={dIdx}
-                                className="text-body-sm text-foreground flex items-start gap-2 font-light"
-                              >
-                                <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        {/* Animated Collapsible Highlights List */}
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <ul className="mt-3 space-y-1.5 pt-2 border-t border-border/40">
+                                {m.details.map((item, dIdx) => (
+                                  <li
+                                    key={dIdx}
+                                    className="text-body-sm text-foreground flex items-start gap-2 font-light"
+                                  >
+                                    <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
+                                    <span>{item}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 
-                    {/* Right Side: Editorial Meta Stamp (Desktop: Version & Date) */}
+                    {/* Right Side: Editorial Meta Stamp (Desktop: SemVer & Date) */}
                     <div className="hidden md:flex md:w-1/2 pl-12 flex-col justify-center select-none">
                       <span className="text-display-sm lg:text-display font-light text-muted-foreground/15 group-hover:text-foreground/30 transition-colors font-mono leading-none">
                         {m.version}
@@ -359,7 +372,7 @@ export function ChangelogTimeline() {
                   /* ODD: EDITORIAL META ON LEFT, CARD ON RIGHT (Desktop)                      */
                   /* ========================================================================= */
                   <>
-                    {/* Left Side: Editorial Meta Stamp (Desktop: Version & Date) */}
+                    {/* Left Side: Editorial Meta Stamp (Desktop: SemVer & Date) */}
                     <div className="hidden md:flex md:w-1/2 pr-12 flex-col justify-center items-end text-right select-none">
                       <span className="text-display-sm lg:text-display font-light text-muted-foreground/15 group-hover:text-foreground/30 transition-colors font-mono leading-none">
                         {m.version}
@@ -376,7 +389,7 @@ export function ChangelogTimeline() {
                       {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
                       <div className="block md:hidden absolute left-4 top-8 w-8 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
 
-                      {/* Card Surface (No version or date inside card) */}
+                      {/* Card Surface (Seamless, compact, no version or date inside) */}
                       <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
                         {/* Mobile-only date & version header above title */}
                         <div className="md:hidden flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground mb-3 font-mono">
@@ -395,39 +408,51 @@ export function ChangelogTimeline() {
                           {m.summary}
                         </p>
 
-                        {/* Highlights Toggle Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => toggleHighlights(m.id)}
-                          className="mt-4 pt-3.5 border-t border-border/80 flex items-center justify-between w-full text-caption uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors select-none group/toggle text-left"
-                          aria-expanded={isOpen}
-                        >
-                          <span className="group-hover/toggle:text-accent transition-colors font-medium">
-                            Highlights
-                          </span>
-                          <ChevronDown
-                            size={14}
-                            strokeWidth={1}
-                            className={`transition-transform duration-300 ${
-                              isOpen ? "rotate-180 text-accent" : ""
-                            }`}
-                          />
-                        </button>
+                        {/* Highlights Toggle Trigger (Seamless, borderless inline button) */}
+                        <div className="mt-3.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleHighlights(m.id)}
+                            className="inline-flex items-center gap-1.5 text-caption uppercase tracking-widest text-muted-foreground/70 hover:text-accent transition-colors select-none cursor-pointer group/toggle"
+                            aria-expanded={isOpen}
+                          >
+                            <span className="group-hover/toggle:text-accent transition-colors font-medium">
+                              Highlights
+                            </span>
+                            <ChevronDown
+                              size={12}
+                              strokeWidth={1.5}
+                              className={`transition-transform duration-300 text-muted-foreground/70 group-hover/toggle:text-accent ${
+                                isOpen ? "rotate-180 text-accent" : ""
+                              }`}
+                            />
+                          </button>
+                        </div>
 
-                        {/* Collapsible Highlights List */}
-                        {isOpen && (
-                          <ul className="mt-3 space-y-1.5 pt-1 border-t border-border/40">
-                            {m.details.map((item, dIdx) => (
-                              <li
-                                key={dIdx}
-                                className="text-body-sm text-foreground flex items-start gap-2 font-light"
-                              >
-                                <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        {/* Animated Collapsible Highlights List */}
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                              className="overflow-hidden"
+                            >
+                              <ul className="mt-3 space-y-1.5 pt-2 border-t border-border/40">
+                                {m.details.map((item, dIdx) => (
+                                  <li
+                                    key={dIdx}
+                                    className="text-body-sm text-foreground flex items-start gap-2 font-light"
+                                  >
+                                    <span className="text-accent select-none font-mono text-caption leading-relaxed">//</span>
+                                    <span>{item}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
                   </>
