@@ -8,16 +8,13 @@ import { ArrowUpRight, Mic, Search, X } from "lucide-react";
 import { LyricPoster, type HeroItem } from "@/components/lyric-poster";
 import type { Song } from "@/db/schema";
 import type { AccordionArtist } from "@/components/artist-accordion";
-
-export type SearchableSong = {
-  id: number;
-  title: string;
-  artist: string;
-  album?: string | null;
-  featuring?: string | null;
-  lyrics: string;
-  imageUrl?: string | null;
-};
+import {
+  searchFuzzy,
+  type DidYouMeanSuggestion,
+  type SearchEngineResult,
+  type SearchableSong,
+  type SearchableArtist,
+} from "@/lib/search-engine";
 
 type HeroSearchProps = {
   items: HeroItem[];
@@ -558,92 +555,49 @@ export function HeroSearch({
     setSelectedIndex(-1);
   };
 
-  // ── Index sekali pakai untuk pencarian instan tanpa re-lowercasing & string splits di tiap frame ──
-  const indexedSongs = useMemo(() => {
-    return searchableSongs.map((song) => {
-      const titleLower = song.title.toLowerCase();
-      const artistLower = song.artist.toLowerCase();
-      const featLower = song.featuring ? song.featuring.toLowerCase() : "";
-      const albumLower = song.album ? song.album.toLowerCase() : "";
-      const lyricsLower = song.lyrics ? song.lyrics.toLowerCase() : "";
-      const haystack = `${titleLower} ${artistLower} ${featLower} ${albumLower} ${lyricsLower}`;
-      return {
-        song,
-        titleLower,
-        artistLower,
-        featLower,
-        albumLower,
-        lyricsLower,
-        haystack,
-      };
-    });
-  }, [searchableSongs]);
+  const applySuggestion = (text: string) => {
+    setQuery(text);
+    if (inputRef.current) {
+      inputRef.current.value = text;
+      inputRef.current.focus();
+    }
+  };
 
-  const indexedArtists = useMemo(() => {
-    return searchableArtists.map((artist) => ({
-      artist,
-      haystack: `${artist.name.toLowerCase()} ${artist.about ? artist.about.toLowerCase() : ""}`,
-    }));
-  }, [searchableArtists]);
-
-  // ── Realtime search calculation (menggunakan deferredQuery agar main thread tidak freeze) ──
+  // ── Realtime search calculation using searchFuzzy engine ──
   const searchResults = useMemo(() => {
-    const q = deferredQuery.trim().toLowerCase();
-    if (!q) {
-      return { songs: [], artists: [], total: 0 };
+    if (!deferredQuery.trim()) {
+      return {
+        query: "",
+        hasExactMatches: false,
+        suggestion: null,
+        exactMatches: { songs: [], artists: [], total: 0 },
+        fuzzyMatches: { songs: [], artists: [], total: 0 },
+      };
     }
+    return searchFuzzy(deferredQuery, searchableSongs, searchableArtists);
+  }, [deferredQuery, searchableSongs, searchableArtists]);
 
-    // 1. Filter songs
-    const matchingSongs: Array<SearchableSong & { matchedLyric?: string | null }> = [];
-    for (const item of indexedSongs) {
-      if (!item.haystack.includes(q)) continue;
-
-      let matchedLyric: string | null = null;
-      const matchMeta =
-        item.titleLower.includes(q) ||
-        item.artistLower.includes(q) ||
-        item.featLower.includes(q) ||
-        item.albumLower.includes(q);
-
-      // Ambil cuplikan baris lirik hanya jika relevan
-      if (!matchMeta && item.lyricsLower.includes(q)) {
-        matchedLyric = getMatchingLyricLine(item.song.lyrics, q);
-      } else if (item.lyricsLower.includes(q) && q.length >= 3) {
-        matchedLyric = getMatchingLyricLine(item.song.lyrics, q);
-      }
-
-      matchingSongs.push({
-        ...item.song,
-        matchedLyric,
-      });
-
-      if (matchingSongs.length >= 50) break;
-    }
-
-    // 2. Filter artists
-    const matchingArtists = indexedArtists
-      .filter((a) => a.haystack.includes(q))
-      .slice(0, 3)
-      .map((a) => a.artist);
-
-    return {
-      songs: matchingSongs,
-      artists: matchingArtists,
-      total: matchingSongs.length + matchingArtists.length,
-    };
-  }, [deferredQuery, indexedSongs, indexedArtists]);
+  // Determine active songs & artists to display in dropdown
+  const isFuzzyMode = !searchResults.hasExactMatches && searchResults.fuzzyMatches.total > 0;
+  const activeSongs = searchResults.hasExactMatches
+    ? searchResults.exactMatches.songs
+    : searchResults.fuzzyMatches.songs;
+  const activeArtists = searchResults.hasExactMatches
+    ? searchResults.exactMatches.artists
+    : searchResults.fuzzyMatches.artists;
+  const activeTotal = activeSongs.length + activeArtists.length;
 
   // Flat list untuk keyboard navigation (ArrowUp, ArrowDown, Enter)
   const flatResults = useMemo(() => {
     const list: Array<{ id: string; url: string; title: string; type: "song" | "artist" }> = [];
-    for (const s of searchResults.songs) {
+    for (const s of activeSongs) {
       list.push({ id: `song-${s.id}`, url: `/lyrics/${s.id}`, title: s.title, type: "song" });
     }
-    for (const a of searchResults.artists) {
+    for (const a of activeArtists) {
       list.push({ id: `artist-${a.slug}`, url: `/artist/${a.slug}`, title: a.name, type: "artist" });
     }
     return list;
-  }, [searchResults]);
+  }, [activeSongs, activeArtists]);
 
   // Reset selectedIndex saat query berubah
   useEffect(() => {
@@ -655,6 +609,12 @@ export function HeroSearch({
 
   // Keyboard navigation handler untuk input
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Tab" && searchResults.suggestion) {
+      e.preventDefault();
+      applySuggestion(searchResults.suggestion.suggestedText);
+      return;
+    }
+
     if (e.key === "ArrowDown") {
       if (flatResults.length > 0) {
         e.preventDefault();
@@ -832,6 +792,12 @@ export function HeroSearch({
               )}
 
               <div className="flex items-center gap-3">
+                {searchResults.suggestion && (
+                  <span className="hidden sm:flex items-center gap-1 text-[11px] text-accent">
+                    <kbd className="font-mono text-[10px] border border-accent/40 bg-accent/10 px-1 py-0.5 leading-none">Tab</kbd>
+                    <span>suggest</span>
+                  </span>
+                )}
                 {showDropdown && flatResults.length > 0 && (
                   <span className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
                     <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↑</kbd>
@@ -860,22 +826,46 @@ export function HeroSearch({
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               className="absolute left-0 right-0 top-[49px] border-x border-b border-accent bg-background max-h-[60vh] overflow-y-auto z-30 divide-y divide-border [contain:layout]"
             >
-              {searchResults.total > 0 ? (
+              {/* Google-style "Did you mean?" Suggestion Banner */}
+              {searchResults.suggestion && (
+                <div className="flex items-center justify-between px-5 py-3 bg-muted/60 border-b border-border">
+                  <div className="flex items-center gap-2 text-body-sm font-light flex-wrap">
+                    <span className="text-muted-foreground">Did you mean:</span>
+                    <button
+                      type="button"
+                      onClick={() => applySuggestion(searchResults.suggestion!.suggestedText)}
+                      className="font-medium text-accent hover:underline text-left cursor-pointer decoration-1 underline-offset-4"
+                    >
+                      {searchResults.suggestion.suggestedText}
+                    </button>
+                    <span className="text-caption uppercase text-muted-foreground font-mono text-[11px]">
+                      [{searchResults.suggestion.type}]
+                    </span>
+                  </div>
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground hidden sm:inline select-none">
+                    Click or <kbd className="font-mono text-[10px] border border-border px-1 py-0.5">Tab</kbd> to apply
+                  </span>
+                </div>
+              )}
+
+              {activeTotal > 0 ? (
                 <>
                   {/* Results Header */}
                   <div className="flex items-center justify-between px-5 py-2.5 bg-muted/20 text-caption uppercase tracking-widest text-muted-foreground">
-                    <span>// {searchResults.total} {searchResults.total === 1 ? "match" : "matches"}</span>
+                    <span>
+                      // {isFuzzyMode ? "Approximate matches" : "Matches"} ({activeTotal})
+                    </span>
                     <span>↵ to select</span>
                   </div>
 
                   {/* Songs Matches */}
-                  {searchResults.songs.length > 0 && (
+                  {activeSongs.length > 0 && (
                     <div>
                       <div className="px-5 py-2 bg-muted/40 text-caption uppercase tracking-widest text-muted-foreground border-b border-border">
                         Songs.
                       </div>
                       <div className="divide-y divide-border">
-                        {searchResults.songs.map((song) => {
+                        {activeSongs.map((song) => {
                           const itemIndex = flatResults.findIndex((x) => x.id === `song-${song.id}`);
                           const isSelected = itemIndex === selectedIndex;
                           const artistDisplay = song.featuring
@@ -924,13 +914,13 @@ export function HeroSearch({
                   )}
 
                   {/* Artists Matches */}
-                  {searchResults.artists.length > 0 && (
+                  {activeArtists.length > 0 && (
                     <div>
                       <div className="px-5 py-2 bg-muted/40 text-caption uppercase tracking-widest text-muted-foreground border-b border-border">
                         Artists.
                       </div>
                       <div className="divide-y divide-border">
-                        {searchResults.artists.map((art) => {
+                        {activeArtists.map((art) => {
                           const itemIndex = flatResults.findIndex((x) => x.id === `artist-${art.slug}`);
                           const isSelected = itemIndex === selectedIndex;
 
@@ -971,7 +961,7 @@ export function HeroSearch({
                   {/* Footer Row */}
                   <div className="p-3 bg-muted/10 flex items-center justify-between text-caption uppercase tracking-wider">
                     <Link
-                      href={`/songs?q=${encodeURIComponent(query)}`}
+                      href={`/songs?q=${encodeURIComponent(searchResults.suggestion ? searchResults.suggestion.suggestedText : query)}`}
                       className="text-accent hover:underline"
                     >
                       View all in archive →
@@ -984,6 +974,9 @@ export function HeroSearch({
                 <div className="p-6 text-center">
                   <p className="text-body-sm font-light text-foreground">
                     No matches found for &ldquo;{query}&rdquo;.
+                  </p>
+                  <p className="mt-1 text-caption uppercase tracking-wider text-muted-foreground">
+                    Try checking for spelling errors or searching by artist name
                   </p>
                 </div>
               )}

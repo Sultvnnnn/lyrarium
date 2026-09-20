@@ -11,6 +11,7 @@ import { StatsLedger } from "@/components/stats-ledger";
 import { HomeChangelogPreview } from "@/components/home-changelog-preview";
 import { SiteFooter } from "@/components/site-footer";
 import type { HeroItem } from "@/components/lyric-poster";
+import { searchFuzzy, type DidYouMeanSuggestion } from "@/lib/search-engine";
 
 export const revalidate = 60;
 
@@ -187,6 +188,10 @@ export default async function Home({ searchParams }: Props) {
   }
 
   let filtered = all;
+  let suggestion: DidYouMeanSuggestion | null = null;
+  let isFuzzyFallback = false;
+  let displayedArtists = artistAccordionItems;
+
   if (artist) {
     const term = artist.toLowerCase();
     filtered = filtered.filter(
@@ -195,15 +200,26 @@ export default async function Home({ searchParams }: Props) {
         (s.featuring && s.featuring.toLowerCase().includes(term)),
     );
   }
+
   if (q) {
-    const term = q.toLowerCase();
-    filtered = filtered.filter(
-      (s) =>
-        s.title.toLowerCase().includes(term) ||
-        s.artist.toLowerCase().includes(term) ||
-        (s.featuring && s.featuring.toLowerCase().includes(term)) ||
-        s.lyrics.toLowerCase().includes(term),
-    );
+    const searchRes = searchFuzzy(q, all, artistAccordionItems);
+    if (searchRes.hasExactMatches) {
+      filtered = searchRes.exactMatches.songs;
+      suggestion = searchRes.suggestion;
+      if (searchRes.exactMatches.artists.length > 0) {
+        displayedArtists = searchRes.exactMatches.artists as AccordionArtist[];
+      }
+    } else if (searchRes.fuzzyMatches.total > 0 || searchRes.suggestion) {
+      filtered = searchRes.fuzzyMatches.songs;
+      suggestion = searchRes.suggestion;
+      isFuzzyFallback = true;
+      if (searchRes.fuzzyMatches.artists.length > 0) {
+        displayedArtists = searchRes.fuzzyMatches.artists as AccordionArtist[];
+      }
+    } else {
+      filtered = [];
+      suggestion = null;
+    }
   }
   const hasFilter = Boolean(q || artist);
 
@@ -229,7 +245,13 @@ export default async function Home({ searchParams }: Props) {
               Collection
             </p>
             <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
-              {artist ? `Recently Added — ${artist}.` : "Recently Added."}
+              {artist
+                ? `Recently Added — ${artist}.`
+                : q
+                ? isFuzzyFallback && suggestion
+                  ? `Results for "${suggestion.suggestedText}".`
+                  : `Search Results — "${q}".`
+                : "Recently Added."}
             </h2>
           </div>
 
@@ -254,13 +276,52 @@ export default async function Home({ searchParams }: Props) {
           </div>
         </div>
 
+        {/* Google-style "Did you mean?" Suggestion Notice */}
+        {suggestion && (
+          <div className="border border-border p-5 mb-8 bg-muted/20 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5 text-body font-light flex-wrap">
+              <span className="text-muted-foreground">Did you mean:</span>
+              <Link
+                href={`/?q=${encodeURIComponent(suggestion.suggestedText)}`}
+                className="font-medium text-accent hover:underline decoration-1 underline-offset-4"
+              >
+                {suggestion.suggestedText}
+              </Link>
+              <span className="text-caption uppercase text-muted-foreground font-mono text-[11px]">
+                [{suggestion.type}]
+              </span>
+            </div>
+            {isFuzzyFallback && (
+              <span className="text-caption uppercase tracking-widest text-muted-foreground text-[11px]">
+                // Showing approximate matches
+              </span>
+            )}
+          </div>
+        )}
+
         {filtered.length === 0 ? (
-          <div className="border border-border p-8 max-w-md">
-            <p className="text-body-sm text-muted-foreground">
+          <div className="border border-border p-8 max-w-lg">
+            <p className="text-body font-light text-foreground">
               {q
-                ? `No lyrics found matching "${q}".`
+                ? `No direct matches found for "${q}".`
                 : "No lyrics found in the archive."}
             </p>
+            {q && suggestion ? (
+              <p className="mt-3 text-body-sm font-light text-muted-foreground">
+                Did you mean:{" "}
+                <Link
+                  href={`/?q=${encodeURIComponent(suggestion.suggestedText)}`}
+                  className="text-accent underline font-medium hover:text-foreground transition-colors"
+                >
+                  {suggestion.suggestedText}
+                </Link>
+                ?
+              </p>
+            ) : q ? (
+              <p className="mt-2 text-body-sm text-muted-foreground font-light">
+                Try checking for typos or searching by artist name.
+              </p>
+            ) : null}
           </div>
         ) : (
           <SongAccordion songs={filtered} />
@@ -272,13 +333,13 @@ export default async function Home({ searchParams }: Props) {
         <div className="flex flex-wrap items-end justify-between gap-8 border-b border-border pb-4 mb-8">
           <div>
             <h2 className="mt-2 text-heading-sm font-light tracking-[-0.02em]">
-              Recent Artists.
+              {q ? "Matched Artists." : "Recent Artists."}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-caption uppercase text-muted-foreground">
-              {artistAccordionItems.length} {artistAccordionItems.length === 1 ? "profile" : "profiles"}
+              {displayedArtists.length} {displayedArtists.length === 1 ? "profile" : "profiles"}
             </span>
             <Link
               href="/artist"
@@ -289,14 +350,14 @@ export default async function Home({ searchParams }: Props) {
           </div>
         </div>
 
-        {artistAccordionItems.length === 0 ? (
+        {displayedArtists.length === 0 ? (
           <div className="border border-border p-8 max-w-md">
             <p className="text-body-sm text-muted-foreground">
               No artist dossiers registered yet.
             </p>
           </div>
         ) : (
-          <ArtistAccordion artists={artistAccordionItems} />
+          <ArtistAccordion artists={displayedArtists} />
         )}
       </section>
 

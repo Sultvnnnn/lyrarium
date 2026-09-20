@@ -34,6 +34,22 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
+    id: "v0.11.0",
+    version: "v0.11.0",
+    date: "Sep 20, 2026",
+    title: "Flexible Fuzzy Search & Google-Style 'Did You Mean' Engine",
+    category: "Features",
+    tag: "Search / Algorithmic",
+    summary:
+      "Engineered an in-house Damerau-Levenshtein and token-similarity fuzzy search engine with zero external dependencies. Features real-time typo detection, 'Did you mean?' suggestions across artists, song titles, and lyrics, and automatic approximate match fallbacks.",
+    details: [
+      "Custom Damerau-Levenshtein edit-distance algorithm handling deletions, insertions, substitutions, and adjacent transpositions.",
+      "Multi-entity matching covering artist names, song titles, featuring collaborators, album tags, and lyrics lines.",
+      "Interactive 'Did you mean?' suggestion banner in dropdown and search results with one-click adoption and Tab shortcut completion.",
+      "Fuzzy fallback discovery preventing dead-end empty results when users introduce misspellings or typographical errors.",
+    ],
+  },
+  {
     id: "v0.10.0",
     version: "v0.10.0",
     date: "Sep 20, 2026",
