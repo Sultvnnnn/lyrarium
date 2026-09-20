@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Calendar } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export type MilestoneCategory =
   | "All"
@@ -33,8 +33,8 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
-    id: "v1.9",
-    version: "v1.9",
+    id: "v0.9",
+    version: "v0.9",
     date: "Sep 20, 2026",
     title: "18-Card Catalog Pagination & Navigation Polish",
     category: "Core & Navigation",
@@ -50,8 +50,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.8",
-    version: "v1.8",
+    id: "v0.8",
+    version: "v0.8",
     date: "Sep 19, 2026",
     title: "Artist-Scoped Navigation & Responsive Video Framing",
     category: "Features",
@@ -66,8 +66,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.7",
-    version: "v1.7",
+    id: "v0.7",
+    version: "v0.7",
     date: "Sep 18, 2026",
     title: "Multi-Video Carousel & Recent Artists Showcase",
     category: "Features",
@@ -82,8 +82,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.6",
-    version: "v1.6",
+    id: "v0.6",
+    version: "v0.6",
     date: "Sep 17, 2026",
     title: "Deep Architecture & Rendering Performance Overhaul",
     category: "Performance",
@@ -100,8 +100,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.5",
-    version: "v1.5",
+    id: "v0.5",
+    version: "v0.5",
     date: "Sep 17, 2026",
     title: "Whisper Voice Search & Editorial Focus Mode",
     category: "Audio & Voice",
@@ -117,8 +117,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.4",
-    version: "v1.4",
+    id: "v0.4",
+    version: "v0.4",
     date: "Sep 15–16, 2026",
     title: "A–Z Catalog Archives & Accordion Standardization",
     category: "Core & Navigation",
@@ -133,8 +133,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.3",
-    version: "v1.3",
+    id: "v0.3",
+    version: "v0.3",
     date: "Sep 14, 2026",
     title: "Unified Edit Hub, Deduplication & Discography Tabs",
     category: "Features",
@@ -149,8 +149,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.2",
-    version: "v1.2",
+    id: "v0.2",
+    version: "v0.2",
     date: "Sep 12–13, 2026",
     title: "Accordion Motion Physics & Editorial Scroll Controls",
     category: "Design & UI",
@@ -166,8 +166,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.1",
-    version: "v1.1",
+    id: "v0.1",
+    version: "v0.1",
     date: "Sep 11, 2026",
     title: "Ambient Artist Backdrop & Dynamic Hero Poster",
     category: "Design & UI",
@@ -182,8 +182,8 @@ const MILESTONES: Milestone[] = [
     ],
   },
   {
-    id: "v1.0",
-    version: "v1.0",
+    id: "v0.0",
+    version: "v0.0",
     date: "Sep 06–10, 2026",
     title: "Lyrarium Foundation & Art-Book Gatefold Architecture",
     category: "Core & Navigation",
@@ -202,6 +202,11 @@ const MILESTONES: Milestone[] = [
 
 export function ChangelogTimeline() {
   const [selectedCategory, setSelectedCategory] = useState<MilestoneCategory>("All");
+  const [openHighlights, setOpenHighlights] = useState<Record<string, boolean>>({});
+
+  const toggleHighlights = (id: string) => {
+    setOpenHighlights((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const filteredMilestones = useMemo(() => {
     if (selectedCategory === "All") return MILESTONES;
@@ -259,6 +264,7 @@ export function ChangelogTimeline() {
           {filteredMilestones.map((m, idx) => {
             // Alternating zigzag: even items on Left, odd items on Right
             const isLeft = idx % 2 === 0;
+            const isOpen = Boolean(openHighlights[m.id]);
 
             return (
               <div
@@ -283,36 +289,47 @@ export function ChangelogTimeline() {
                       {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
                       <div className="block md:hidden absolute left-4 top-8 w-8 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
 
-                      {/* Card Surface */}
+                      {/* Card Surface (No version or date inside card) */}
                       <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
-                        {/* Top Bar: Date & Version Tag */}
-                        <div className="flex items-center justify-between gap-3 border-b border-border pb-3.5 mb-4">
-                          <div className="flex items-center gap-2 text-caption uppercase tracking-widest text-muted-foreground">
-                            <Calendar size={14} strokeWidth={1} />
-                            <span>{m.date}</span>
-                          </div>
+                        {/* Mobile-only date & version header above title */}
+                        <div className="md:hidden flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground mb-3 font-mono">
+                          <span className="text-accent font-medium">{m.version}</span>
+                          <span>{m.date}</span>
+                        </div>
 
-                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-border text-foreground font-medium group-hover:border-accent group-hover:text-accent transition-colors">
-                            {m.version}
+                        {/* Tag & Title */}
+                        <p className="text-caption uppercase tracking-widest text-muted-foreground mb-1.5 font-light">
+                          {m.tag}
+                        </p>
+                        <h2 className="text-heading-sm md:text-subheading font-light text-foreground tracking-[-0.02em]">
+                          {m.title}.
+                        </h2>
+                        <p className="mt-2 text-body-sm text-muted-foreground font-light leading-relaxed">
+                          {m.summary}
+                        </p>
+
+                        {/* Highlights Toggle Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => toggleHighlights(m.id)}
+                          className="mt-4 pt-3.5 border-t border-border/80 flex items-center justify-between w-full text-caption uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors select-none group/toggle text-left"
+                          aria-expanded={isOpen}
+                        >
+                          <span className="group-hover/toggle:text-accent transition-colors font-medium">
+                            Highlights
                           </span>
-                        </div>
+                          <ChevronDown
+                            size={14}
+                            strokeWidth={1}
+                            className={`transition-transform duration-300 ${
+                              isOpen ? "rotate-180 text-accent" : ""
+                            }`}
+                          />
+                        </button>
 
-                        {/* Title & Summary */}
-                        <div>
-                          <h2 className="text-heading-sm md:text-subheading font-light text-foreground tracking-[-0.02em]">
-                            {m.title}.
-                          </h2>
-                          <p className="mt-2 text-body-sm text-muted-foreground font-light leading-relaxed">
-                            {m.summary}
-                          </p>
-                        </div>
-
-                        {/* Highlights */}
-                        <div className="mt-4 pt-3.5 border-t border-border/80">
-                          <p className="text-caption uppercase tracking-widest text-muted-foreground mb-2">
-                            Highlights //
-                          </p>
-                          <ul className="space-y-1.5">
+                        {/* Collapsible Highlights List */}
+                        {isOpen && (
+                          <ul className="mt-3 space-y-1.5 pt-1 border-t border-border/40">
                             {m.details.map((item, dIdx) => (
                               <li
                                 key={dIdx}
@@ -323,26 +340,17 @@ export function ChangelogTimeline() {
                               </li>
                             ))}
                           </ul>
-                        </div>
-
-                        {/* Bottom Bar: Category Tag & Index */}
-                        <div className="mt-4 pt-3 border-t border-border/80 flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground">
-                          <span className="font-light text-foreground">{m.tag}</span>
-                          <span className="font-mono text-[11px] opacity-60">[{String(MILESTONES.length - idx).padStart(2, "0")}]</span>
-                        </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Right Side: Editorial Meta Stamp (Desktop) */}
+                    {/* Right Side: Editorial Meta Stamp (Desktop: Version & Date) */}
                     <div className="hidden md:flex md:w-1/2 pl-12 flex-col justify-center select-none">
                       <span className="text-display-sm lg:text-display font-light text-muted-foreground/15 group-hover:text-foreground/30 transition-colors font-mono leading-none">
                         {m.version}
                       </span>
                       <p className="mt-2 text-caption uppercase tracking-widest text-muted-foreground">
                         {m.date}
-                      </p>
-                      <p className="text-caption uppercase tracking-widest text-muted-foreground/60">
-                        {m.tag}
                       </p>
                     </div>
                   </>
@@ -351,16 +359,13 @@ export function ChangelogTimeline() {
                   /* ODD: EDITORIAL META ON LEFT, CARD ON RIGHT (Desktop)                      */
                   /* ========================================================================= */
                   <>
-                    {/* Left Side: Editorial Meta Stamp (Desktop) */}
+                    {/* Left Side: Editorial Meta Stamp (Desktop: Version & Date) */}
                     <div className="hidden md:flex md:w-1/2 pr-12 flex-col justify-center items-end text-right select-none">
                       <span className="text-display-sm lg:text-display font-light text-muted-foreground/15 group-hover:text-foreground/30 transition-colors font-mono leading-none">
                         {m.version}
                       </span>
                       <p className="mt-2 text-caption uppercase tracking-widest text-muted-foreground">
                         {m.date}
-                      </p>
-                      <p className="text-caption uppercase tracking-widest text-muted-foreground/60">
-                        {m.tag}
                       </p>
                     </div>
 
@@ -371,36 +376,47 @@ export function ChangelogTimeline() {
                       {/* Horizontal Connecting Stem to Left Spine (Mobile) */}
                       <div className="block md:hidden absolute left-4 top-8 w-8 h-[2px] bg-border group-hover:bg-accent transition-colors z-10" />
 
-                      {/* Card Surface */}
+                      {/* Card Surface (No version or date inside card) */}
                       <div className="border border-border bg-muted/10 p-6 md:p-7 transition-colors hover:border-accent">
-                        {/* Top Bar: Date & Version Tag */}
-                        <div className="flex items-center justify-between gap-3 border-b border-border pb-3.5 mb-4">
-                          <div className="flex items-center gap-2 text-caption uppercase tracking-widest text-muted-foreground">
-                            <Calendar size={14} strokeWidth={1} />
-                            <span>{m.date}</span>
-                          </div>
+                        {/* Mobile-only date & version header above title */}
+                        <div className="md:hidden flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground mb-3 font-mono">
+                          <span className="text-accent font-medium">{m.version}</span>
+                          <span>{m.date}</span>
+                        </div>
 
-                          <span className="px-2 py-0.5 text-caption font-mono uppercase tracking-wider border border-border text-foreground font-medium group-hover:border-accent group-hover:text-accent transition-colors">
-                            {m.version}
+                        {/* Tag & Title */}
+                        <p className="text-caption uppercase tracking-widest text-muted-foreground mb-1.5 font-light">
+                          {m.tag}
+                        </p>
+                        <h2 className="text-heading-sm md:text-subheading font-light text-foreground tracking-[-0.02em]">
+                          {m.title}.
+                        </h2>
+                        <p className="mt-2 text-body-sm text-muted-foreground font-light leading-relaxed">
+                          {m.summary}
+                        </p>
+
+                        {/* Highlights Toggle Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => toggleHighlights(m.id)}
+                          className="mt-4 pt-3.5 border-t border-border/80 flex items-center justify-between w-full text-caption uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors select-none group/toggle text-left"
+                          aria-expanded={isOpen}
+                        >
+                          <span className="group-hover/toggle:text-accent transition-colors font-medium">
+                            Highlights
                           </span>
-                        </div>
+                          <ChevronDown
+                            size={14}
+                            strokeWidth={1}
+                            className={`transition-transform duration-300 ${
+                              isOpen ? "rotate-180 text-accent" : ""
+                            }`}
+                          />
+                        </button>
 
-                        {/* Title & Summary */}
-                        <div>
-                          <h2 className="text-heading-sm md:text-subheading font-light text-foreground tracking-[-0.02em]">
-                            {m.title}.
-                          </h2>
-                          <p className="mt-2 text-body-sm text-muted-foreground font-light leading-relaxed">
-                            {m.summary}
-                          </p>
-                        </div>
-
-                        {/* Highlights */}
-                        <div className="mt-4 pt-3.5 border-t border-border/80">
-                          <p className="text-caption uppercase tracking-widest text-muted-foreground mb-2">
-                            Highlights //
-                          </p>
-                          <ul className="space-y-1.5">
+                        {/* Collapsible Highlights List */}
+                        {isOpen && (
+                          <ul className="mt-3 space-y-1.5 pt-1 border-t border-border/40">
                             {m.details.map((item, dIdx) => (
                               <li
                                 key={dIdx}
@@ -411,13 +427,7 @@ export function ChangelogTimeline() {
                               </li>
                             ))}
                           </ul>
-                        </div>
-
-                        {/* Bottom Bar: Category Tag & Index */}
-                        <div className="mt-4 pt-3 border-t border-border/80 flex items-center justify-between text-caption uppercase tracking-widest text-muted-foreground">
-                          <span className="font-light text-foreground">{m.tag}</span>
-                          <span className="font-mono text-[11px] opacity-60">[{String(MILESTONES.length - idx).padStart(2, "0")}]</span>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </>
