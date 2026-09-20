@@ -14,32 +14,34 @@ export function HomeChangelogPreview() {
         </h2>
       </div>
 
-      {/* Editorial Content: Developer Narrative & Manifest */}
-      <div className="max-w-3xl">
-        <h3 className="text-heading font-light tracking-tight leading-[1.1] text-foreground">
-          Built line by line.
-          <br />
-          <span className="text-muted-foreground">Every detail is deliberate.</span>
-        </h3>
+      {/* Editorial Content: Text on left, Explore CTA on right */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 lg:gap-16">
+        <div className="max-w-3xl">
+          <h3 className="text-heading font-light tracking-tight leading-[1.1] text-foreground">
+            Built line by line.
+            <br />
+            <span className="text-muted-foreground">Every detail is deliberate.</span>
+          </h3>
 
-        <div className="mt-6 space-y-4 text-body font-light text-muted-foreground leading-relaxed">
-          <p>
-            Our development philosophy is rooted in permanence and restraint. Lyrarium
-            is crafted without synthetic templates, bloated dependencies, or synthetic
-            ornamentation. Behind every preserved verse is a continuous discipline of
-            database index tuning, custom search algorithms, and precise typography scales.
-          </p>
-          <p>
-            We chronicle each architectural decision, visual calibration, and milestone
-            in a transparent public log — ensuring the evolution of this archive remains
-            as intentional as the lyrics it safeguards.
-          </p>
+          <div className="mt-6 space-y-4 text-body font-light text-muted-foreground leading-relaxed">
+            <p>
+              Our development philosophy is rooted in permanence and restraint. Lyrarium
+              is crafted without synthetic templates, bloated dependencies, or synthetic
+              ornamentation. Behind every preserved verse is a continuous discipline of
+              database index tuning, custom search algorithms, and precise typography scales.
+            </p>
+            <p>
+              We chronicle each architectural decision, visual calibration, and milestone
+              in a transparent public log — ensuring the evolution of this archive remains
+              as intentional as the lyrics it safeguards.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-10">
+        <div className="shrink-0 lg:mb-1">
           <Link
             href="/changelog"
-            className="inline-flex items-center gap-3 border border-foreground bg-foreground text-background px-6 py-3.5 text-caption uppercase tracking-widest hover:border-accent hover:bg-accent hover:text-accent-foreground transition-all duration-200 select-none group font-medium"
+            className="inline-flex items-center gap-3 border border-foreground bg-foreground text-background px-7 py-3.5 text-caption uppercase tracking-widest hover:border-accent hover:bg-accent hover:text-accent-foreground transition-all duration-200 select-none group font-medium"
           >
             <span>Explore changelog</span>
             <ArrowUpRight
