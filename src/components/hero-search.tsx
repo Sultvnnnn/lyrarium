@@ -599,10 +599,6 @@ export function HeroSearch({
     return list;
   }, [activeSongs, activeArtists]);
 
-  // Reset selectedIndex saat query berubah
-  useEffect(() => {
-    setSelectedIndex(-1);
-  }, [query]);
 
   const hasQuery = query.trim().length > 0;
   const showDropdown = isFocused && hasQuery;
@@ -681,10 +677,10 @@ export function HeroSearch({
 
             {/* Search Box Input Bar */}
             <div
-              className={`relative flex items-center gap-2 border bg-background py-3 pl-5 pr-2.5 transition-[border-color,box-shadow] duration-500 ease-[0.22,1,0.36,1] ${
+              className={`relative flex items-center gap-2 border bg-background py-3 pl-5 pr-2.5 transition-colors duration-500 ease-[0.22,1,0.36,1] ${
                 isFocused
-                  ? "border-accent shadow-[0_16px_36px_-8px_rgba(0,0,0,0.35)] dark:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.8)]"
-                  : "border-border hover:border-accent/60 shadow-none"
+                  ? "border-accent"
+                  : "border-border hover:border-accent"
               }`}
             >
             {/* Search Icon Indicator */}
@@ -701,10 +697,12 @@ export function HeroSearch({
               ref={inputRef}
               type="text"
               name="q"
+              aria-label="Search title, artist, or lyrics"
               defaultValue={initialQuery ?? ""}
               onFocus={() => setIsFocused(true)}
               onChange={(e) => {
                 setQuery(e.target.value);
+                setSelectedIndex(-1);
                 if (!isFocused) setIsFocused(true);
               }}
               onKeyDown={handleInputKeyDown}
@@ -725,7 +723,7 @@ export function HeroSearch({
                   transition={{ duration: 0.15 }}
                   className="flex size-8 shrink-0 items-center justify-center text-muted-foreground hover:text-accent transition-colors"
                 >
-                  <X size={14} strokeWidth={1} />
+                  <X size={16} strokeWidth={1} />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -995,7 +993,7 @@ export function HeroSearch({
               href="/"
               className="flex items-center gap-1 hover:text-accent underline"
             >
-              <X size={12} strokeWidth={1} /> Clear filter
+              <X size={16} strokeWidth={1} /> Clear filter
             </Link>
           </div>
         )}
