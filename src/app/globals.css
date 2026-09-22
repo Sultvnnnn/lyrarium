@@ -135,6 +135,16 @@ body {
   transform-origin: bottom;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-eq-1,
+  .animate-eq-2,
+  .animate-eq-3,
+  .animate-eq-4 {
+    animation: none;
+    transform: scaleY(0.5);
+  }
+}
+
 @media (min-width: 1024px) {
   .lyrics-grid-layout {
     grid-template-columns: minmax(0, 1fr) var(--sidebar-video-w, 360px);
