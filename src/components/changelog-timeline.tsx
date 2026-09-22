@@ -34,20 +34,35 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
-    id: "v0.11.1",
-    version: "v0.11.1",
+    id: "v0.11.2",
+    version: "v0.11.2",
     date: "Sep 22, 2026",
     title: "Home Smooth Rendering & Compositor Architecture",
     category: "Performance",
     tag: "Optimization / Rendering",
     summary:
-      "Executed comprehensive performance and design compliance hardening across the home experience. Eliminated layout thrashing, adopted GPU compositor keyframe animations, removed retired gradient scrims in favor of semantic overlays, and enhanced keyboard accessibility.",
+      "Executed comprehensive performance and design compliance hardening across the home experience. Eliminated layout thrashing, adopted GPU compositor keyframe animations, enhanced keyboard accessibility, and restored vibrant photo contrasts.",
     details: [
       "Converted lyric poster progress animation from layout-triggering width to GPU-accelerated scaleX.",
-      "Replaced retired gradient scrims across catalog and accordion views with clean semantic flat overlays.",
+      "Optimized top-transparent scrims across catalog and accordion views for maximum photo brightness and sharp typography.",
       "Enforced keyboard navigation (role, tabIndex, Enter/Space) on all interactive accordion card strips.",
       "Hardened YouTube video embeds with strict referrer policy and reliable thumbnail failure fallbacks.",
       "Stripped unwanted box-shadows and motion scale transforms in compliance with DESIGN.md.",
+    ],
+  },
+  {
+    id: "v0.11.1",
+    version: "v0.11.1",
+    date: "Sep 22, 2026",
+    title: "Route Segment ISR & Native Query Caching",
+    category: "Performance",
+    tag: "Optimization / Caching",
+    summary:
+      "Transitioned catalog endpoints to native Next.js ISR (Incremental Static Regeneration), eliminating repetitive Supabase database roundtrips and serving statically cached archives with on-demand mutation revalidation.",
+    details: [
+      "Replaced forced dynamic rendering on /songs and /artist with 60s ISR route segment caching.",
+      "Synchronized server mutation actions to automatically purge stale route caches on create/update.",
+      "Zero overhead and zero new dependencies using Next.js native revalidation architecture.",
     ],
   },
   {

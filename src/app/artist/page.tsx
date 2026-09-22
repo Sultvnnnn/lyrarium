@@ -8,7 +8,7 @@ import { ArtistsCatalogView } from "@/components/artists-catalog-view";
 import type { AccordionArtist } from "@/components/artist-accordion";
 import { Breadcrumb } from "@/components/breadcrumb";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Artist Index — Lyrarium",
