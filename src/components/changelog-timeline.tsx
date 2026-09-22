@@ -34,6 +34,21 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
+    id: "v0.11.1",
+    version: "v0.11.1",
+    date: "Sep 22, 2026",
+    title: "Route Segment ISR & Native Query Caching",
+    category: "Performance",
+    tag: "Optimization / Caching",
+    summary:
+      "Transitioned catalog endpoints to native Next.js ISR (Incremental Static Regeneration), eliminating repetitive Supabase database roundtrips and serving statically cached archives with on-demand mutation revalidation.",
+    details: [
+      "Replaced forced dynamic rendering on /songs and /artist with 60s ISR route segment caching.",
+      "Synchronized server mutation actions to automatically purge stale route caches on create/update.",
+      "Zero overhead and zero new dependencies using Next.js native revalidation architecture.",
+    ],
+  },
+  {
     id: "v0.11.0",
     version: "v0.11.0",
     date: "Sep 20, 2026",

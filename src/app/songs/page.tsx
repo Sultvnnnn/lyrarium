@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SongsCatalogView } from "@/components/songs-catalog-view";
 import { Breadcrumb } from "@/components/breadcrumb";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Songs Archive — Lyrarium",

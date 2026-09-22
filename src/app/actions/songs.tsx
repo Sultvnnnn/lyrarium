@@ -84,6 +84,8 @@ export async function addSong(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidatePath("/songs");
+  revalidatePath("/artist");
   revalidatePath("/add");
   revalidatePath("/edit");
   redirect("/");
@@ -189,6 +191,8 @@ export async function updateSong(
     .where(eq(songs.id, id));
 
   revalidatePath("/");
+  revalidatePath("/songs");
+  revalidatePath("/artist");
   revalidatePath(`/lyrics/${id}`);
   revalidatePath(`/lyrics/${id}/edit`);
   revalidatePath("/add");
