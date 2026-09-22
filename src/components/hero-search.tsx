@@ -144,6 +144,8 @@ export function HeroSearch({
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [isMac, setIsMac] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [activeFilterTab, setActiveFilterTab] = useState<"all" | "suggestions" | "songs" | "artists">("all");
+  const [isExpandedMatches, setIsExpandedMatches] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -559,6 +561,8 @@ export function HeroSearch({
     }
     setQuery("");
     setSelectedIndex(-1);
+    setIsExpandedMatches(false);
+    setActiveFilterTab("all");
   };
 
   const applySuggestion = (text: string) => {
@@ -567,6 +571,9 @@ export function HeroSearch({
       inputRef.current.value = text;
       inputRef.current.focus();
     }
+    setSelectedIndex(-1);
+    setIsExpandedMatches(false);
+    setActiveFilterTab("all");
   };
 
   // ── Pre-computed Inverted Trigram Index for zero-latency candidate pruning ──
@@ -683,15 +690,56 @@ export function HeroSearch({
     return searchFuzzy(deferredQuery, searchableSongs, searchableArtists);
   }, [deferredQuery, searchableSongs, searchableArtists]);
 
-  // Determine active songs & artists to display in dropdown
+  // Determine raw active songs & artists to display in dropdown
   const isFuzzyMode = !searchResults.hasExactMatches && searchResults.fuzzyMatches.total > 0;
-  const activeSongs = searchResults.hasExactMatches
+  const rawActiveSongs = searchResults.hasExactMatches
     ? searchResults.exactMatches.songs
     : searchResults.fuzzyMatches.songs;
-  const activeArtists = searchResults.hasExactMatches
+  const rawActiveArtists = searchResults.hasExactMatches
     ? searchResults.exactMatches.artists
     : searchResults.fuzzyMatches.artists;
+
+  // Deduplicate items that already appear in fuzzyResults.suggestions
+  const suggestedSongIds = useMemo(() => {
+    return new Set(
+      fuzzyResults.suggestions
+        .filter((s) => s.type === "song")
+        .map((s) => Number(s.targetId))
+    );
+  }, [fuzzyResults.suggestions]);
+
+  const suggestedArtistSlugs = useMemo(() => {
+    return new Set(
+      fuzzyResults.suggestions
+        .filter((s) => s.type === "artist")
+        .map((s) => String(s.targetId))
+    );
+  }, [fuzzyResults.suggestions]);
+
+  const activeSongs = useMemo(() => {
+    return rawActiveSongs.filter((s) => !suggestedSongIds.has(s.id));
+  }, [rawActiveSongs, suggestedSongIds]);
+
+  const activeArtists = useMemo(() => {
+    return rawActiveArtists.filter((a) => !suggestedArtistSlugs.has(a.slug));
+  }, [rawActiveArtists, suggestedArtistSlugs]);
+
   const activeTotal = activeSongs.length + activeArtists.length;
+
+  // Visible items based on isExpandedMatches & activeFilterTab (default cap at 3 for clean view)
+  const visibleSongs = useMemo(() => {
+    if (isExpandedMatches || activeFilterTab === "songs") {
+      return activeSongs;
+    }
+    return activeSongs.slice(0, 3);
+  }, [activeSongs, isExpandedMatches, activeFilterTab]);
+
+  const visibleArtists = useMemo(() => {
+    if (isExpandedMatches || activeFilterTab === "artists") {
+      return activeArtists;
+    }
+    return activeArtists.slice(0, 3);
+  }, [activeArtists, isExpandedMatches, activeFilterTab]);
 
   // Did-You-Mean active item
   const activeDidYouMean =
@@ -717,37 +765,54 @@ export function HeroSearch({
 
   const selectableOptions = useMemo<ComboboxOption[]>(() => {
     const list: ComboboxOption[] = [];
-    for (let i = 0; i < fuzzyResults.suggestions.length; i++) {
-      const s = fuzzyResults.suggestions[i];
-      list.push({
-        id: `search-option-${i}`,
-        kind: "suggestion",
-        text: s.text,
-        url: s.url,
-      });
+    const showSuggestions =
+      (activeFilterTab === "all" || activeFilterTab === "suggestions") &&
+      fuzzyResults.suggestions.length > 0;
+    const showSongs =
+      (activeFilterTab === "all" || activeFilterTab === "songs") &&
+      visibleSongs.length > 0;
+    const showArtists =
+      (activeFilterTab === "all" || activeFilterTab === "artists") &&
+      visibleArtists.length > 0;
+
+    if (showSuggestions) {
+      for (let i = 0; i < fuzzyResults.suggestions.length; i++) {
+        const s = fuzzyResults.suggestions[i];
+        list.push({
+          id: `search-option-sug-${i}`,
+          kind: "suggestion",
+          text: s.text,
+          url: s.url,
+        });
+      }
     }
-    const sugCount = list.length;
-    for (let i = 0; i < activeSongs.length; i++) {
-      const s = activeSongs[i];
-      list.push({
-        id: `search-option-${sugCount + i}`,
-        kind: "song",
-        text: s.title,
-        url: `/lyrics/${s.id}`,
-      });
+
+    if (showSongs) {
+      for (let i = 0; i < visibleSongs.length; i++) {
+        const s = visibleSongs[i];
+        list.push({
+          id: `search-option-song-${s.id}`,
+          kind: "song",
+          text: s.title,
+          url: `/lyrics/${s.id}`,
+        });
+      }
     }
-    const songsCount = activeSongs.length;
-    for (let i = 0; i < activeArtists.length; i++) {
-      const a = activeArtists[i];
-      list.push({
-        id: `search-option-${sugCount + songsCount + i}`,
-        kind: "artist",
-        text: a.name,
-        url: `/artist/${a.slug}`,
-      });
+
+    if (showArtists) {
+      for (let i = 0; i < visibleArtists.length; i++) {
+        const a = visibleArtists[i];
+        list.push({
+          id: `search-option-art-${a.slug}`,
+          kind: "artist",
+          text: a.name,
+          url: `/artist/${a.slug}`,
+        });
+      }
     }
+
     return list;
-  }, [fuzzyResults.suggestions, activeSongs, activeArtists]);
+  }, [activeFilterTab, fuzzyResults.suggestions, visibleSongs, visibleArtists]);
 
   const hasQuery = query.trim().length > 0;
   const showDropdown = isFocused && hasQuery;
@@ -872,6 +937,8 @@ export function HeroSearch({
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSelectedIndex(-1);
+                setIsExpandedMatches(false);
+                setActiveFilterTab("all");
                 if (!isFocused) setIsFocused(true);
               }}
               onKeyDown={handleInputKeyDown}
@@ -994,7 +1061,7 @@ export function HeroSearch({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute left-0 right-0 top-[49px] border-x border-b border-border bg-background max-h-[60vh] overflow-y-auto z-30 divide-y divide-border [contain:layout]"
+              className="absolute left-0 right-0 top-[49px] border-x border-b border-accent bg-background max-h-[65vh] overflow-y-auto z-30 divide-y divide-border [contain:layout]"
             >
               {/* Did-you-mean: jika hasil == 0 (atau < 3) dan fuzzy menemukan kandidat kuat */}
               {activeDidYouMean && (
@@ -1020,204 +1087,326 @@ export function HeroSearch({
                 </div>
               )}
 
-              {/* Typeahead Suggestions (max 5-8 options with <mark> match highlight & uppercase caption) */}
-              {fuzzyResults.suggestions.length > 0 && (
-                <div>
-                  <div className="px-5 py-2 bg-muted/20 text-caption uppercase tracking-widest text-muted-foreground border-b border-border flex items-center justify-between select-none">
-                    <span>// Saran ({fuzzyResults.suggestions.length})</span>
-                    <span className="font-mono text-[10px] hidden sm:inline">↑↓ arahkan • ↵ pilih</span>
-                  </div>
-                  <div className="divide-y divide-border">
-                    {fuzzyResults.suggestions.map((sug, idx) => {
-                      const isSelected = selectedIndex === idx;
-                      return (
-                        <div
-                          key={sug.id}
-                          id={`search-option-${idx}`}
-                          role="option"
-                          aria-selected={isSelected}
-                          onClick={() => applySuggestion(sug.text)}
-                          onMouseEnter={() => setSelectedIndex(idx)}
-                          className={`group flex items-center justify-between px-5 py-2.5 transition-colors cursor-pointer ${
-                            isSelected
-                              ? "bg-muted/70 text-accent border-l-2 border-l-accent"
-                              : "hover:bg-muted/30"
-                          }`}
-                        >
-                          <div className="min-w-0 pr-4">
-                            <p
-                              className={`text-body-sm font-light transition-colors truncate ${
-                                isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
-                              }`}
-                            >
-                              {sug.highlightSegments.map((seg, sIdx) =>
-                                seg.isMatch ? (
-                                  <mark
-                                    key={sIdx}
-                                    className="bg-accent text-accent-foreground font-normal"
-                                  >
-                                    {seg.text}
-                                  </mark>
-                                ) : (
-                                  <span key={sIdx}>{seg.text}</span>
-                                )
-                              )}
-                            </p>
-                            {sug.subtitle && (
-                              <p className="text-caption uppercase text-muted-foreground tracking-wide truncate">
-                                {sug.subtitle}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-caption uppercase tracking-widest text-muted-foreground font-mono text-[10px] border border-border px-1.5 py-0.5 select-none">
-                              {sug.type === "song" ? "SONG" : "ARTIST"}
-                            </span>
-                            <ArrowUpRight
-                              size={16}
-                              strokeWidth={1}
-                              className={`transition-colors ${
-                                isSelected
-                                  ? "text-accent"
-                                  : "text-muted-foreground group-hover:text-accent"
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Category Quick-Filter Tabs (hanya jika ada multi-kategori atau hasil banyak) */}
+              {(fuzzyResults.suggestions.length > 0 && activeTotal > 0) ||
+              (activeSongs.length > 0 && activeArtists.length > 0) ||
+              activeTotal >= 4 ? (
+                <div className="flex items-center gap-1.5 px-5 py-2 bg-muted/30 border-b border-border overflow-x-auto select-none">
+                  <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground mr-1 shrink-0">
+                    // Filter:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFilterTab("all")}
+                    className={`px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors shrink-0 cursor-pointer ${
+                      activeFilterTab === "all"
+                        ? "bg-accent text-accent-foreground border border-accent"
+                        : "border border-border text-muted-foreground hover:border-accent hover:text-accent"
+                    }`}
+                  >
+                    Semua ({fuzzyResults.suggestions.length + activeTotal})
+                  </button>
+                  {fuzzyResults.suggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveFilterTab("suggestions")}
+                      className={`px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors shrink-0 cursor-pointer ${
+                        activeFilterTab === "suggestions"
+                          ? "bg-accent text-accent-foreground border border-accent"
+                          : "border border-border text-muted-foreground hover:border-accent hover:text-accent"
+                      }`}
+                    >
+                      Saran ({fuzzyResults.suggestions.length})
+                    </button>
+                  )}
+                  {activeSongs.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveFilterTab("songs")}
+                      className={`px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors shrink-0 cursor-pointer ${
+                        activeFilterTab === "songs"
+                          ? "bg-accent text-accent-foreground border border-accent"
+                          : "border border-border text-muted-foreground hover:border-accent hover:text-accent"
+                      }`}
+                    >
+                      Lagu ({activeSongs.length})
+                    </button>
+                  )}
+                  {activeArtists.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveFilterTab("artists")}
+                      className={`px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors shrink-0 cursor-pointer ${
+                        activeFilterTab === "artists"
+                          ? "bg-accent text-accent-foreground border border-accent"
+                          : "border border-border text-muted-foreground hover:border-accent hover:text-accent"
+                      }`}
+                    >
+                      Artis ({activeArtists.length})
+                    </button>
+                  )}
                 </div>
-              )}
+              ) : null}
+
+              {/* Typeahead Suggestions (max 5-8 options with <mark> match highlight & uppercase caption) */}
+              {(activeFilterTab === "all" || activeFilterTab === "suggestions") &&
+                fuzzyResults.suggestions.length > 0 && (
+                  <div>
+                    <div className="px-5 py-2 bg-muted/20 text-caption uppercase tracking-widest text-muted-foreground border-b border-border flex items-center justify-between select-none">
+                      <span>// Saran ({fuzzyResults.suggestions.length})</span>
+                      <span className="font-mono text-[10px] hidden sm:inline">↑↓ arahkan • ↵ pilih</span>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {fuzzyResults.suggestions.map((sug, idx) => {
+                        const optionId = `search-option-sug-${idx}`;
+                        const isSelected =
+                          selectedIndex >= 0 && selectableOptions[selectedIndex]?.id === optionId;
+
+                        return (
+                          <div
+                            key={sug.id}
+                            id={optionId}
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => applySuggestion(sug.text)}
+                            onMouseEnter={() => {
+                              const itemIdx = selectableOptions.findIndex((x) => x.id === optionId);
+                              if (itemIdx >= 0) setSelectedIndex(itemIdx);
+                            }}
+                            className={`group flex items-center justify-between px-5 py-2.5 transition-colors cursor-pointer ${
+                              isSelected
+                                ? "bg-muted/70 text-accent border-l-2 border-l-accent"
+                                : "hover:bg-muted/30"
+                            }`}
+                          >
+                            <div className="min-w-0 pr-4">
+                              <p
+                                className={`text-body-sm font-light transition-colors truncate ${
+                                  isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
+                                }`}
+                              >
+                                {sug.highlightSegments.map((seg, sIdx) =>
+                                  seg.isMatch ? (
+                                    <mark
+                                      key={sIdx}
+                                      className="bg-accent text-accent-foreground font-normal"
+                                    >
+                                      {seg.text}
+                                    </mark>
+                                  ) : (
+                                    <span key={sIdx}>{seg.text}</span>
+                                  )
+                                )}
+                              </p>
+                              {sug.subtitle && (
+                                <p className="text-caption uppercase text-muted-foreground tracking-wide truncate">
+                                  {sug.subtitle}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-caption uppercase tracking-widest text-muted-foreground font-mono text-[10px] border border-border px-1.5 py-0.5 select-none">
+                                {sug.type === "song" ? "SONG" : "ARTIST"}
+                              </span>
+                              <ArrowUpRight
+                                size={16}
+                                strokeWidth={1}
+                                className={`transition-colors ${
+                                  isSelected
+                                    ? "text-accent"
+                                    : "text-muted-foreground group-hover:text-accent"
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               {/* Direct Matches (Songs & Artists) */}
               {activeTotal > 0 ? (
                 <>
-                  {/* Results Header */}
-                  <div className="flex items-center justify-between px-5 py-2.5 bg-muted/20 text-caption uppercase tracking-widest text-muted-foreground">
-                    <span>
-                      // {isFuzzyMode ? "Approximate matches" : "Matches"} ({activeTotal})
-                    </span>
-                    <span>↵ to select</span>
-                  </div>
-
                   {/* Songs Matches */}
-                  {activeSongs.length > 0 && (
-                    <div>
-                      <div className="px-5 py-2 bg-muted/40 text-caption uppercase tracking-widest text-muted-foreground border-b border-border">
-                        Songs.
-                      </div>
-                      <div className="divide-y divide-border">
-                        {activeSongs.map((song, songIdx) => {
-                          const optionIdx = fuzzyResults.suggestions.length + songIdx;
-                          const isSelected = optionIdx === selectedIndex;
-                          const artistDisplay = song.featuring
-                            ? `${song.artist} ft. ${song.featuring}`
-                            : song.artist;
+                  {(activeFilterTab === "all" || activeFilterTab === "songs") &&
+                    visibleSongs.length > 0 && (
+                      <div>
+                        <div className="px-5 py-2 bg-muted/40 text-caption uppercase tracking-widest text-muted-foreground border-b border-border flex items-center justify-between select-none">
+                          <span>
+                            Songs. ({activeSongs.length})
+                          </span>
+                          {activeSongs.length > 3 && activeFilterTab === "all" && (
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {isExpandedMatches
+                                ? `Menampilkan semua (${activeSongs.length})`
+                                : `Menampilkan 3 teratas`}
+                            </span>
+                          )}
+                        </div>
+                        <div className="divide-y divide-border">
+                          {visibleSongs.map((song) => {
+                            const optionId = `search-option-song-${song.id}`;
+                            const isSelected =
+                              selectedIndex >= 0 && selectableOptions[selectedIndex]?.id === optionId;
+                            const artistDisplay = song.featuring
+                              ? `${song.artist} ft. ${song.featuring}`
+                              : song.artist;
 
-                          return (
-                            <Link
-                              key={song.id}
-                              id={`search-option-${optionIdx}`}
-                              role="option"
-                              aria-selected={isSelected}
-                              href={`/lyrics/${song.id}`}
-                              onMouseEnter={() => setSelectedIndex(optionIdx)}
-                              className={`group flex items-center justify-between px-5 py-3 transition-colors ${
-                                isSelected ? "bg-muted/70 text-accent border-l-2 border-l-accent" : "hover:bg-muted/30"
-                              }`}
-                            >
-                              <div className="min-w-0 pr-4">
-                                <p className={`text-body-sm font-light transition-colors truncate ${
-                                  isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
-                                }`}>
-                                  {song.title}
-                                </p>
-                                <p className="text-caption uppercase text-muted-foreground tracking-wide truncate">
-                                  {artistDisplay}
-                                  {song.album && ` // ${song.album}`}
-                                </p>
-
-                                {song.matchedLyric && (
-                                  <p className="mt-1 text-caption italic text-accent tracking-normal truncate">
-                                    &ldquo;{song.matchedLyric}&rdquo;
-                                  </p>
-                                )}
-                              </div>
-
-                              <ArrowUpRight
-                                size={16}
-                                strokeWidth={1}
-                                className={`shrink-0 transition-colors ${
-                                  isSelected ? "text-accent" : "text-muted-foreground group-hover:text-accent"
+                            return (
+                              <Link
+                                key={song.id}
+                                id={optionId}
+                                role="option"
+                                aria-selected={isSelected}
+                                href={`/lyrics/${song.id}`}
+                                onMouseEnter={() => {
+                                  const itemIdx = selectableOptions.findIndex((x) => x.id === optionId);
+                                  if (itemIdx >= 0) setSelectedIndex(itemIdx);
+                                }}
+                                className={`group flex items-center justify-between px-5 py-3 transition-colors ${
+                                  isSelected ? "bg-muted/70 text-accent border-l-2 border-l-accent" : "hover:bg-muted/30"
                                 }`}
-                              />
-                            </Link>
-                          );
-                        })}
+                              >
+                                <div className="min-w-0 pr-4">
+                                  <p className={`text-body-sm font-light transition-colors truncate ${
+                                    isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
+                                  }`}>
+                                    {song.title}
+                                  </p>
+                                  <p className="text-caption uppercase text-muted-foreground tracking-wide truncate">
+                                    {artistDisplay}
+                                    {song.album && ` // ${song.album}`}
+                                  </p>
+
+                                  {song.matchedLyric && (
+                                    <div className="mt-1.5 flex items-start gap-2 max-w-xl">
+                                      <span className="shrink-0 text-[10px] font-mono uppercase tracking-widest text-muted-foreground pt-0.5 select-none">
+                                        LIRIK //
+                                      </span>
+                                      <p className="text-caption italic text-accent truncate border-l border-accent/40 pl-2 leading-relaxed">
+                                        &ldquo;{song.matchedLyric}&rdquo;
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <ArrowUpRight
+                                  size={16}
+                                  strokeWidth={1}
+                                  className={`shrink-0 transition-colors ${
+                                    isSelected ? "text-accent" : "text-muted-foreground group-hover:text-accent"
+                                  }`}
+                                />
+                              </Link>
+                            );
+                          })}
+                        </div>
+
+                        {/* Inline Expander Row */}
+                        {activeSongs.length > 3 && activeFilterTab === "all" && (
+                          <div className="px-5 py-2.5 bg-muted/20 border-t border-border flex items-center justify-between text-caption uppercase tracking-wider select-none">
+                            <span className="text-muted-foreground font-mono text-[10px]">
+                              {isExpandedMatches
+                                ? `Semua ${activeSongs.length} lagu ditampilkan`
+                                : `+${activeSongs.length - 3} lagu lainnya tersedia`}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsExpandedMatches(!isExpandedMatches)}
+                              className="text-accent hover:underline cursor-pointer flex items-center gap-1 font-mono text-[11px] font-medium transition-colors"
+                            >
+                              {isExpandedMatches ? "Persempit daftar ↑" : `Buka ${activeSongs.length - 3} lagu lainnya ↓`}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Artists Matches */}
-                  {activeArtists.length > 0 && (
-                    <div>
-                      <div className="px-5 py-2 bg-muted/40 text-caption uppercase tracking-widest text-muted-foreground border-b border-border">
-                        Artists.
-                      </div>
-                      <div className="divide-y divide-border">
-                        {activeArtists.map((art, artIdx) => {
-                          const optionIdx =
-                            fuzzyResults.suggestions.length + activeSongs.length + artIdx;
-                          const isSelected = optionIdx === selectedIndex;
+                  {(activeFilterTab === "all" || activeFilterTab === "artists") &&
+                    visibleArtists.length > 0 && (
+                      <div>
+                        <div className="px-5 py-2 bg-muted/40 text-caption uppercase tracking-widest text-muted-foreground border-b border-border flex items-center justify-between select-none">
+                          <span>Artists. ({activeArtists.length})</span>
+                        </div>
+                        <div className="divide-y divide-border">
+                          {visibleArtists.map((art) => {
+                            const optionId = `search-option-art-${art.slug}`;
+                            const isSelected =
+                              selectedIndex >= 0 && selectableOptions[selectedIndex]?.id === optionId;
 
-                          return (
-                            <Link
-                              key={art.slug}
-                              id={`search-option-${optionIdx}`}
-                              role="option"
-                              aria-selected={isSelected}
-                              href={`/artist/${art.slug}`}
-                              onMouseEnter={() => setSelectedIndex(optionIdx)}
-                              className={`group flex items-center justify-between px-5 py-3 transition-colors ${
-                                isSelected ? "bg-muted/70 text-accent border-l-2 border-l-accent" : "hover:bg-muted/30"
-                              }`}
-                            >
-                              <div className="min-w-0 pr-4">
-                                <p className={`text-body-sm font-light transition-colors truncate ${
-                                  isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
-                                }`}>
-                                  {art.name}
-                                </p>
-                                <p className="text-caption uppercase text-muted-foreground tracking-wide">
-                                  {art.songCount} {art.songCount === 1 ? "track" : "tracks"}
-                                </p>
-                              </div>
-
-                              <ArrowUpRight
-                                size={16}
-                                strokeWidth={1}
-                                className={`shrink-0 transition-colors ${
-                                  isSelected ? "text-accent" : "text-muted-foreground group-hover:text-accent"
+                            return (
+                              <Link
+                                key={art.slug}
+                                id={optionId}
+                                role="option"
+                                aria-selected={isSelected}
+                                href={`/artist/${art.slug}`}
+                                onMouseEnter={() => {
+                                  const itemIdx = selectableOptions.findIndex((x) => x.id === optionId);
+                                  if (itemIdx >= 0) setSelectedIndex(itemIdx);
+                                }}
+                                className={`group flex items-center justify-between px-5 py-3 transition-colors ${
+                                  isSelected ? "bg-muted/70 text-accent border-l-2 border-l-accent" : "hover:bg-muted/30"
                                 }`}
-                              />
-                            </Link>
-                          );
-                        })}
+                              >
+                                <div className="min-w-0 pr-4">
+                                  <p className={`text-body-sm font-light transition-colors truncate ${
+                                    isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
+                                  }`}>
+                                    {art.name}
+                                  </p>
+                                  <p className="text-caption uppercase text-muted-foreground tracking-wide">
+                                    {art.songCount} {art.songCount === 1 ? "track" : "tracks"}
+                                  </p>
+                                </div>
+
+                                <ArrowUpRight
+                                  size={16}
+                                  strokeWidth={1}
+                                  className={`shrink-0 transition-colors ${
+                                    isSelected ? "text-accent" : "text-muted-foreground group-hover:text-accent"
+                                  }`}
+                                />
+                              </Link>
+                            );
+                          })}
+                        </div>
+
+                        {/* Inline Expander for Artists if > 3 */}
+                        {activeArtists.length > 3 && activeFilterTab === "all" && (
+                          <div className="px-5 py-2.5 bg-muted/20 border-t border-border flex items-center justify-between text-caption uppercase tracking-wider select-none">
+                            <span className="text-muted-foreground font-mono text-[10px]">
+                              {isExpandedMatches
+                                ? `Semua ${activeArtists.length} artis ditampilkan`
+                                : `+${activeArtists.length - 3} artis lainnya tersedia`}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsExpandedMatches(!isExpandedMatches)}
+                              className="text-accent hover:underline cursor-pointer flex items-center gap-1 font-mono text-[11px] font-medium transition-colors"
+                            >
+                              {isExpandedMatches ? "Persempit daftar ↑" : `Buka ${activeArtists.length - 3} artis lainnya ↓`}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Footer Row */}
-                  <div className="p-3 bg-muted/10 flex items-center justify-between text-caption uppercase tracking-wider">
+                  <div className="p-3 bg-muted/20 flex items-center justify-between text-caption uppercase tracking-wider border-t border-border select-none">
                     <Link
                       href={`/songs?q=${encodeURIComponent(activeDidYouMean ? activeDidYouMean.text : query)}`}
-                      className="text-accent hover:underline"
+                      className="text-accent hover:underline flex items-center gap-1.5 font-light"
                     >
-                      View all in archive →
+                      <span>Lihat semua di arsip lengkap</span>
+                      <ArrowUpRight size={14} strokeWidth={1} />
                     </Link>
-                    <span className="text-muted-foreground">Press Enter</span>
+                    <span className="text-muted-foreground font-mono text-[11px] hidden sm:inline">
+                      Tekan Enter ↵
+                    </span>
                   </div>
                 </>
               ) : fuzzyResults.suggestions.length === 0 ? (
@@ -1232,14 +1421,17 @@ export function HeroSearch({
                 </div>
               ) : (
                 /* Suggestions exist but 0 exact direct matches */
-                <div className="p-3 bg-muted/10 flex items-center justify-between text-caption uppercase tracking-wider">
+                <div className="p-3 bg-muted/20 flex items-center justify-between text-caption uppercase tracking-wider border-t border-border select-none">
                   <Link
                     href={`/songs?q=${encodeURIComponent(activeDidYouMean ? activeDidYouMean.text : query)}`}
-                    className="text-accent hover:underline"
+                    className="text-accent hover:underline flex items-center gap-1.5 font-light"
                   >
-                    Search in archive anyway →
+                    <span>Cari di arsip lengkap</span>
+                    <ArrowUpRight size={14} strokeWidth={1} />
                   </Link>
-                  <span className="text-muted-foreground">Press Enter</span>
+                  <span className="text-muted-foreground font-mono text-[11px]">
+                    Tekan Enter ↵
+                  </span>
                 </div>
               )}
             </motion.div>

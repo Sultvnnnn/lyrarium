@@ -34,6 +34,23 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
+    id: "v0.12.1",
+    version: "v0.12.1",
+    date: "Sep 22, 2026",
+    title: "Editorial Dropdown UX: Deduplication, Category Tabs & Capped Preview",
+    category: "Design & UI",
+    tag: "Search / Dropdown UX",
+    summary:
+      "Redesigned the search dropdown UX for dense approximate match results. Eliminated duplicate items between suggestions and matches, introduced category quick-filter tabs, capped matches to 3 items with an inline expander, and styled lyric snippets with an editorial blockquote aesthetic.",
+    details: [
+      "Eliminated duplicate entries across suggestions and direct match lists via set-based deduplication.",
+      "Added sharp 0px category filter tabs ('Semua', 'Saran', 'Lagu', 'Artis') for instant scannability on dense result sets.",
+      "Introduced a capped preview (max 3 items) with an inline expander ('Buka X lagu lainnya') to prevent awkward card cut-offs and scroll fatigue.",
+      "Upgraded lyric match preview into an editorial callout block with 'LIRIK //' eyebrow caption and accent border hairline.",
+      "Maintained 100% WAI-ARIA combobox keyboard navigation synchronized dynamically with active filter tabs and expanded state.",
+    ],
+  },
+  {
     id: "v0.12.0",
     version: "v0.12.0",
     date: "Sep 22, 2026",
