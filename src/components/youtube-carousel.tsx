@@ -25,6 +25,7 @@ export function YouTubeCarousel({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Video Frame Size State (default 360px, with 640px max limit)
   const [frameWidth, setFrameWidth] = useState<number>(DEFAULT_WIDTH);
@@ -130,12 +131,14 @@ export function YouTubeCarousel({
   const handlePrev = () => {
     setDirection(-1);
     setIsPlaying(false);
+    setImgError(false);
     setCurrentIndex((prev) => (prev === 0 ? validVideos.length - 1 : prev - 1));
   };
 
   const handleNext = () => {
     setDirection(1);
     setIsPlaying(false);
+    setImgError(false);
     setCurrentIndex((prev) => (prev === validVideos.length - 1 ? 0 : prev + 1));
   };
 
@@ -163,7 +166,7 @@ export function YouTubeCarousel({
               type="button"
               onClick={handlePrev}
               aria-label="Previous video"
-              className="flex size-7 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
+              className="flex size-7 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:border-accent hover:text-accent"
             >
               <ChevronLeft size={16} strokeWidth={1} />
             </button>
@@ -171,7 +174,7 @@ export function YouTubeCarousel({
               type="button"
               onClick={handleNext}
               aria-label="Next video"
-              className="flex size-7 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:border-accent hover:text-accent active:scale-95"
+              className="flex size-7 items-center justify-center border border-border bg-background text-muted-foreground transition-colors hover:border-accent hover:text-accent"
             >
               <ChevronRight size={16} strokeWidth={1} />
             </button>
@@ -219,6 +222,7 @@ export function YouTubeCarousel({
                   className="size-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               ) : videoId ? (
                 <div
@@ -234,20 +238,32 @@ export function YouTubeCarousel({
                   aria-label={`Play video: ${currentDisplayTitle}`}
                   className="group relative size-full cursor-pointer transition-colors"
                 >
-                  <img
-                    src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
-                    alt={`${songTitle} — ${currentDisplayTitle}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="size-full object-cover opacity-85 transition-opacity duration-300 group-hover:opacity-95"
-                  />
+                  {!imgError ? (
+                    <img
+                      src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+                      alt={`${songTitle} — ${currentDisplayTitle}`}
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => setImgError(true)}
+                      className="size-full object-cover opacity-85 transition-opacity duration-300 group-hover:opacity-95"
+                    />
+                  ) : (
+                    <div className="size-full flex flex-col items-center justify-center bg-muted text-muted-foreground p-4 text-center select-none">
+                      <span className="text-caption uppercase tracking-widest text-foreground font-light">
+                        {songTitle}
+                      </span>
+                      <span className="mt-1 text-caption uppercase tracking-wider text-muted-foreground">
+                        {currentDisplayTitle}
+                      </span>
+                    </div>
+                  )}
 
-                  {/* Dim scrim for contrast */}
-                  <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/45 pointer-events-none" />
+                  {/* Dim overlay for contrast */}
+                  <div className="absolute inset-0 bg-background/20 transition-colors duration-300 group-hover:bg-background/10 pointer-events-none" />
 
                   {/* Editorial Play Trigger Button (Sharp, Balanced, Semantic Tokens) */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-all duration-200 group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground active:scale-95">
+                    <div className="flex items-center gap-2.5 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-widest text-foreground transition-colors duration-200 group-hover:border-accent group-hover:bg-accent group-hover:text-accent-foreground">
                       <Play size={16} strokeWidth={1} />
                     </div>
                   </div>
