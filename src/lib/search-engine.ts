@@ -3,6 +3,11 @@
  * High-performance, zero-dependency fuzzy search & "Did you mean?" suggestion system.
  */
 
+import {
+  buildTrigramIndex,
+  searchFuzzySuggestions,
+} from "./fuzzy";
+
 export type SearchableSong = {
   id: number;
   title: string;
@@ -353,12 +358,63 @@ export function searchFuzzy<
   const hasExactMatches = exactSongs.length > 0 || exactArtists.length > 0;
 
   // ── 2. "DID YOU MEAN?" TYPO ENGINE ──
-  // Compute possible candidate suggestions across artists, titles, and lyrics
+  // Compute possible candidate suggestions across artists, titles, and lyrics using Trigram Index
   let bestSuggestion: DidYouMeanSuggestion | null = null;
   let highestSuggestionScore = 0;
 
+  if (cleanQuery.length >= 2) {
+    const dictItems: Array<{
+      id: string;
+      text: string;
+      type: "song" | "artist";
+      targetId: number | string;
+      url: string;
+      subtitle?: string;
+    }> = [];
+
+    for (const s of searchableSongs) {
+      dictItems.push({
+        id: `song-${s.id}`,
+        text: s.title,
+        type: "song",
+        targetId: s.id,
+        url: `/lyrics/${s.id}`,
+        subtitle: s.artist,
+      });
+    }
+
+    for (const a of searchableArtists) {
+      dictItems.push({
+        id: `artist-${a.slug}`,
+        text: a.name,
+        type: "artist",
+        targetId: a.slug,
+        url: `/artist/${a.slug}`,
+      });
+    }
+
+    const trigramIdx = buildTrigramIndex(dictItems);
+    const trigramRes = searchFuzzySuggestions(cleanQuery, trigramIdx, {
+      maxSuggestions: 5,
+      didYouMeanThreshold: 0.52,
+    });
+
+    if (trigramRes.didYouMean) {
+      bestSuggestion = {
+        originalQuery: cleanQuery,
+        suggestedText: trigramRes.didYouMean.text,
+        type: trigramRes.didYouMean.type,
+        title: trigramRes.didYouMean.text,
+        subtitle: trigramRes.didYouMean.subtitle,
+        url: trigramRes.didYouMean.url,
+        confidence: trigramRes.didYouMean.score,
+      };
+      highestSuggestionScore = trigramRes.didYouMean.score;
+    }
+  }
+
   // Only suggest if query has at least 3 characters
-  if (normQuery.length >= 3) {
+  if (!bestSuggestion && normQuery.length >= 3) {
     // Check against Artists
     for (const a of searchableArtists) {
       const aNorm = normalize(a.name);

@@ -15,6 +15,12 @@ import {
   type SearchableSong,
   type SearchableArtist,
 } from "@/lib/search-engine";
+import {
+  buildTrigramIndex,
+  searchFuzzySuggestions,
+  type FuzzySuggestion,
+  type TrigramIndex,
+} from "@/lib/fuzzy";
 
 type HeroSearchProps = {
   items: HeroItem[];
@@ -563,6 +569,106 @@ export function HeroSearch({
     }
   };
 
+  // ── Pre-computed Inverted Trigram Index for zero-latency candidate pruning ──
+  const trigramIndex = useMemo<TrigramIndex>(() => {
+    const dictionaryItems: Array<{
+      id: string;
+      text: string;
+      type: "song" | "artist";
+      targetId: number | string;
+      url: string;
+      subtitle?: string;
+    }> = [];
+
+    const seenSongTitles = new Set<string>();
+    const seenArtists = new Set<string>();
+
+    for (const s of searchableSongs) {
+      const titleLower = s.title.toLowerCase().trim();
+      if (titleLower && !seenSongTitles.has(titleLower)) {
+        seenSongTitles.add(titleLower);
+        const artistDisplay = s.featuring ? `${s.artist} ft. ${s.featuring}` : s.artist;
+        dictionaryItems.push({
+          id: `song-${s.id}`,
+          text: s.title,
+          type: "song",
+          targetId: s.id,
+          url: `/lyrics/${s.id}`,
+          subtitle: artistDisplay,
+        });
+      }
+
+      const artistLower = s.artist.toLowerCase().trim();
+      if (artistLower && !seenArtists.has(artistLower)) {
+        seenArtists.add(artistLower);
+        const slug = s.artist
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        dictionaryItems.push({
+          id: `artist-${slug}`,
+          text: s.artist,
+          type: "artist",
+          targetId: slug,
+          url: `/artist/${slug}`,
+          subtitle: "Artist",
+        });
+      }
+
+      if (s.featuring) {
+        for (const feat of s.featuring.split(/,\s*/)) {
+          const fTrim = feat.trim();
+          const fLower = fTrim.toLowerCase();
+          if (fTrim && !seenArtists.has(fLower)) {
+            seenArtists.add(fLower);
+            const slug = fTrim
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "");
+            dictionaryItems.push({
+              id: `artist-${slug}`,
+              text: fTrim,
+              type: "artist",
+              targetId: slug,
+              url: `/artist/${slug}`,
+              subtitle: "Artist",
+            });
+          }
+        }
+      }
+    }
+
+    for (const a of searchableArtists) {
+      const aLower = a.name.toLowerCase().trim();
+      if (aLower && !seenArtists.has(aLower)) {
+        seenArtists.add(aLower);
+        dictionaryItems.push({
+          id: `artist-${a.slug}`,
+          text: a.name,
+          type: "artist",
+          targetId: a.slug,
+          url: `/artist/${a.slug}`,
+          subtitle: `${a.songCount ?? 0} ${a.songCount === 1 ? "track" : "tracks"}`,
+        });
+      }
+    }
+
+    return buildTrigramIndex(dictionaryItems);
+  }, [searchableSongs, searchableArtists]);
+
+  // ── Fuzzy suggestions calculation on deferred query (never blocks main keystroke thread) ──
+  const fuzzyResults = useMemo(() => {
+    const trimmed = deferredQuery.trim();
+    if (!trimmed || trimmed.length < 2) {
+      return { suggestions: [], didYouMean: null };
+    }
+    return searchFuzzySuggestions(trimmed, trigramIndex, {
+      maxSuggestions: 6,
+      didYouMeanThreshold: 0.52,
+    });
+  }, [deferredQuery, trigramIndex]);
+
   // ── Realtime search calculation using searchFuzzy engine ──
   const searchResults = useMemo(() => {
     if (!deferredQuery.trim()) {
@@ -587,51 +693,105 @@ export function HeroSearch({
     : searchResults.fuzzyMatches.artists;
   const activeTotal = activeSongs.length + activeArtists.length;
 
-  // Flat list untuk keyboard navigation (ArrowUp, ArrowDown, Enter)
-  const flatResults = useMemo(() => {
-    const list: Array<{ id: string; url: string; title: string; type: "song" | "artist" }> = [];
-    for (const s of activeSongs) {
-      list.push({ id: `song-${s.id}`, url: `/lyrics/${s.id}`, title: s.title, type: "song" });
+  // Did-You-Mean active item
+  const activeDidYouMean =
+    activeTotal < 3 && fuzzyResults.didYouMean
+      ? fuzzyResults.didYouMean
+      : activeTotal === 0 && searchResults.suggestion
+      ? {
+          id: `dym-${searchResults.suggestion.suggestedText}`,
+          text: searchResults.suggestion.suggestedText,
+          type: (searchResults.suggestion.type === "song" ? "song" : "artist") as "song" | "artist",
+          targetId: searchResults.suggestion.suggestedText,
+          url: searchResults.suggestion.url,
+          score: searchResults.suggestion.confidence,
+          highlightSegments: [{ text: searchResults.suggestion.suggestedText, isMatch: false }],
+        }
+      : null;
+
+  // Combobox selectable list: suggestions first, then direct song & artist result cards
+  type ComboboxOption =
+    | { id: string; kind: "suggestion"; text: string; url?: string }
+    | { id: string; kind: "song"; text: string; url: string }
+    | { id: string; kind: "artist"; text: string; url: string };
+
+  const selectableOptions = useMemo<ComboboxOption[]>(() => {
+    const list: ComboboxOption[] = [];
+    for (let i = 0; i < fuzzyResults.suggestions.length; i++) {
+      const s = fuzzyResults.suggestions[i];
+      list.push({
+        id: `search-option-${i}`,
+        kind: "suggestion",
+        text: s.text,
+        url: s.url,
+      });
     }
-    for (const a of activeArtists) {
-      list.push({ id: `artist-${a.slug}`, url: `/artist/${a.slug}`, title: a.name, type: "artist" });
+    const sugCount = list.length;
+    for (let i = 0; i < activeSongs.length; i++) {
+      const s = activeSongs[i];
+      list.push({
+        id: `search-option-${sugCount + i}`,
+        kind: "song",
+        text: s.title,
+        url: `/lyrics/${s.id}`,
+      });
+    }
+    const songsCount = activeSongs.length;
+    for (let i = 0; i < activeArtists.length; i++) {
+      const a = activeArtists[i];
+      list.push({
+        id: `search-option-${sugCount + songsCount + i}`,
+        kind: "artist",
+        text: a.name,
+        url: `/artist/${a.slug}`,
+      });
     }
     return list;
-  }, [activeSongs, activeArtists]);
-
+  }, [fuzzyResults.suggestions, activeSongs, activeArtists]);
 
   const hasQuery = query.trim().length > 0;
   const showDropdown = isFocused && hasQuery;
 
   // Keyboard navigation handler untuk input
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Tab" && searchResults.suggestion) {
+    if (e.key === "Tab" && activeDidYouMean) {
       e.preventDefault();
-      applySuggestion(searchResults.suggestion.suggestedText);
+      applySuggestion(activeDidYouMean.text);
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setIsFocused(false);
+      inputRef.current?.blur();
       return;
     }
 
     if (e.key === "ArrowDown") {
-      if (flatResults.length > 0) {
+      if (selectableOptions.length > 0) {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev < flatResults.length - 1 ? prev + 1 : 0));
+        setSelectedIndex((prev) => (prev < selectableOptions.length - 1 ? prev + 1 : 0));
       }
       return;
     }
 
     if (e.key === "ArrowUp") {
-      if (flatResults.length > 0) {
+      if (selectableOptions.length > 0) {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : flatResults.length - 1));
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : selectableOptions.length - 1));
       }
       return;
     }
 
     if (e.key === "Enter") {
-      if (selectedIndex >= 0 && flatResults[selectedIndex]) {
+      if (selectedIndex >= 0 && selectableOptions[selectedIndex]) {
         e.preventDefault();
-        router.push(flatResults[selectedIndex].url);
-        setIsFocused(false);
+        const selected = selectableOptions[selectedIndex];
+        if (selected.kind === "suggestion") {
+          applySuggestion(selected.text);
+        } else {
+          router.push(selected.url);
+          setIsFocused(false);
+        }
       } else {
         e.currentTarget.form?.requestSubmit();
       }
@@ -692,12 +852,21 @@ export function HeroSearch({
               }`}
             />
 
-            {/* Input */}
+            {/* Input with WAI-ARIA Combobox pattern */}
             <input
               ref={inputRef}
               type="text"
               name="q"
+              role="combobox"
               aria-label="Search title, artist, or lyrics"
+              aria-expanded={showDropdown}
+              aria-controls="search-suggestions-list"
+              aria-autocomplete="list"
+              aria-activedescendant={
+                selectedIndex >= 0 && selectableOptions[selectedIndex]
+                  ? selectableOptions[selectedIndex].id
+                  : undefined
+              }
               defaultValue={initialQuery ?? ""}
               onFocus={() => setIsFocused(true)}
               onChange={(e) => {
@@ -790,13 +959,13 @@ export function HeroSearch({
               )}
 
               <div className="flex items-center gap-3">
-                {searchResults.suggestion && (
+                {activeDidYouMean && (
                   <span className="hidden sm:flex items-center gap-1 text-[11px] text-accent">
                     <kbd className="font-mono text-[10px] border border-accent/40 bg-accent/10 px-1 py-0.5 leading-none">Tab</kbd>
                     <span>suggest</span>
                   </span>
                 )}
-                {showDropdown && flatResults.length > 0 && (
+                {showDropdown && selectableOptions.length > 0 && (
                   <span className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
                     <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↑</kbd>
                     <kbd className="font-mono text-[10px] border border-border px-1 py-0.5 leading-none">↓</kbd>
@@ -818,34 +987,111 @@ export function HeroSearch({
         <AnimatePresence>
           {showDropdown && (
             <motion.div
+              id="search-suggestions-list"
+              role="listbox"
+              aria-label="Search suggestions"
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute left-0 right-0 top-[49px] border-x border-b border-accent bg-background max-h-[60vh] overflow-y-auto z-30 divide-y divide-border [contain:layout]"
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute left-0 right-0 top-[49px] border-x border-b border-border bg-background max-h-[60vh] overflow-y-auto z-30 divide-y divide-border [contain:layout]"
             >
-              {/* Google-style "Did you mean?" Suggestion Banner */}
-              {searchResults.suggestion && (
-                <div className="flex items-center justify-between px-5 py-3 bg-muted/60 border-b border-border">
-                  <div className="flex items-center gap-2 text-body-sm font-light flex-wrap">
-                    <span className="text-muted-foreground">Did you mean:</span>
+              {/* Did-you-mean: jika hasil == 0 (atau < 3) dan fuzzy menemukan kandidat kuat */}
+              {activeDidYouMean && (
+                <div className="flex items-center justify-between px-5 py-2.5 bg-muted/40 border-b border-border flex-wrap gap-2 text-body-sm font-light select-none">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-caption uppercase tracking-wider text-muted-foreground">
+                      Maksud Anda:
+                    </span>
                     <button
                       type="button"
-                      onClick={() => applySuggestion(searchResults.suggestion!.suggestedText)}
-                      className="font-medium text-accent hover:underline text-left cursor-pointer decoration-1 underline-offset-4"
+                      onClick={() => applySuggestion(activeDidYouMean.text)}
+                      className="font-medium text-accent hover:underline cursor-pointer transition-colors decoration-1 underline-offset-4"
                     >
-                      {searchResults.suggestion.suggestedText}
+                      {activeDidYouMean.text}
                     </button>
-                    <span className="text-caption uppercase text-muted-foreground font-mono text-[11px]">
-                      [{searchResults.suggestion.type}]
+                    <span className="text-caption uppercase text-muted-foreground font-mono text-[10px] border border-border px-1.5 py-0.5">
+                      {activeDidYouMean.type === "song" ? "SONG" : "ARTIST"}
                     </span>
                   </div>
-                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground hidden sm:inline select-none">
-                    Click or <kbd className="font-mono text-[10px] border border-border px-1 py-0.5">Tab</kbd> to apply
+                  <span className="text-[11px] uppercase tracking-wider text-muted-foreground hidden sm:inline">
+                    Klik atau <kbd className="font-mono text-[10px] border border-border px-1 py-0.5">Tab</kbd> untuk mencari
                   </span>
                 </div>
               )}
 
+              {/* Typeahead Suggestions (max 5-8 options with <mark> match highlight & uppercase caption) */}
+              {fuzzyResults.suggestions.length > 0 && (
+                <div>
+                  <div className="px-5 py-2 bg-muted/20 text-caption uppercase tracking-widest text-muted-foreground border-b border-border flex items-center justify-between select-none">
+                    <span>// Saran ({fuzzyResults.suggestions.length})</span>
+                    <span className="font-mono text-[10px] hidden sm:inline">↑↓ arahkan • ↵ pilih</span>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {fuzzyResults.suggestions.map((sug, idx) => {
+                      const isSelected = selectedIndex === idx;
+                      return (
+                        <div
+                          key={sug.id}
+                          id={`search-option-${idx}`}
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => applySuggestion(sug.text)}
+                          onMouseEnter={() => setSelectedIndex(idx)}
+                          className={`group flex items-center justify-between px-5 py-2.5 transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-muted/70 text-accent border-l-2 border-l-accent"
+                              : "hover:bg-muted/30"
+                          }`}
+                        >
+                          <div className="min-w-0 pr-4">
+                            <p
+                              className={`text-body-sm font-light transition-colors truncate ${
+                                isSelected ? "text-accent" : "text-foreground group-hover:text-accent"
+                              }`}
+                            >
+                              {sug.highlightSegments.map((seg, sIdx) =>
+                                seg.isMatch ? (
+                                  <mark
+                                    key={sIdx}
+                                    className="bg-accent text-accent-foreground font-normal"
+                                  >
+                                    {seg.text}
+                                  </mark>
+                                ) : (
+                                  <span key={sIdx}>{seg.text}</span>
+                                )
+                              )}
+                            </p>
+                            {sug.subtitle && (
+                              <p className="text-caption uppercase text-muted-foreground tracking-wide truncate">
+                                {sug.subtitle}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-caption uppercase tracking-widest text-muted-foreground font-mono text-[10px] border border-border px-1.5 py-0.5 select-none">
+                              {sug.type === "song" ? "SONG" : "ARTIST"}
+                            </span>
+                            <ArrowUpRight
+                              size={16}
+                              strokeWidth={1}
+                              className={`transition-colors ${
+                                isSelected
+                                  ? "text-accent"
+                                  : "text-muted-foreground group-hover:text-accent"
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Direct Matches (Songs & Artists) */}
               {activeTotal > 0 ? (
                 <>
                   {/* Results Header */}
@@ -863,9 +1109,9 @@ export function HeroSearch({
                         Songs.
                       </div>
                       <div className="divide-y divide-border">
-                        {activeSongs.map((song) => {
-                          const itemIndex = flatResults.findIndex((x) => x.id === `song-${song.id}`);
-                          const isSelected = itemIndex === selectedIndex;
+                        {activeSongs.map((song, songIdx) => {
+                          const optionIdx = fuzzyResults.suggestions.length + songIdx;
+                          const isSelected = optionIdx === selectedIndex;
                           const artistDisplay = song.featuring
                             ? `${song.artist} ft. ${song.featuring}`
                             : song.artist;
@@ -873,8 +1119,11 @@ export function HeroSearch({
                           return (
                             <Link
                               key={song.id}
+                              id={`search-option-${optionIdx}`}
+                              role="option"
+                              aria-selected={isSelected}
                               href={`/lyrics/${song.id}`}
-                              onMouseEnter={() => setSelectedIndex(itemIndex)}
+                              onMouseEnter={() => setSelectedIndex(optionIdx)}
                               className={`group flex items-center justify-between px-5 py-3 transition-colors ${
                                 isSelected ? "bg-muted/70 text-accent border-l-2 border-l-accent" : "hover:bg-muted/30"
                               }`}
@@ -918,15 +1167,19 @@ export function HeroSearch({
                         Artists.
                       </div>
                       <div className="divide-y divide-border">
-                        {activeArtists.map((art) => {
-                          const itemIndex = flatResults.findIndex((x) => x.id === `artist-${art.slug}`);
-                          const isSelected = itemIndex === selectedIndex;
+                        {activeArtists.map((art, artIdx) => {
+                          const optionIdx =
+                            fuzzyResults.suggestions.length + activeSongs.length + artIdx;
+                          const isSelected = optionIdx === selectedIndex;
 
                           return (
                             <Link
                               key={art.slug}
+                              id={`search-option-${optionIdx}`}
+                              role="option"
+                              aria-selected={isSelected}
                               href={`/artist/${art.slug}`}
-                              onMouseEnter={() => setSelectedIndex(itemIndex)}
+                              onMouseEnter={() => setSelectedIndex(optionIdx)}
                               className={`group flex items-center justify-between px-5 py-3 transition-colors ${
                                 isSelected ? "bg-muted/70 text-accent border-l-2 border-l-accent" : "hover:bg-muted/30"
                               }`}
@@ -959,7 +1212,7 @@ export function HeroSearch({
                   {/* Footer Row */}
                   <div className="p-3 bg-muted/10 flex items-center justify-between text-caption uppercase tracking-wider">
                     <Link
-                      href={`/songs?q=${encodeURIComponent(searchResults.suggestion ? searchResults.suggestion.suggestedText : query)}`}
+                      href={`/songs?q=${encodeURIComponent(activeDidYouMean ? activeDidYouMean.text : query)}`}
                       className="text-accent hover:underline"
                     >
                       View all in archive →
@@ -967,8 +1220,8 @@ export function HeroSearch({
                     <span className="text-muted-foreground">Press Enter</span>
                   </div>
                 </>
-              ) : (
-                /* No Results */
+              ) : fuzzyResults.suggestions.length === 0 ? (
+                /* No Results & No Suggestions */
                 <div className="p-6 text-center">
                   <p className="text-body-sm font-light text-foreground">
                     No matches found for &ldquo;{query}&rdquo;.
@@ -976,6 +1229,17 @@ export function HeroSearch({
                   <p className="mt-1 text-caption uppercase tracking-wider text-muted-foreground">
                     Try checking for spelling errors or searching by artist name
                   </p>
+                </div>
+              ) : (
+                /* Suggestions exist but 0 exact direct matches */
+                <div className="p-3 bg-muted/10 flex items-center justify-between text-caption uppercase tracking-wider">
+                  <Link
+                    href={`/songs?q=${encodeURIComponent(activeDidYouMean ? activeDidYouMean.text : query)}`}
+                    className="text-accent hover:underline"
+                  >
+                    Search in archive anyway →
+                  </Link>
+                  <span className="text-muted-foreground">Press Enter</span>
                 </div>
               )}
             </motion.div>

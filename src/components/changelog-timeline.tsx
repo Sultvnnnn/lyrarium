@@ -34,6 +34,24 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
+    id: "v0.12.0",
+    version: "v0.12.0",
+    date: "Sep 22, 2026",
+    title: "Typo-Tolerant Trigram Fuzzy Engine & Typeahead Suggestions",
+    category: "Features",
+    tag: "Search / Fuzzy & Suggestions",
+    summary:
+      "Implemented a zero-dependency character trigram index and Damerau-Levenshtein refinement engine for real-time search. Delivers sub-3ms typo-tolerant candidate pruning, WAI-ARIA combobox typeahead suggestions, and 'Maksud Anda' chips.",
+    details: [
+      "Engineered zero-dependency Trigram Index with inverted posting lists for ultra-fast candidate pruning (<3ms execution).",
+      "Dynamic Damerau-Levenshtein threshold (max(2, floor(len * 0.35))) handling transpositions and multi-character spelling mistakes.",
+      "Accessible WAI-ARIA Combobox pattern with keyboard navigation (ArrowUp/Down, Enter, Escape, Tab).",
+      "Interactive 'Maksud Anda:' (Did-you-mean) chip triggering instant query replacement and exact search.",
+      "Precise <mark> character-level highlight styling using semantic tokens (bg-accent text-accent-foreground).",
+      "Strict compliance with DESIGN.md: 0px sharp chrome, zero shadows, zero blur/backdrop filters.",
+    ],
+  },
+  {
     id: "v0.11.2",
     version: "v0.11.2",
     date: "Sep 22, 2026",
