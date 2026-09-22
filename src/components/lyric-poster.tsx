@@ -255,20 +255,21 @@ export function LyricPoster({
           aria-label="Previous lyric"
           className="text-muted-foreground/60 hover:text-accent transition-colors p-1"
         >
-          <ChevronLeft size={14} strokeWidth={1} />
+          <ChevronLeft size={16} strokeWidth={1} />
         </button>
 
         {/* 1px Hairline Progress Bar */}
         <div className="relative h-[1px] flex-1 bg-border/40 overflow-hidden">
           <motion.div
             key={progressKey}
-            initial={{ width: "0%" }}
-            animate={{ width: isPaused || !isVisible ? undefined : "100%" }}
+            style={{ transformOrigin: "left" }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: isPaused || !isVisible ? undefined : 1 }}
             transition={{
               duration: DURATION_MS / 1000,
               ease: "linear",
             }}
-            className="absolute top-0 left-0 h-full bg-accent"
+            className="absolute top-0 left-0 h-full w-full bg-accent"
           />
         </div>
 
@@ -278,7 +279,7 @@ export function LyricPoster({
           aria-label="Next lyric"
           className="text-muted-foreground/60 hover:text-accent transition-colors p-1"
         >
-          <ChevronRight size={14} strokeWidth={1} />
+          <ChevronRight size={16} strokeWidth={1} />
         </button>
       </div>
     </div>
