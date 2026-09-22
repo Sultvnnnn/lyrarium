@@ -99,11 +99,24 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
         return (
           <div
             key={song.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`${song.title} — ${artistDisplay}`}
             onClick={() => {
               if (isActive) {
                 router.push(lyricsUrl);
               } else {
                 activateCard(i);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (isActive) {
+                  router.push(lyricsUrl);
+                } else {
+                  activateCard(i);
+                }
               }
             }}
             onMouseEnter={() => activateCard(i)}
@@ -139,12 +152,12 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
                 </div>
               )}
 
-              {/* Scrim Overlay untuk kontras teks */}
+              {/* Semantic Overlay untuk kontras teks */}
               <div
                 className={`absolute inset-0 transition-opacity duration-500 ease-out ${
                   isActive
-                    ? "bg-gradient-to-t from-black/90 via-black/40 to-black/20"
-                    : "bg-black/60 group-hover:bg-black/40"
+                    ? "bg-background/80"
+                    : "bg-background/60 group-hover:bg-background/40"
                 }`}
               />
             </div>
@@ -159,11 +172,11 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
             >
               {/* Top: Nomor Indeks & Album */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                <span className="text-caption font-mono uppercase text-muted-foreground tracking-widest select-none">
                   [{indexNum}]
                 </span>
                 {song.album && (
-                  <span className="text-caption uppercase text-bone-white/70 tracking-widest truncate max-w-[55%] select-none">
+                  <span className="text-caption uppercase text-muted-foreground tracking-widest truncate max-w-[55%] select-none">
                     {song.album}
                   </span>
                 )}
@@ -175,7 +188,7 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
                   <p className="text-caption uppercase text-accent tracking-widest font-medium">
                     {artistDisplay}
                   </p>
-                  <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em]">
+                  <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-foreground tracking-[-0.02em]">
                     {song.title}
                   </h3>
                 </div>
@@ -183,10 +196,10 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
                 <Link
                   href={lyricsUrl}
                   aria-label={`Open lyrics for ${song.title}`}
-                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground transition-colors hover:bg-accent/90"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ArrowUpRight size={16} strokeWidth={1.5} />
+                  <ArrowUpRight size={16} strokeWidth={1} />
                 </Link>
               </div>
             </div>
@@ -199,11 +212,11 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+              <span className="text-caption font-mono uppercase text-muted-foreground tracking-widest select-none">
                 {indexNum}
               </span>
 
-              <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+              <span className="text-caption uppercase tracking-widest text-foreground [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
                 {song.title} — {artistDisplay}
               </span>
             </div>
@@ -220,11 +233,11 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
                 <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
                   {indexNum}
                 </span>
-                <span className="text-caption uppercase tracking-wide text-bone-white truncate">
+                <span className="text-caption uppercase tracking-wide text-foreground truncate">
                   {song.title}
                 </span>
               </div>
-              <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
+              <span className="text-caption uppercase text-muted-foreground truncate shrink-0 ml-2">
                 {artistDisplay}
               </span>
             </div>
@@ -235,11 +248,24 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
       {/* ── CARD KHUSUS: VIEW ALL SONGS (HANYA JIKA hasExploreCard == true) ── */}
       {hasExploreCard && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Explore all songs"
           onClick={() => {
             if (activeIndex === viewAllIndex) {
               router.push("/songs");
             } else {
               activateCard(viewAllIndex);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (activeIndex === viewAllIndex) {
+                router.push("/songs");
+              } else {
+                activateCard(viewAllIndex);
+              }
             }
           }}
           onMouseEnter={() => activateCard(viewAllIndex)}
@@ -249,8 +275,8 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
               : "md:flex-1 md:min-w-[60px] h-14 md:h-full border-border hover:border-accent/60 z-0"
           }`}
         >
-          {/* Background Texture Minimalis */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-muted/50 to-muted/80 pointer-events-none" />
+          {/* Background Flat Texture */}
+          <div className="absolute inset-0 bg-muted/40 pointer-events-none" />
 
           {/* === ACTIVE / EXPANDED VIEW === */}
           <div
@@ -278,7 +304,7 @@ const SingleAccordionRow = React.memo(function SingleAccordionRow({
             <div className="flex items-end justify-end pt-4 border-t border-border">
               <Link
                 href="/songs"
-                className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                className="inline-flex items-center gap-2 border border-accent bg-accent px-4 py-2.5 text-caption uppercase tracking-widest text-accent-foreground transition-colors hover:bg-accent/90"
                 onClick={(e) => e.stopPropagation()}
               >
                 <span>Browse</span>

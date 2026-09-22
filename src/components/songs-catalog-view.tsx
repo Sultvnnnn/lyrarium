@@ -304,11 +304,24 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
         return (
           <div
             key={song.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`${song.title} — ${artistDisplay}`}
             onClick={() => {
               if (isActive) {
                 router.push(`/lyrics/${song.id}?from=songs`);
               } else {
                 activateCard(i);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (isActive) {
+                  router.push(`/lyrics/${song.id}?from=songs`);
+                } else {
+                  activateCard(i);
+                }
               }
             }}
             onMouseEnter={() => activateCard(i)}
@@ -342,12 +355,12 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                 </div>
               )}
 
-              {/* Scrim Overlay untuk kontras teks */}
+              {/* Semantic Overlay untuk kontras teks */}
               <div
                 className={`absolute inset-0 transition-opacity duration-500 ease-out ${
                   isActive
-                    ? "bg-gradient-to-t from-black/90 via-black/40 to-black/20"
-                    : "bg-black/60 group-hover:bg-black/40"
+                    ? "bg-background/80"
+                    : "bg-background/60 group-hover:bg-background/40"
                 }`}
               />
             </div>
@@ -362,14 +375,14 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
             >
               {/* Top: Nomor Indeks & Album */}
               <div className="flex items-center justify-between gap-2">
-                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+                <span className="text-caption font-mono uppercase text-muted-foreground tracking-widest select-none">
                   [{indexNum}]
                 </span>
                 {song.album && (
                   <Link
                     href={`/artist/${song.artist.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}?album=${encodeURIComponent(song.album)}#discography`}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-caption uppercase text-bone-white/70 hover:text-accent tracking-widest truncate max-w-[55%] transition-colors hover:underline underline-offset-2"
+                    className="text-caption uppercase text-muted-foreground hover:text-accent tracking-widest truncate max-w-[55%] transition-colors hover:underline underline-offset-2"
                   >
                     {song.album}
                   </Link>
@@ -382,7 +395,7 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                   <p className="text-caption uppercase text-accent tracking-widest font-medium line-clamp-1">
                     {artistDisplay}
                   </p>
-                  <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em] line-clamp-2">
+                  <h3 className="mt-1 text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-foreground tracking-[-0.02em] line-clamp-2">
                     {song.title}
                   </h3>
                 </div>
@@ -390,10 +403,10 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                 <Link
                   href={`/lyrics/${song.id}?from=songs`}
                   aria-label={`Open lyrics for ${song.title}`}
-                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground hover:scale-105 active:scale-95 transition-transform"
+                  className="flex size-10 md:size-11 shrink-0 items-center justify-center border border-accent bg-accent text-accent-foreground transition-colors hover:bg-accent/90"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ArrowUpRight size={16} strokeWidth={1.5} />
+                  <ArrowUpRight size={16} strokeWidth={1} />
                 </Link>
               </div>
             </div>
@@ -406,11 +419,11 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
+              <span className="text-caption font-mono uppercase text-muted-foreground tracking-widest select-none">
                 {indexNum}
               </span>
 
-              <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+              <span className="text-caption uppercase tracking-widest text-foreground [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
                 {song.title} — {artistDisplay}
               </span>
             </div>
@@ -427,11 +440,11 @@ const SongAccordionRow = React.memo(function SongAccordionRow({
                 <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
                   {indexNum}
                 </span>
-                <span className="text-caption uppercase tracking-wide text-bone-white truncate">
+                <span className="text-caption uppercase tracking-wide text-foreground truncate">
                   {song.title}
                 </span>
               </div>
-              <span className="text-caption uppercase text-bone-white/60 truncate shrink-0 ml-2">
+              <span className="text-caption uppercase text-muted-foreground truncate shrink-0 ml-2">
                 {artistDisplay}
               </span>
             </div>
