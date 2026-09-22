@@ -123,10 +123,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                     fetchPriority={i === 0 ? "high" : "auto"}
                     width={500}
                     height={500}
-                    className={`size-full object-cover transition-opacity duration-500 ease-out ${
+                    className={`size-full object-cover transition-all duration-500 ease-out ${
                       isActive
-                        ? "opacity-95"
-                        : "opacity-40 grayscale group-hover:opacity-60"
+                        ? "opacity-100 grayscale-0"
+                        : "opacity-40 grayscale group-hover:opacity-100 group-hover:grayscale-0"
                     }`}
                   />
                 ) : (
@@ -137,12 +137,12 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                   </div>
                 )}
 
-                {/* Semantic Overlay untuk kontras teks */}
+                {/* Scrim Overlay untuk kontras teks — transparan di atas agar gambar terang, halus di bawah agar teks terbaca */}
                 <div
                   className={`absolute inset-0 transition-opacity duration-500 ease-out ${
                     isActive
-                      ? "bg-background/80"
-                      : "bg-background/60 group-hover:bg-background/40"
+                      ? "bg-gradient-to-t from-black/85 via-black/30 to-transparent"
+                      : "bg-black/50 group-hover:bg-black/15"
                   }`}
                 />
               </div>
@@ -157,10 +157,10 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
               >
                 {/* Top: Nomor Indeks & Track Count */}
                 <div className="flex items-center justify-between">
-                  <span className="text-caption font-mono uppercase text-muted-foreground tracking-widest select-none">
+                  <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
                     [{indexNum}]
                   </span>
-                  <span className="text-caption uppercase text-muted-foreground tracking-widest select-none">
+                  <span className="text-caption uppercase text-bone-white/70 tracking-widest select-none">
                     {artist.songCount} {artist.songCount === 1 ? "Track" : "Tracks"}
                   </span>
                 </div>
@@ -168,7 +168,7 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                 {/* Bottom: Nama Artis & Link Arrow */}
                 <div className="flex items-end justify-between gap-4">
                   <div className="max-w-md min-w-0">
-                    <h3 className="text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-foreground tracking-[-0.02em] truncate">
+                    <h3 className="text-heading-sm md:text-heading font-light leading-heading-sm md:leading-heading text-bone-white tracking-[-0.02em] truncate">
                       {artist.name}
                     </h3>
                   </div>
@@ -192,11 +192,11 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                     : "opacity-0 pointer-events-none"
                 }`}
               >
-                <span className="text-caption font-mono uppercase text-muted-foreground tracking-widest select-none">
+                <span className="text-caption font-mono uppercase text-bone-white/80 tracking-widest select-none">
                   {indexNum}
                 </span>
 
-                <span className="text-caption uppercase tracking-widest text-foreground [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
+                <span className="text-caption uppercase tracking-widest text-bone-white/90 [writing-mode:vertical-rl] rotate-180 select-none whitespace-nowrap group-hover:text-accent transition-colors">
                   {artist.name}
                 </span>
               </div>
@@ -213,11 +213,11 @@ export function ArtistAccordion({ artists }: ArtistAccordionProps) {
                   <span className="text-caption font-mono uppercase text-accent tracking-widest font-medium shrink-0">
                     {indexNum}
                   </span>
-                  <span className="text-caption uppercase tracking-wide text-foreground truncate">
+                  <span className="text-caption uppercase tracking-wide text-bone-white truncate">
                     {artist.name}
                   </span>
                 </div>
-                <span className="text-caption uppercase text-muted-foreground truncate shrink-0 ml-2">
+                <span className="text-caption uppercase text-bone-white/70 truncate shrink-0 ml-2">
                   {artist.songCount} {artist.songCount === 1 ? "track" : "tracks"}
                 </span>
               </div>
