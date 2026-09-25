@@ -12,6 +12,7 @@ import { YouTubeCarousel } from "@/components/youtube-carousel";
 import { parseYouTubeVideos } from "@/lib/youtube";
 import { ArrowDown, ArrowRight, ChevronLeft, ChevronRight, Pencil, Minus } from "lucide-react";
 import { parseCredits } from "@/lib/credits";
+import { AskLyra } from "@/components/ask-lyra";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -419,8 +420,18 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           </aside>
         </div>
       </section>
+ 
+      {/* 3 — Lyra Interpretation (Ask Lyra) */}
+      <section className="border-t border-border px-8 py-16">
+        <AskLyra
+          songId={song.id}
+          songTitle={song.title}
+          artist={song.artist}
+          lyricsExcerpt={song.lyrics.slice(0, 300)}
+        />
+      </section>
 
-      {/* 3 — Editorial prev/next nav (hanya lagu terkait artis ini) */}
+      {/* 4 — Editorial prev/next nav (hanya lagu terkait artis ini) */}
       <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
         {prev ? (
           <Link

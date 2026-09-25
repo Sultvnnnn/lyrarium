@@ -34,6 +34,23 @@ const CATEGORIES: MilestoneCategory[] = [
 
 const MILESTONES: Milestone[] = [
   {
+    id: "v0.13.0",
+    version: "v0.13.0",
+    date: "Sep 25, 2026",
+    title: "Ask Lyra — Editorial AI Lyric Interpretation & Database Cache",
+    category: "Features",
+    tag: "AI / Editorial Interpretation",
+    summary:
+      "Launched 'Ask Lyra' — an editorial AI lyrical interpretation engine. Integrates zero-dependency OpenAI-compatible SSE streaming, permanent Supabase Postgres caching (lyra_insights), in-memory IP rate limiting, and an art-book editorial answer block.",
+    details: [
+      "Zero-dependency SSE streaming adapter with strict 30-second AbortController timeout and 6000-character payload slicing.",
+      "Permanent database caching via 'lyra_insights' table to guarantee interpretations are generated at most once per song.",
+      "In-memory rate limiter on route handler /api/lyra (5 requests/minute per client IP).",
+      "Editorial, non-chatbot UI aesthetic with 0px sharp button, blinking hairline cursor, and accent border quote block.",
+      "Seamless integration below the song lyric grid with automatic state transition from streaming to archived meta.",
+    ],
+  },
+  {
     id: "v0.12.1",
     version: "v0.12.1",
     date: "Sep 22, 2026",
