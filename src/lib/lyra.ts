@@ -54,11 +54,18 @@ export async function* streamLyra(
     throw new Error("LYRA_API_KEY belum dikonfigurasi di environment server.");
   }
 
-  // Timeout 30 detik via AbortController
+  // Timeout 30 detik via AbortController (dengan reset pada tiap chunk aktif)
   const timeoutController = new AbortController();
-  const timeoutId = setTimeout(() => {
+  let timeoutId = setTimeout(() => {
     timeoutController.abort(new Error("Permintaan ke Lyra timeout setelah 30 detik."));
   }, 30000);
+
+  const resetTimeout = () => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      timeoutController.abort(new Error("Permintaan ke Lyra timeout setelah 30 detik tanpa data."));
+    }, 30000);
+  };
 
   // Hubungkan sinyal pembatalan dari caller (misal client disconnect)
   const onCallerAbort = () => {
@@ -74,31 +81,55 @@ export async function* streamLyra(
   }
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-        temperature: 0.6,
-        max_tokens: 1200,
-      }),
-      signal: timeoutController.signal,
-    });
+    let response: Response | null = null;
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      let errorDetail = "";
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const errorJson = await response.json();
-        errorDetail = errorJson?.error?.message || JSON.stringify(errorJson);
-      } catch {
-        errorDetail = await response.text().catch(() => response.statusText);
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            stream: true,
+          }),
+          signal: timeoutController.signal,
+        });
+
+        if ((res.status === 503 || res.status === 502) && attempt === 0) {
+          await new Promise((r) => setTimeout(r, 1200));
+          continue;
+        }
+
+        if (!res.ok) {
+          let errorDetail = "";
+          try {
+            const errorJson = await res.json();
+            errorDetail = errorJson?.error?.message || JSON.stringify(errorJson);
+          } catch {
+            errorDetail = await res.text().catch(() => res.statusText);
+          }
+          throw new Error(`Provider API error (${res.status}): ${errorDetail}`);
+        }
+
+        response = res;
+        break;
+      } catch (fetchErr: any) {
+        lastError = fetchErr;
+        if (attempt === 0 && (fetchErr?.message?.includes("503") || fetchErr?.message?.includes("502"))) {
+          await new Promise((r) => setTimeout(r, 1200));
+          continue;
+        }
+        throw fetchErr;
       }
-      throw new Error(`Provider API error (${response.status}): ${errorDetail}`);
+    }
+
+    if (!response) {
+      throw lastError || new Error("Provider tidak merespons.");
     }
 
     if (!response.body) {
@@ -112,6 +143,7 @@ export async function* streamLyra(
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      resetTimeout();
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
