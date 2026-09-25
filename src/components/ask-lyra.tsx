@@ -396,8 +396,8 @@ export function AskLyra({
             <div className="space-y-3.5">
               <p className="text-body-sm font-light text-muted-foreground">
                 {lang === "en"
-                  ? "Editorial reading of lyrical themes and subtext."
-                  : "Pembacaan editorial atas tema dan subteks lirik."}
+                  ? "What does this song truly mean? Explore the story and emotion behind the lyrics."
+                  : "Apa sebenarnya makna di balik lagu ini? Telusuri cerita dan emosi di balik liriknya."}
               </p>
               <button
                 type="button"
