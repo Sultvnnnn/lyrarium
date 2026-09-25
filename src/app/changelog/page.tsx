@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function ChangelogPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+    <main className="min-h-screen bg-background text-foreground flex flex-col justify-between overflow-x-clip">
       <div>
         <SiteHeader />
 
