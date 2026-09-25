@@ -35,7 +35,7 @@ export const MILESTONES: Milestone[] = [
     category: "Features",
     tag: "AI / Interpretation",
     summary:
-      "Launched 'Ask Lyra' — an editorial AI lyrical interpretation engine with OpenAI-compatible SSE streaming, bilingual Supabase database caching, interactive reveal flow, and kinetic language switching.",
+      "Launched 'Ask Lyra' — an editorial AI lyrical interpretation engine with real-time SSE streaming, bilingual Supabase database caching, interactive reveal flow, and kinetic language switching.",
     details: [
       "Zero-dependency SSE streaming adapter with permanent bilingual Postgres caching (lyra_insights).",
       "Interactive button-first reveal with 0-token simulated typewriter playback for cached entries.",
