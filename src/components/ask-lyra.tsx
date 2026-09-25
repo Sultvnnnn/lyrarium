@@ -57,6 +57,26 @@ const THINKING_PHRASES: Record<"en" | "id", string[]> = {
   ],
 };
 
+const SIMULATED_THINKING_MS = 3800;
+
+function delayWithSignal(ms: number, signal: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve(false);
+      return;
+    }
+    const timeout = setTimeout(() => resolve(true), ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeout);
+        resolve(false);
+      },
+      { once: true }
+    );
+  });
+}
+
 export function AskLyra({
   songId,
   songTitle,
@@ -181,9 +201,23 @@ export function AskLyra({
     const controller = new AbortController();
     abortControllersRef.current[targetLang] = controller;
 
-    // A. Jika sudah ada di cache lokal (dari server hydration atau fetch sebelumnya), stream langsung tanpa buang token!
+    // A. Jika sudah ada di cache lokal (dari server hydration atau fetch sebelumnya):
+    // Tampilkan simulasi pemikiran terlebih dahulu (~3.8 detik) agar terasa hidup & puitis
     const existingCache = cachedInsightsRef.current[targetLang];
     if (existingCache?.content) {
+      setLangStates((prev) => ({
+        ...prev,
+        [targetLang]: {
+          status: "loading",
+          content: "",
+          meta: null,
+          errorMessage: null,
+        },
+      }));
+
+      const completed = await delayWithSignal(SIMULATED_THINKING_MS, controller.signal);
+      if (!completed || controller.signal.aborted) return;
+
       await streamCachedContent(
         targetLang,
         cleanEmDashes(existingCache.content),
@@ -195,7 +229,7 @@ export function AskLyra({
       return;
     }
 
-    // B. Jika belum ada di cache, panggil /api/lyra (live streaming dari AI provider)
+    // B. Jika belum ada di cache lokal, panggil /api/lyra (live streaming dari AI provider atau DB cache)
     setLangStates((prev) => ({
       ...prev,
       [targetLang]: {
@@ -205,6 +239,8 @@ export function AskLyra({
         errorMessage: null,
       },
     }));
+
+    const startTime = Date.now();
 
     try {
       const res = await fetch("/api/lyra", {
@@ -236,6 +272,14 @@ export function AskLyra({
             content: data.content,
             createdAt: data.createdAt,
           };
+
+          // Jika database merespons sangat cepat (< 3.8s), penuhi jeda berpikir agar ada rasa pemikiran alami
+          const elapsed = Date.now() - startTime;
+          const remainingThinking = Math.max(0, SIMULATED_THINKING_MS - elapsed);
+          if (remainingThinking > 0) {
+            const completed = await delayWithSignal(remainingThinking, controller.signal);
+            if (!completed || controller.signal.aborted) return;
+          }
 
           await streamCachedContent(
             targetLang,
