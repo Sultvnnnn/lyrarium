@@ -17,45 +17,45 @@ interface LyraMeta {
   model?: string | null;
 }
 
-function formatArchiveDate(dateInput?: string | Date | null): string {
-  if (!dateInput) return "Hari ini";
-  try {
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return "Hari ini";
-    return d.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return "Hari ini";
-  }
+interface LangState {
+  status: LyraStatus;
+  content: string;
+  meta: LyraMeta | null;
+  errorMessage: string | null;
+}
+
+function cleanEmDashes(text: string): string {
+  if (!text) return "";
+  return text.replace(/[\u2014\u2015]/g, " - ").replace(/\u2013/g, "-");
 }
 
 export function AskLyra({
   songId,
   songTitle,
   artist,
-  lyricsExcerpt,
 }: AskLyraProps) {
-  const [status, setStatus] = useState<LyraStatus>("idle");
-  const [content, setContent] = useState<string>("");
-  const [meta, setMeta] = useState<LyraMeta | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lang, setLang] = useState<"id" | "en">("id");
+
+  const [langStates, setLangStates] = useState<Record<"id" | "en", LangState>>({
+    id: { status: "idle", content: "", meta: null, errorMessage: null },
+    en: { status: "idle", content: "", meta: null, errorMessage: null },
+  });
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
-      // Abort stream if user navigates away
+      // Abort active stream if component unmounts
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
   }, []);
 
-  const handleAskLyra = async () => {
-    // Batalkan request sebelumnya bila ada
+  const current = langStates[lang];
+
+  const handleAskLyra = async (targetLang: "id" | "en" = lang) => {
+    // Batalkan stream sebelumnya jika sedang berlangsung
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -63,9 +63,15 @@ export function AskLyra({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    setStatus("loading");
-    setErrorMessage(null);
-    setContent("");
+    setLangStates((prev) => ({
+      ...prev,
+      [targetLang]: {
+        status: "loading",
+        content: "",
+        meta: null,
+        errorMessage: null,
+      },
+    }));
 
     try {
       const res = await fetch("/api/lyra", {
@@ -73,27 +79,38 @@ export function AskLyra({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ songId }),
+        body: JSON.stringify({ songId, lang: targetLang }),
         signal: controller.signal,
       });
 
       const contentType = res.headers.get("content-type") || "";
 
-      // 1. Tangani respons JSON (cache hit atau pesan error)
+      // 1. Tangani respons JSON (cache hit dari database atau error)
       if (contentType.includes("application/json")) {
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data?.error || "Gagal mendapatkan interpretasi dari Lyra.");
+          throw new Error(
+            data?.error ||
+              (targetLang === "en"
+                ? "Failed to retrieve interpretation from Lyra."
+                : "Gagal mendapatkan interpretasi dari Lyra.")
+          );
         }
 
         if (data.cached) {
-          setContent(data.content);
-          setMeta({
-            createdAt: data.createdAt,
-            model: data.model,
-          });
-          setStatus("cached");
+          setLangStates((prev) => ({
+            ...prev,
+            [targetLang]: {
+              status: "cached",
+              content: cleanEmDashes(data.content),
+              meta: {
+                createdAt: data.createdAt,
+                model: data.model,
+              },
+              errorMessage: null,
+            },
+          }));
           return;
         }
       }
@@ -106,15 +123,31 @@ export function AskLyra({
         } catch {
           errText = res.statusText;
         }
-        throw new Error(errText || "Terjadi kesalahan pada server Lyra.");
+        throw new Error(
+          errText ||
+            (targetLang === "en"
+              ? "An error occurred with Lyra server."
+              : "Terjadi kesalahan pada server Lyra.")
+        );
       }
 
-      // 3. Tangani live stream delta
+      // 3. Tangani live stream reader
       if (!res.body) {
-        throw new Error("Tidak ada stream body dari server.");
+        throw new Error(
+          targetLang === "en"
+            ? "No stream body received from server."
+            : "Tidak ada stream body dari server."
+        );
       }
 
-      setStatus("streaming");
+      setLangStates((prev) => ({
+        ...prev,
+        [targetLang]: {
+          ...prev[targetLang],
+          status: "streaming",
+        },
+      }));
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
@@ -123,46 +156,109 @@ export function AskLyra({
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        setContent(accumulated);
+        const rawChunk = decoder.decode(value, { stream: true });
+        const sanitizedChunk = cleanEmDashes(rawChunk);
+        accumulated += sanitizedChunk;
+
+        setLangStates((prev) => ({
+          ...prev,
+          [targetLang]: {
+            ...prev[targetLang],
+            content: accumulated,
+          },
+        }));
       }
 
-      setStatus("cached");
-      setMeta({
-        createdAt: new Date().toISOString(),
-        model: "gpt-4o-mini",
-      });
+      setLangStates((prev) => ({
+        ...prev,
+        [targetLang]: {
+          status: "cached",
+          content: accumulated,
+          meta: {
+            createdAt: new Date().toISOString(),
+            model: "deepseek-v4.1-flash",
+          },
+          errorMessage: null,
+        },
+      }));
     } catch (err: any) {
       if (err.name === "AbortError") {
-        return; // Client intentional abort
+        return;
       }
       console.error("AskLyra Request Error:", err);
-      setErrorMessage(
-        err?.message || "Tidak dapat terhubung ke arsiparis Lyra saat ini."
-      );
-      setStatus("error");
+      setLangStates((prev) => ({
+        ...prev,
+        [targetLang]: {
+          ...prev[targetLang],
+          status: "error",
+          errorMessage:
+            err?.message ||
+            (targetLang === "en"
+              ? "Unable to connect to Lyra at this moment."
+              : "Tidak dapat terhubung ke arsiparis Lyra saat ini."),
+        },
+      }));
+    }
+  };
+
+  const handleLanguageSwitch = (newLang: "id" | "en") => {
+    if (newLang === lang) return;
+    setLang(newLang);
+
+    // Jika bahasa tujuan belum pernah dipanggil, cek apakah sudah ada cache di server
+    if (langStates[newLang].status === "idle") {
+      handleAskLyra(newLang);
     }
   };
 
   return (
     <div className="w-full max-w-4xl">
-      {/* Eyebrow Label & Title */}
-      <div className="mb-6">
+      {/* Header bar: Eyebrow + Language Toggle */}
+      <div className="mb-6 flex items-center justify-between gap-4 select-none">
         <p className="text-caption uppercase tracking-widest text-muted-foreground">
-          Lyra — Interpretasi
+          Lyra — {lang === "en" ? "Interpretation" : "Interpretasi"}
         </p>
+
+        {/* Language Toggle: ID | EN */}
+        <div className="flex items-center border border-border divide-x divide-border">
+          <button
+            type="button"
+            onClick={() => handleLanguageSwitch("id")}
+            aria-label="Bahasa Indonesia"
+            className={`px-2.5 py-1 text-caption uppercase font-mono tracking-wider transition-colors cursor-pointer ${
+              lang === "id"
+                ? "bg-foreground text-background font-normal"
+                : "text-muted-foreground hover:text-accent hover:bg-muted/40"
+            }`}
+          >
+            ID
+          </button>
+          <button
+            type="button"
+            onClick={() => handleLanguageSwitch("en")}
+            aria-label="English"
+            className={`px-2.5 py-1 text-caption uppercase font-mono tracking-wider transition-colors cursor-pointer ${
+              lang === "en"
+                ? "bg-foreground text-background font-normal"
+                : "text-muted-foreground hover:text-accent hover:bg-muted/40"
+            }`}
+          >
+            EN
+          </button>
+        </div>
       </div>
 
-      {/* State Idle: Tombol Square Tanya Lyra */}
-      {status === "idle" && (
+      {/* State Idle: Tombol Square Tanya Lyra / Ask Lyra */}
+      {current.status === "idle" && (
         <div className="space-y-4">
           <p className="text-body-sm font-light text-muted-foreground max-w-xl">
-            Minta telaah editorial mengenai lapisan puitis, konteks emosional, dan resonansi lirik &ldquo;{songTitle}&rdquo; oleh {artist}.
+            {lang === "en"
+              ? `Request an editorial analysis exploring the poetic layers, emotional resonance, and lyrical themes of "${songTitle}" by ${artist}.`
+              : `Minta telaah editorial mengenai lapisan puitis, konteks emosional, dan resonansi lirik "${songTitle}" oleh ${artist}.`}
           </p>
           <button
             type="button"
-            onClick={handleAskLyra}
+            onClick={() => handleAskLyra(lang)}
             className="group inline-flex items-center gap-2.5 border border-border bg-background px-5 py-3 text-caption uppercase tracking-wider text-foreground transition-colors duration-200 hover:border-accent hover:text-accent cursor-pointer rounded-none select-none"
           >
             <Feather
@@ -170,16 +266,20 @@ export function AskLyra({
               strokeWidth={1}
               className="text-muted-foreground transition-colors group-hover:text-accent"
             />
-            <span>Tanya Lyra</span>
+            <span>{lang === "en" ? "Ask Lyra" : "Tanya Lyra"}</span>
           </button>
         </div>
       )}
 
       {/* State Loading: Membaca lirik + hairline cursor berkedip */}
-      {status === "loading" && (
+      {current.status === "loading" && (
         <div className="border-l border-accent pl-8 py-2">
           <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-muted-foreground">
-            <span>Lyra sedang membaca lirik…</span>
+            <span>
+              {lang === "en"
+                ? "Lyra is reading the lyrics…"
+                : "Lyra sedang membaca lirik…"}
+            </span>
             <span
               className="inline-block w-px h-3.5 bg-accent animate-pulse will-change-[opacity]"
               aria-hidden="true"
@@ -188,11 +288,11 @@ export function AskLyra({
         </div>
       )}
 
-      {/* State Streaming: Teks muncul bertahap + kursor */}
-      {status === "streaming" && (
+      {/* State Streaming: Teks muncul bertahap + kursor (em-dash sanitized) */}
+      {current.status === "streaming" && (
         <div className="border-l border-accent pl-8">
           <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
-            {content}
+            {cleanEmDashes(current.content)}
             <span
               className="inline-block w-px h-[1.1em] bg-accent ml-1 align-baseline animate-pulse will-change-[opacity]"
               aria-hidden="true"
@@ -200,39 +300,44 @@ export function AskLyra({
           </div>
           <div className="mt-6 border-t border-border pt-3">
             <span className="text-caption uppercase tracking-wider text-muted-foreground">
-              Lyra sedang mentranskripsi telaah…
+              {lang === "en"
+                ? "Lyra is transcribing the interpretation…"
+                : "Lyra sedang mentranskripsi telaah…"}
             </span>
           </div>
         </div>
       )}
 
-      {/* State Cached / Completed: Jawaban utuh + Meta Arsip */}
-      {status === "cached" && (
+      {/* State Cached / Completed: Jawaban utuh + AI Disclaimer Bahasa Inggris */}
+      {current.status === "cached" && (
         <div className="border-l border-accent pl-8">
           <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
-            {content}
+            {cleanEmDashes(current.content)}
           </div>
           <div className="mt-6 border-t border-border pt-4 flex flex-wrap items-center justify-between gap-3 text-caption uppercase text-muted-foreground select-none">
             <span>
-              Diarsipkan oleh Lyra — {formatArchiveDate(meta?.createdAt)} · model {meta?.model || "editorial"}
+              Lyra is an AI and can make mistakes. Lyric interpretations are subjective.
             </span>
-            <span className="font-mono text-[11px] text-muted-foreground/60">
-              Lyrarium Archive // Lyra
+            <span className="font-mono text-[10px] text-muted-foreground/60">
+              {current.meta?.model || "deepseek-v4.1-flash"}
             </span>
           </div>
         </div>
       )}
 
       {/* State Error: Pesan error aksen + tombol Coba lagi */}
-      {status === "error" && (
+      {current.status === "error" && (
         <div className="border-l border-accent pl-8 space-y-4">
           <p className="text-caption uppercase tracking-wide text-accent">
-            {errorMessage || "Gagal mendapatkan interpretasi dari Lyra."}
+            {current.errorMessage ||
+              (lang === "en"
+                ? "Failed to obtain interpretation from Lyra."
+                : "Gagal mendapatkan interpretasi dari Lyra.")}
           </p>
           <div>
             <button
               type="button"
-              onClick={handleAskLyra}
+              onClick={() => handleAskLyra(lang)}
               className="group inline-flex items-center gap-2 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-wider text-foreground hover:border-accent hover:text-accent transition-colors duration-200 cursor-pointer rounded-none select-none"
             >
               <RotateCw
@@ -240,7 +345,7 @@ export function AskLyra({
                 strokeWidth={1}
                 className="text-muted-foreground transition-colors group-hover:text-accent"
               />
-              <span>Coba lagi</span>
+              <span>{lang === "en" ? "Try again" : "Coba lagi"}</span>
             </button>
           </div>
         </div>

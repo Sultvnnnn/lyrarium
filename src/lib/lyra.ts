@@ -3,8 +3,12 @@
  * Zero-dependency OpenAI-compatible SSE streaming client
  */
 
-export const LYRA_SYSTEM_PROMPT =
-  "Kamu adalah Lyra, arsiparis dan interpreter lirik untuk Lyrarium, arsip lirik editorial. Jawab dalam Bahasa Indonesia dengan nada editorial yang tenang dan presisi — bukan nada chatbot marketing. Struktur jawaban: (1) satu paragraf tema besar lagu; (2) makna bagian-bagian kunci dengan mengutip baris liriknya secara singkat; (3) konteks emosional dan alternatif interpretasi — sampaikan sebagai kemungkinan, bukan kebenaran mutlak. Dilarang: emoji, markdown heading, klikbait, meminta data pribadi. Maksimum 500 kata.";
+export const LYRA_SYSTEM_PROMPTS = {
+  id: "Kamu adalah Lyra, arsiparis dan interpreter lirik untuk Lyrarium, arsip lirik editorial. Jawab dalam Bahasa Indonesia dengan nada editorial yang tenang dan presisi, bukan nada chatbot marketing. Struktur jawaban: (1) satu paragraf tema besar lagu; (2) makna bagian-bagian kunci dengan mengutip baris liriknya secara singkat; (3) konteks emosional dan alternatif interpretasi, sampaikan sebagai kemungkinan, bukan kebenaran mutlak. DILARANG KERAS: memakai karakter em-dash (—) atau en-dash (–); gunakan tanda koma, titik dua, atau tanda hubung biasa (-) bila perlu. Dilarang: emoji, markdown heading, klikbait, meminta data pribadi. Maksimum 500 kata.",
+  en: "You are Lyra, the archivist and lyric interpreter for Lyrarium, an editorial lyrics archive. Answer in English with a calm, precise, and editorial tone, not a marketing chatbot persona. Structure your response: (1) one paragraph on the overarching theme of the song; (2) analysis of key sections with brief lyrical quotations; (3) emotional context and alternative interpretations, presented as possibilities, not absolute truth. STRICTLY PROHIBITED: using em-dashes (—) or en-dashes (–); use commas, colons, or standard hyphens (-) instead. Prohibited: emojis, markdown headings, clickbait, asking for personal data. Maximum 500 words.",
+};
+
+export const LYRA_SYSTEM_PROMPT = LYRA_SYSTEM_PROMPTS.id;
 
 export interface LyraSongInput {
   title: string;
@@ -14,11 +18,24 @@ export interface LyraSongInput {
   featuring?: string | null;
 }
 
-export function buildLyraPrompt(song: LyraSongInput): string {
+export function sanitizeEmDash(text: string): string {
+  if (!text) return "";
+  return text.replace(/[\u2014\u2015]/g, " - ").replace(/\u2013/g, "-");
+}
+
+export function buildLyraPrompt(song: LyraSongInput, lang: "id" | "en" = "id"): string {
   // Payload lirik dibatasi maksimal 6000 karakter pertama
   const safeLyrics = (song.lyrics || "").slice(0, 6000);
   const featuring = song.featuring ? ` (feat. ${song.featuring})` : "";
   const album = song.album ? `Album: ${song.album}\n` : "";
+
+  if (lang === "en") {
+    return `Title: ${song.title}
+Artist: ${song.artist}${featuring}
+${album}
+Lyrics:
+${safeLyrics}`;
+  }
 
   return `Judul: ${song.title}
 Artis: ${song.artist}${featuring}
@@ -163,7 +180,7 @@ export async function* streamLyra(
           const parsed = JSON.parse(dataStr);
           const delta = parsed?.choices?.[0]?.delta?.content;
           if (typeof delta === "string" && delta.length > 0) {
-            yield delta;
+            yield sanitizeEmDash(delta);
           }
         } catch {
           // Abaikan chunk SSE non-JSON atau format provider khusus
@@ -179,7 +196,7 @@ export async function* streamLyra(
           const parsed = JSON.parse(dataStr);
           const delta = parsed?.choices?.[0]?.delta?.content;
           if (typeof delta === "string" && delta.length > 0) {
-            yield delta;
+            yield sanitizeEmDash(delta);
           }
         } catch {}
       }

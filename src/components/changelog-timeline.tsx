@@ -43,11 +43,12 @@ const MILESTONES: Milestone[] = [
     summary:
       "Launched 'Ask Lyra' — an editorial AI lyrical interpretation engine. Integrates zero-dependency OpenAI-compatible SSE streaming, permanent Supabase Postgres caching (lyra_insights), in-memory IP rate limiting, and an art-book editorial answer block.",
     details: [
-      "Zero-dependency SSE streaming adapter with strict 30-second AbortController timeout and 6000-character payload slicing.",
-      "Permanent database caching via 'lyra_insights' table to guarantee interpretations are generated at most once per song.",
+      "Zero-dependency SSE streaming adapter with transient retry, 30-second AbortController timeout, and 6000-character payload slicing.",
+      "Dual-language support (ID/EN) with sharp 0px toggle and independent permanent database caching in 'lyra_insights'.",
+      "Strict em-dash (—) elimination in both system prompts and streaming token sanitization.",
+      "English AI disclaimer footer ('Lyra is an AI and can make mistakes. Lyric interpretations are subjective.').",
       "In-memory rate limiter on route handler /api/lyra (5 requests/minute per client IP).",
       "Editorial, non-chatbot UI aesthetic with 0px sharp button, blinking hairline cursor, and accent border quote block.",
-      "Seamless integration below the song lyric grid with automatic state transition from streaming to archived meta.",
     ],
   },
   {

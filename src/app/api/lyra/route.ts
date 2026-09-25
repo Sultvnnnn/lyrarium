@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { songs, lyraInsights } from "@/db/schema";
 import {
   buildLyraPrompt,
   getLyraConfig,
-  LYRA_SYSTEM_PROMPT,
+  LYRA_SYSTEM_PROMPTS,
+  sanitizeEmDash,
   streamLyra,
   type LyraChatMessage,
 } from "@/lib/lyra";
@@ -75,6 +76,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const lang: "id" | "en" = body?.lang === "en" ? "en" : "id";
+
   // 3. Verifikasi lagu ada di database
   const song = await db.query.songs.findFirst({
     where: eq(songs.id, songId),
@@ -87,17 +90,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 4. Cek cache lyra_insights by songId
+  // 4. Cek cache lyra_insights by songId & language
   const cached = await db.query.lyraInsights.findFirst({
-    where: eq(lyraInsights.songId, songId),
+    where: and(
+      eq(lyraInsights.songId, songId),
+      eq(lyraInsights.language, lang)
+    ),
   });
 
   if (cached) {
     return NextResponse.json({
       cached: true,
-      content: cached.content,
+      content: sanitizeEmDash(cached.content),
       createdAt: cached.createdAt,
       model: cached.model,
+      language: cached.language,
     });
   }
 
@@ -110,10 +117,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 6. Siapkan prompt & panggil provider stream
-  const prompt = buildLyraPrompt(song);
+  // 6. Siapkan prompt & panggil provider stream sesuai bahasa terpilih
+  const prompt = buildLyraPrompt(song, lang);
+  const systemPrompt = LYRA_SYSTEM_PROMPTS[lang] || LYRA_SYSTEM_PROMPTS.id;
   const messages: LyraChatMessage[] = [
-    { role: "system", content: LYRA_SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     { role: "user", content: prompt },
   ];
 
@@ -146,8 +154,9 @@ export async function POST(req: NextRequest) {
       try {
         // Enqueue chunk pertama jika ada
         if (!firstChunkResult.done && typeof firstChunkResult.value === "string") {
-          accumulatedText += firstChunkResult.value;
-          controller.enqueue(encoder.encode(firstChunkResult.value));
+          const cleanChunk = sanitizeEmDash(firstChunkResult.value);
+          accumulatedText += cleanChunk;
+          controller.enqueue(encoder.encode(cleanChunk));
         }
 
         // Iterasi chunk berikutnya dari generator
@@ -155,8 +164,9 @@ export async function POST(req: NextRequest) {
           if (isAborted || req.signal.aborted) {
             break;
           }
-          accumulatedText += chunk;
-          controller.enqueue(encoder.encode(chunk));
+          const cleanChunk = sanitizeEmDash(chunk);
+          accumulatedText += cleanChunk;
+          controller.enqueue(encoder.encode(cleanChunk));
         }
 
         controller.close();
@@ -164,11 +174,13 @@ export async function POST(req: NextRequest) {
         // 8. INSERT ke lyra_insights HANYA jika stream sukses tanpa dibatalkan
         if (!isAborted && !req.signal.aborted && accumulatedText.trim().length > 0) {
           try {
+            const finalCleanContent = sanitizeEmDash(accumulatedText).trim();
             await db
               .insert(lyraInsights)
               .values({
                 songId: song.id,
-                content: accumulatedText.trim(),
+                language: lang,
+                content: finalCleanContent,
                 model,
               })
               .onConflictDoNothing();
@@ -199,3 +211,4 @@ export async function POST(req: NextRequest) {
     },
   });
 }
+
