@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Feather, RotateCw } from "lucide-react";
+import { Feather, RotateCw, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface CachedInsight {
@@ -508,8 +508,10 @@ export function AskLyra({
                     {THINKING_PHRASES[lang][thinkingPhraseIndex % THINKING_PHRASES[lang].length]}
                   </motion.span>
                 </AnimatePresence>
-                <span
-                  className="inline-block w-px h-3.5 bg-accent animate-pulse will-change-[opacity]"
+                <Loader2
+                  size={16}
+                  strokeWidth={1}
+                  className="animate-spin text-accent shrink-0"
                   aria-hidden="true"
                 />
               </div>
