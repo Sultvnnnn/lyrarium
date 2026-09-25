@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
@@ -23,8 +23,21 @@ export const artists = pgTable("artists", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const lyraInsights = pgTable("lyra_insights", {
+  id: serial("id").primaryKey(),
+  songId: integer("song_id")
+    .notNull()
+    .unique()
+    .references(() => songs.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  model: text("model"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type Song = typeof songs.$inferSelect;
 export type NewSong = typeof songs.$inferInsert;
 export type Artist = typeof artists.$inferSelect;
 export type NewArtist = typeof artists.$inferInsert;
+export type LyraInsight = typeof lyraInsights.$inferSelect;
+export type NewLyraInsight = typeof lyraInsights.$inferInsert;
 

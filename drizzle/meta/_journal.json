@@ -50,6 +50,13 @@
       "when": 1789387521499,
       "tag": "0006_yellow_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790327807332,
+      "tag": "0007_familiar_madame_web",
+      "breakpoints": true
     }
   ]
 }
