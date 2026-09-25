@@ -38,6 +38,25 @@ function cleanEmDashes(text: string): string {
   return text.replace(/[\u2014\u2015]/g, " - ").replace(/\u2013/g, "-");
 }
 
+const THINKING_PHRASES: Record<"en" | "id", string[]> = {
+  en: [
+    "Thinking…",
+    "Pondering the verses…",
+    "Decoding hidden metaphors…",
+    "Tracing the emotional arc…",
+    "Listening between the lines…",
+    "Unraveling the subtext…",
+  ],
+  id: [
+    "Sedang berpikir…",
+    "Meresapi bait demi bait…",
+    "Menerjemahkan metafora tersirat…",
+    "Menelusuri alur emosi…",
+    "Mendengarkan di balik kata…",
+    "Menelaah subteks lirik…",
+  ],
+};
+
 export function AskLyra({
   songId,
   songTitle,
@@ -87,6 +106,22 @@ export function AskLyra({
   }, []);
 
   const current = langStates[lang];
+
+  // Siklus kata-kata berpikir dinamis saat status loading
+  const [thinkingPhraseIndex, setThinkingPhraseIndex] = useState(0);
+
+  useEffect(() => {
+    if (current.status !== "loading") {
+      setThinkingPhraseIndex(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setThinkingPhraseIndex((prev) => (prev + 1) % THINKING_PHRASES[lang].length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [current.status, lang]);
 
   // Helper untuk streaming halus token-per-token dari cache (menghasilkan efek typewriter tanpa biaya token API)
   const streamCachedContent = async (
@@ -414,15 +449,21 @@ export function AskLyra({
             </div>
           )}
 
-          {/* State Loading: Membaca lirik + hairline cursor berkedip */}
+          {/* State Loading: Animasi berpikir dinamis bergantian + hairline cursor berkedip */}
           {current.status === "loading" && (
             <div className="border-l border-accent pl-8 py-2">
-              <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-muted-foreground">
-                <span>
-                  {lang === "en"
-                    ? "Reading lyrics…"
-                    : "Membaca lirik…"}
-                </span>
+              <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-muted-foreground min-h-[1.5rem]">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={`${lang}-${thinkingPhraseIndex}`}
+                    initial={{ opacity: 0, y: 3 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -3 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {THINKING_PHRASES[lang][thinkingPhraseIndex % THINKING_PHRASES[lang].length]}
+                  </motion.span>
+                </AnimatePresence>
                 <span
                   className="inline-block w-px h-3.5 bg-accent animate-pulse will-change-[opacity]"
                   aria-hidden="true"
