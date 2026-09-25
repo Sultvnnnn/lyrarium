@@ -28,6 +28,23 @@ export const CATEGORIES: MilestoneCategory[] = [
 
 export const MILESTONES: Milestone[] = [
   {
+    id: "v0.14.0",
+    version: "v0.14.0",
+    date: "Sep 26, 2026",
+    title: "Responsive Editorial Navigation & Mobile Bottom Bar",
+    category: "Core & Navigation",
+    tag: "Navigation / Mobile UX",
+    summary:
+      "Introduced a dedicated mobile bottom navigation bar with sharp icon-only controls, integrated ThemeToggle in slot 4, relocated Add action to mobile top header, and refined the fullscreen overlay menu with zero empty space and hover-revealed editorial tagline.",
+    details: [
+      "Added fixed mobile bottom navigation bar (5 sharp icon slots: Home, Songs, Artists, Theme, Menu) with hairline active indicator.",
+      "Relocated Add button to mobile top header right control for effortless one-handed thumb ergonomics.",
+      "Eliminated blank spacing in the fullscreen overlay menu, aligning the first link hairline directly under the top bar.",
+      "Made the editorial tagline '// Every word, preserved.' expand on hover only across both header and overlay menu states.",
+      "Adjusted footer padding and Floating ScrollToTop button clearance to prevent bottom bar overlap on mobile devices.",
+    ],
+  },
+  {
     id: "v0.13.0",
     version: "v0.13.0",
     date: "Sep 25–26, 2026",

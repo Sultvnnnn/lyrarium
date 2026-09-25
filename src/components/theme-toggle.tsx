@@ -8,7 +8,13 @@ type ViewTransitionDoc = Document & {
   startViewTransition?: (cb: () => void) => { ready: Promise<void> };
 };
 
-export function ThemeToggle({ inverted = false }: { inverted?: boolean }) {
+export function ThemeToggle({
+  inverted = false,
+  className,
+}: {
+  inverted?: boolean;
+  className?: string;
+}) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -16,9 +22,15 @@ export function ThemeToggle({ inverted = false }: { inverted?: boolean }) {
 
   useEffect(() => setMounted(true), []);
 
+  const defaultClasses = `flex size-8 items-center justify-center border transition-colors ${
+    inverted
+      ? "border-bone-white text-bone-white dark:border-navy-ink dark:text-navy-ink"
+      : "border-border text-foreground hover:border-accent hover:text-accent"
+  }`;
+
   if (!mounted) {
     return (
-      <div className="flex size-8 items-center justify-center border border-border">
+      <div className={className ?? "flex size-8 items-center justify-center border border-border"}>
         <Sun size={16} strokeWidth={1} />
       </div>
     );
@@ -84,13 +96,10 @@ export function ThemeToggle({ inverted = false }: { inverted?: boolean }) {
 
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={locked}
-      className={`flex size-8 items-center justify-center border transition-colors ${
-        inverted
-          ? "border-bone-white text-bone-white dark:border-navy-ink dark:text-navy-ink"
-          : "border-border text-foreground hover:border-accent hover:text-accent"
-      } ${locked ? "pointer-events-none opacity-50" : ""}`}
+      className={`${className ?? defaultClasses} ${locked ? "pointer-events-none opacity-50" : ""}`}
       aria-label="Toggle theme"
     >
       {theme === "light" ? (

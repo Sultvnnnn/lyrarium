@@ -99,20 +99,26 @@ export function SiteHeader() {
           </button>
         </div>
 
-        {/* Mobile Header Right Controls: ThemeToggle only (Navigation is handled by Bottom Bar) */}
+        {/* Mobile Header Right Controls: Add song button */}
         <div className="flex md:hidden items-center gap-2">
-          <ThemeToggle />
+          <Link
+            href="/add"
+            aria-label="Add song"
+            className="flex size-8 items-center justify-center border border-border text-foreground transition-colors hover:border-accent hover:text-accent"
+          >
+            <Plus size={16} strokeWidth={1} />
+          </Link>
         </div>
       </header>
 
       {/* Fullscreen Overlay Menu: z-[70] completely covers the regular header, page, and bottom bar */}
       <div
-        className={`fixed inset-0 z-[70] flex flex-col justify-between bg-navy-ink px-4 sm:px-6 md:px-8 py-3.5 md:py-4 text-bone-white transition-transform duration-500 ease-in-out dark:bg-bone-white dark:text-navy-ink ${
+        className={`fixed inset-0 z-[70] flex flex-col bg-navy-ink px-4 sm:px-6 md:px-8 py-3.5 md:py-4 text-bone-white transition-transform duration-500 ease-in-out dark:bg-bone-white dark:text-navy-ink ${
           open ? "translate-y-0" : "-translate-y-full"
         }`}
       >
         {/* Overlay Internal Header: fully self-contained with close button */}
-        <div className="flex items-center justify-between border-b border-charcoal-scale pb-3.5 md:pb-4 dark:border-ash shrink-0">
+        <div className="flex items-center justify-between pb-3.5 md:pb-4 shrink-0">
           <Link
             href="/"
             className="group flex items-center gap-3 sm:gap-4 text-bone-white dark:text-navy-ink"
@@ -125,9 +131,13 @@ export function SiteHeader() {
                 Lyrarium
               </span>
 
-              <span className="hidden sm:inline text-subheading font-light text-signal-yellow dark:text-magenta-bloom">
-                &nbsp;// Every word, preserved.
-              </span>
+              <div className="hidden sm:grid grid-cols-[0fr] transition-[grid-template-columns] duration-500 ease-out group-hover:grid-cols-[1fr]">
+                <div className="overflow-hidden">
+                  <span className="whitespace-nowrap text-subheading font-light text-signal-yellow dark:text-magenta-bloom">
+                    &nbsp;// Every word, preserved.
+                  </span>
+                </div>
+              </div>
             </div>
           </Link>
 
@@ -146,7 +156,7 @@ export function SiteHeader() {
         </div>
 
         {/* Navigation Links with Staggered Slide */}
-        <nav className="flex flex-col overflow-y-auto py-4 md:py-6">
+        <nav className="flex-1 flex flex-col overflow-y-auto">
           {links.map((l, i) => (
             <Link
               key={l.num}
@@ -170,7 +180,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Overlay Footer */}
-        <div className="flex items-end justify-between pt-4 shrink-0">
+        <div className="flex items-end justify-between pt-4 mt-auto shrink-0">
           <p className="text-caption uppercase text-ash dark:text-graphite">
             © 2026 Lyrarium
           </p>
@@ -233,21 +243,8 @@ export function SiteHeader() {
           <Users size={16} strokeWidth={1} />
         </Link>
 
-        {/* 4. Add a Song */}
-        <Link
-          href="/add"
-          aria-label="Add a song"
-          className={`flex-1 flex items-center justify-center transition-colors relative ${
-            pathname === "/add" || pathname === "/artist/add"
-              ? "text-accent"
-              : "text-muted-foreground hover:text-accent active:text-accent"
-          }`}
-        >
-          {(pathname === "/add" || pathname === "/artist/add") && (
-            <span className="absolute top-0 left-3 right-3 h-[2px] bg-accent" />
-          )}
-          <Plus size={16} strokeWidth={1} />
-        </Link>
+        {/* 4. Theme Toggle */}
+        <ThemeToggle className="flex-1 flex items-center justify-center transition-colors relative text-muted-foreground hover:text-accent active:text-accent cursor-pointer" />
 
         {/* 5. Menu Overlay Toggle */}
         <button
