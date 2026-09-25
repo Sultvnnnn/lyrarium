@@ -3,11 +3,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Feather, RotateCw } from "lucide-react";
 
-interface AskLyraProps {
+export interface CachedInsight {
+  content: string;
+  model?: string | null;
+  createdAt?: string | Date | null;
+}
+
+export interface AskLyraProps {
   songId: number;
   songTitle: string;
   artist: string;
   lyricsExcerpt?: string;
+  initialInsights?: {
+    id?: CachedInsight | null;
+    en?: CachedInsight | null;
+  };
 }
 
 type LyraStatus = "idle" | "loading" | "streaming" | "cached" | "error";
@@ -33,35 +43,90 @@ export function AskLyra({
   songId,
   songTitle,
   artist,
+  initialInsights,
 }: AskLyraProps) {
-  const [lang, setLang] = useState<"id" | "en">("id");
+  const [lang, setLang] = useState<"id" | "en">(
+    !initialInsights?.id && initialInsights?.en ? "en" : "id"
+  );
 
   const [langStates, setLangStates] = useState<Record<"id" | "en", LangState>>({
-    id: { status: "idle", content: "", meta: null, errorMessage: null },
-    en: { status: "idle", content: "", meta: null, errorMessage: null },
+    id: initialInsights?.id
+      ? {
+          status: "cached",
+          content: cleanEmDashes(initialInsights.id.content),
+          meta: {
+            createdAt: initialInsights.id.createdAt,
+            model: initialInsights.id.model,
+          },
+          errorMessage: null,
+        }
+      : { status: "idle", content: "", meta: null, errorMessage: null },
+    en: initialInsights?.en
+      ? {
+          status: "cached",
+          content: cleanEmDashes(initialInsights.en.content),
+          meta: {
+            createdAt: initialInsights.en.createdAt,
+            model: initialInsights.en.model,
+          },
+          errorMessage: null,
+        }
+      : { status: "idle", content: "", meta: null, errorMessage: null },
   });
 
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Track AbortControllers separately per language so switching tabs never kills active stream
+  const abortControllersRef = useRef<Record<"id" | "en", AbortController | null>>({
+    id: null,
+    en: null,
+  });
+
+  // Sinkronisasi state saat navigasi antar lagu atau initialInsights berubah
+  useEffect(() => {
+    setLang(!initialInsights?.id && initialInsights?.en ? "en" : "id");
+    setLangStates({
+      id: initialInsights?.id
+        ? {
+            status: "cached",
+            content: cleanEmDashes(initialInsights.id.content),
+            meta: {
+              createdAt: initialInsights.id.createdAt,
+              model: initialInsights.id.model,
+            },
+            errorMessage: null,
+          }
+        : { status: "idle", content: "", meta: null, errorMessage: null },
+      en: initialInsights?.en
+        ? {
+            status: "cached",
+            content: cleanEmDashes(initialInsights.en.content),
+            meta: {
+              createdAt: initialInsights.en.createdAt,
+              model: initialInsights.en.model,
+            },
+            errorMessage: null,
+          }
+        : { status: "idle", content: "", meta: null, errorMessage: null },
+    });
+  }, [songId, initialInsights?.id?.content, initialInsights?.en?.content]);
 
   useEffect(() => {
     return () => {
-      // Abort active stream if component unmounts
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      // Abort active streams if component unmounts
+      abortControllersRef.current.id?.abort();
+      abortControllersRef.current.en?.abort();
     };
   }, []);
 
   const current = langStates[lang];
 
   const handleAskLyra = async (targetLang: "id" | "en" = lang) => {
-    // Batalkan stream sebelumnya jika sedang berlangsung
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    // Batalkan stream aktif untuk bahasa yang sama jika ada
+    if (abortControllersRef.current[targetLang]) {
+      abortControllersRef.current[targetLang]?.abort();
     }
 
     const controller = new AbortController();
-    abortControllerRef.current = controller;
+    abortControllersRef.current[targetLang] = controller;
 
     setLangStates((prev) => ({
       ...prev,
@@ -183,6 +248,20 @@ export function AskLyra({
       }));
     } catch (err: any) {
       if (err.name === "AbortError") {
+        setLangStates((prev) => {
+          if (prev[targetLang].status === "loading") {
+            return {
+              ...prev,
+              [targetLang]: {
+                status: "idle",
+                content: "",
+                meta: null,
+                errorMessage: null,
+              },
+            };
+          }
+          return prev;
+        });
         return;
       }
       console.error("AskLyra Request Error:", err);
@@ -204,11 +283,6 @@ export function AskLyra({
   const handleLanguageSwitch = (newLang: "id" | "en") => {
     if (newLang === lang) return;
     setLang(newLang);
-
-    // Jika bahasa tujuan belum pernah dipanggil, cek apakah sudah ada cache di server
-    if (langStates[newLang].status === "idle") {
-      handleAskLyra(newLang);
-    }
   };
 
   return (

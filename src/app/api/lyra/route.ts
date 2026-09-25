@@ -19,6 +19,12 @@ interface RateLimitEntry {
 const rateLimitMap = new Map<string, RateLimitEntry>();
 
 function checkRateLimit(ip: string): boolean {
+  const isDev =
+    process.env.NODE_ENV !== "production" ||
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip === "localhost";
+  const maxRequests = isDev ? 60 : 10;
   const now = Date.now();
   const windowMs = 60 * 1000;
   const entry = rateLimitMap.get(ip);
@@ -35,7 +41,7 @@ function checkRateLimit(ip: string): boolean {
     return false;
   }
 
-  if (entry.count >= 5) {
+  if (entry.count >= maxRequests) {
     return true; // Rate limit terlampaui
   }
 
@@ -183,7 +189,9 @@ export async function POST(req: NextRequest) {
                 content: finalCleanContent,
                 model,
               })
-              .onConflictDoNothing();
+              .onConflictDoNothing({
+                target: [lyraInsights.songId, lyraInsights.language],
+              });
           } catch (insertErr) {
             console.error("Gagal menyimpan hasil Lyra ke database:", insertErr);
           }

@@ -34,14 +34,18 @@ export function buildLyraPrompt(song: LyraSongInput, lang: "id" | "en" = "id"): 
 Artist: ${song.artist}${featuring}
 ${album}
 Lyrics:
-${safeLyrics}`;
+${safeLyrics}
+
+Directive: Write the full editorial analysis strictly in English.`;
   }
 
   return `Judul: ${song.title}
 Artis: ${song.artist}${featuring}
 ${album}
 Lirik:
-${safeLyrics}`;
+${safeLyrics}
+
+Arahan: Tuliskan telaah interpretasi editorial ini sepenuhnya dalam Bahasa Indonesia.`;
 }
 
 export interface LyraChatMessage {

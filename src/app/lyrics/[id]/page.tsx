@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { eq, or, ilike, asc, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { db } from "@/db";
-import { songs, artists } from "@/db/schema";
+import { songs, artists, lyraInsights } from "@/db/schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LyricsCopy } from "@/components/lyrics-copy";
@@ -422,14 +422,41 @@ export default async function LyricsPage({ params, searchParams }: Props) {
       </section>
  
       {/* 3 — Lyra Interpretation (Ask Lyra) */}
-      <section className="border-t border-border px-8 py-16">
-        <AskLyra
-          songId={song.id}
-          songTitle={song.title}
-          artist={song.artist}
-          lyricsExcerpt={song.lyrics.slice(0, 300)}
-        />
-      </section>
+      {await (async () => {
+        const existingInsights = await db.query.lyraInsights.findMany({
+          where: eq(lyraInsights.songId, song.id),
+        });
+        const idInsight = existingInsights.find((i) => i.language === "id");
+        const enInsight = existingInsights.find((i) => i.language === "en");
+        const initialInsights = {
+          id: idInsight
+            ? {
+                content: idInsight.content,
+                model: idInsight.model,
+                createdAt: idInsight.createdAt,
+              }
+            : null,
+          en: enInsight
+            ? {
+                content: enInsight.content,
+                model: enInsight.model,
+                createdAt: enInsight.createdAt,
+              }
+            : null,
+        };
+
+        return (
+          <section className="border-t border-border px-8 py-16">
+            <AskLyra
+              songId={song.id}
+              songTitle={song.title}
+              artist={song.artist}
+              lyricsExcerpt={song.lyrics.slice(0, 300)}
+              initialInsights={initialInsights}
+            />
+          </section>
+        );
+      })()}
 
       {/* 4 — Editorial prev/next nav (hanya lagu terkait artis ini) */}
       <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
