@@ -22,7 +22,13 @@ export type { Milestone, MilestoneCategory };
 const EDITORIAL_EASE = [0.22, 1, 0.36, 1] as const;
 
 const rowVariants: Variants = {
-  hidden: { opacity: 0 },
+  hidden: {
+    opacity: 0,
+    transition: {
+      staggerChildren: 0.04,
+      staggerDirection: -1,
+    },
+  },
   visible: {
     opacity: 1,
     transition: {
@@ -33,7 +39,11 @@ const rowVariants: Variants = {
 };
 
 const nodeVariants: Variants = {
-  hidden: { scale: 0, opacity: 0 },
+  hidden: {
+    scale: 0,
+    opacity: 0,
+    transition: { duration: 0.25, ease: EDITORIAL_EASE },
+  },
   visible: {
     scale: 1,
     opacity: 1,
@@ -42,7 +52,11 @@ const nodeVariants: Variants = {
 };
 
 const stemVariants: Variants = {
-  hidden: { scaleX: 0, opacity: 0 },
+  hidden: {
+    scaleX: 0,
+    opacity: 0,
+    transition: { duration: 0.25, ease: EDITORIAL_EASE },
+  },
   visible: {
     scaleX: 1,
     opacity: 1,
@@ -51,7 +65,12 @@ const stemVariants: Variants = {
 };
 
 const leftCardVariants: Variants = {
-  hidden: { opacity: 0, x: -24, y: 12 },
+  hidden: {
+    opacity: 0,
+    x: -24,
+    y: 12,
+    transition: { duration: 0.3, ease: EDITORIAL_EASE },
+  },
   visible: {
     opacity: 1,
     x: 0,
@@ -61,7 +80,12 @@ const leftCardVariants: Variants = {
 };
 
 const rightCardVariants: Variants = {
-  hidden: { opacity: 0, x: 24, y: 12 },
+  hidden: {
+    opacity: 0,
+    x: 24,
+    y: 12,
+    transition: { duration: 0.3, ease: EDITORIAL_EASE },
+  },
   visible: {
     opacity: 1,
     x: 0,
@@ -71,7 +95,11 @@ const rightCardVariants: Variants = {
 };
 
 const rightMetaVariants: Variants = {
-  hidden: { opacity: 0, x: 24 },
+  hidden: {
+    opacity: 0,
+    x: 24,
+    transition: { duration: 0.3, ease: EDITORIAL_EASE },
+  },
   visible: {
     opacity: 1,
     x: 0,
@@ -80,7 +108,11 @@ const rightMetaVariants: Variants = {
 };
 
 const leftMetaVariants: Variants = {
-  hidden: { opacity: 0, x: -24 },
+  hidden: {
+    opacity: 0,
+    x: -24,
+    transition: { duration: 0.3, ease: EDITORIAL_EASE },
+  },
   visible: {
     opacity: 1,
     x: 0,
@@ -187,7 +219,7 @@ export function ChangelogTimeline() {
                 key={m.id}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, margin: "-70px" }}
+                viewport={{ once: false, amount: 0.15, margin: "-40px 0px -40px 0px" }}
                 variants={rowVariants}
                 className="relative flex flex-col md:flex-row items-center w-full group"
               >
