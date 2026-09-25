@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Feather, RotateCw } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface CachedInsight {
   content: string;
@@ -323,11 +324,11 @@ export function AskLyra({
   };
 
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-2xl">
       {/* Header bar: Eyebrow + Language Toggle */}
-      <div className="mb-6 flex items-center justify-between gap-4 select-none">
+      <div className="mb-4 flex items-center justify-between gap-4 select-none">
         <p className="text-caption uppercase tracking-widest text-muted-foreground">
-          Lyra — {lang === "en" ? "Interpretation" : "Interpretasi"}
+          Lyra // {lang === "en" ? "Interpretation" : "Interpretasi"}
         </p>
 
         {/* Language Toggle: ID | EN */}
@@ -359,105 +360,116 @@ export function AskLyra({
         </div>
       </div>
 
-      {/* State Idle: Tombol Square Tanya Lyra / Ask Lyra */}
-      {current.status === "idle" && (
-        <div className="space-y-4">
-          <p className="text-body-sm font-light text-muted-foreground max-w-xl">
-            {lang === "en"
-              ? `Request an editorial analysis exploring the poetic layers, emotional resonance, and lyrical themes of "${songTitle}" by ${artist}.`
-              : `Minta telaah editorial mengenai lapisan puitis, konteks emosional, dan resonansi lirik "${songTitle}" oleh ${artist}.`}
-          </p>
-          <button
-            type="button"
-            onClick={() => handleAskLyra(lang)}
-            className="group inline-flex items-center gap-2.5 border border-border bg-background px-5 py-3 text-caption uppercase tracking-wider text-foreground transition-colors duration-200 hover:border-accent hover:text-accent cursor-pointer rounded-none select-none"
-          >
-            <Feather
-              size={16}
-              strokeWidth={1}
-              className="text-muted-foreground transition-colors group-hover:text-accent"
-            />
-            <span>{lang === "en" ? "Ask Lyra" : "Tanya Lyra"}</span>
-          </button>
-        </div>
-      )}
+      {/* Animated Language Transition Container */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={lang}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* State Idle: Tombol Square Tanya Lyra / Ask Lyra */}
+          {current.status === "idle" && (
+            <div className="space-y-3.5">
+              <p className="text-body-sm font-light text-muted-foreground">
+                {lang === "en"
+                  ? "Editorial reading of lyrical themes and subtext."
+                  : "Pembacaan editorial atas tema dan subteks lirik."}
+              </p>
+              <button
+                type="button"
+                onClick={() => handleAskLyra(lang)}
+                className="group inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-caption uppercase tracking-wider text-foreground transition-colors duration-200 hover:border-accent hover:text-accent cursor-pointer rounded-none select-none"
+              >
+                <Feather
+                  size={16}
+                  strokeWidth={1}
+                  className="text-muted-foreground transition-colors group-hover:text-accent"
+                />
+                <span>{lang === "en" ? "Ask Lyra" : "Tanya Lyra"}</span>
+              </button>
+            </div>
+          )}
 
-      {/* State Loading: Membaca lirik + hairline cursor berkedip */}
-      {current.status === "loading" && (
-        <div className="border-l border-accent pl-8 py-2">
-          <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-muted-foreground">
-            <span>
-              {lang === "en"
-                ? "Lyra is reading the lyrics…"
-                : "Lyra sedang membaca lirik…"}
-            </span>
-            <span
-              className="inline-block w-px h-3.5 bg-accent animate-pulse will-change-[opacity]"
-              aria-hidden="true"
-            />
-          </div>
-        </div>
-      )}
+          {/* State Loading: Membaca lirik + hairline cursor berkedip */}
+          {current.status === "loading" && (
+            <div className="border-l border-accent pl-8 py-2">
+              <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-muted-foreground">
+                <span>
+                  {lang === "en"
+                    ? "Reading lyrics…"
+                    : "Membaca lirik…"}
+                </span>
+                <span
+                  className="inline-block w-px h-3.5 bg-accent animate-pulse will-change-[opacity]"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
+          )}
 
-      {/* State Streaming: Teks muncul bertahap + kursor (em-dash sanitized) */}
-      {current.status === "streaming" && (
-        <div className="border-l border-accent pl-8">
-          <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
-            {cleanEmDashes(current.content)}
-            <span
-              className="inline-block w-px h-[1.1em] bg-accent ml-1 align-baseline animate-pulse will-change-[opacity]"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="mt-6 border-t border-border pt-3">
-            <span className="text-caption uppercase tracking-wider text-muted-foreground">
-              {lang === "en"
-                ? "Lyra is transcribing the interpretation…"
-                : "Lyra sedang mentranskripsi telaah…"}
-            </span>
-          </div>
-        </div>
-      )}
+          {/* State Streaming: Teks muncul bertahap + kursor (em-dash sanitized) */}
+          {current.status === "streaming" && (
+            <div className="border-l border-accent pl-8">
+              <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
+                {cleanEmDashes(current.content)}
+                <span
+                  className="inline-block w-px h-[1.1em] bg-accent ml-1 align-baseline animate-pulse will-change-[opacity]"
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="mt-5 border-t border-border pt-3">
+                <span className="text-caption uppercase tracking-wider text-muted-foreground">
+                  {lang === "en"
+                    ? "Transcribing…"
+                    : "Mentranskripsi…"}
+                </span>
+              </div>
+            </div>
+          )}
 
-      {/* State Cached / Completed: Jawaban utuh + AI Disclaimer Bahasa Inggris */}
-      {current.status === "cached" && (
-        <div className="border-l border-accent pl-8">
-          <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
-            {cleanEmDashes(current.content)}
-          </div>
-          <div className="mt-6 border-t border-border pt-4 text-caption uppercase text-muted-foreground select-none">
-            <span>
-              Lyra is an AI and can make mistakes. Lyric interpretations are subjective.
-            </span>
-          </div>
-        </div>
-      )}
+          {/* State Cached / Completed: Jawaban utuh + AI Disclaimer Bahasa Inggris */}
+          {current.status === "cached" && (
+            <div className="border-l border-accent pl-8">
+              <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
+                {cleanEmDashes(current.content)}
+              </div>
+              <div className="mt-5 border-t border-border pt-4 text-caption uppercase text-muted-foreground select-none">
+                <span>
+                  Lyra is an AI and can make mistakes. Lyric interpretations are subjective.
+                </span>
+              </div>
+            </div>
+          )}
 
-      {/* State Error: Pesan error aksen + tombol Coba lagi */}
-      {current.status === "error" && (
-        <div className="border-l border-accent pl-8 space-y-4">
-          <p className="text-caption uppercase tracking-wide text-accent">
-            {current.errorMessage ||
-              (lang === "en"
-                ? "Failed to obtain interpretation from Lyra."
-                : "Gagal mendapatkan interpretasi dari Lyra.")}
-          </p>
-          <div>
-            <button
-              type="button"
-              onClick={() => handleAskLyra(lang)}
-              className="group inline-flex items-center gap-2 border border-border bg-background px-4 py-2.5 text-caption uppercase tracking-wider text-foreground hover:border-accent hover:text-accent transition-colors duration-200 cursor-pointer rounded-none select-none"
-            >
-              <RotateCw
-                size={16}
-                strokeWidth={1}
-                className="text-muted-foreground transition-colors group-hover:text-accent"
-              />
-              <span>{lang === "en" ? "Try again" : "Coba lagi"}</span>
-            </button>
-          </div>
-        </div>
-      )}
+          {/* State Error: Pesan error aksen + tombol Coba lagi */}
+          {current.status === "error" && (
+            <div className="border-l border-accent pl-8 space-y-4">
+              <p className="text-caption uppercase tracking-wide text-accent">
+                {current.errorMessage ||
+                  (lang === "en"
+                    ? "Failed to obtain interpretation from Lyra."
+                    : "Gagal mendapatkan interpretasi dari Lyra.")}
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => handleAskLyra(lang)}
+                  className="group inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-caption uppercase tracking-wider text-foreground hover:border-accent hover:text-accent transition-colors duration-200 cursor-pointer rounded-none select-none"
+                >
+                  <RotateCw
+                    size={16}
+                    strokeWidth={1}
+                    className="text-muted-foreground transition-colors group-hover:text-accent"
+                  />
+                  <span>{lang === "en" ? "Try again" : "Coba lagi"}</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

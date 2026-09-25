@@ -380,7 +380,7 @@ export default async function LyricsPage({ params, searchParams }: Props) {
             )}
 
             {/* Lyra Interpretation (Ask Lyra) — scrolls alongside sticky video and about artist sidebar */}
-            <div className="mt-16 pt-16 border-t border-border">
+            <div className="mt-8 pt-8 border-t border-border">
               <AskLyra
                 songId={song.id}
                 songTitle={song.title}
