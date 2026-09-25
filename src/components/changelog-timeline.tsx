@@ -44,7 +44,7 @@ const MILESTONES: Milestone[] = [
       "Launched 'Ask Lyra' — an editorial AI lyrical interpretation engine. Integrates zero-dependency OpenAI-compatible SSE streaming, permanent Supabase Postgres caching (lyra_insights), in-memory IP rate limiting, and an art-book editorial answer block.",
     details: [
       "Zero-dependency SSE streaming adapter with transient retry, 30-second AbortController timeout, and 6000-character payload slicing.",
-      "Default English (EN) language experience with sharp 0px toggle, explicit prompt language directive, and permanent database caching in 'lyra_insights'.",
+      "Default English (EN) language experience with kinetic sliding toggle matching the artist discography album switcher, pinned at the far right edge.",
       "Interactive button-first flow: interpretation text remains hidden until user hits 'Ask Lyra', with fast smooth typewriter streaming for cached entries (zero token cost) and live SSE streaming for new generations.",
       "Silky framer-motion crossfade transitions on language switch with quiet editorial cubic-bezier timing.",
       "Tightened editorial layout rhythm: reduced vertical gap above section and aligned header with content width to eliminate disproportionate whitespace.",

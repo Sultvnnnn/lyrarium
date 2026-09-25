@@ -324,38 +324,60 @@ export function AskLyra({
   };
 
   return (
-    <div className="w-full max-w-2xl">
-      {/* Header bar: Eyebrow + Language Toggle */}
-      <div className="mb-4 flex items-center justify-between gap-4 select-none">
+    <div className="w-full">
+      {/* Header bar: Eyebrow on left, Kinetic Language Toggle on far right */}
+      <div className="mb-6 flex items-center justify-between gap-4 select-none">
         <p className="text-caption uppercase tracking-widest text-muted-foreground">
           Lyra // {lang === "en" ? "Interpretation" : "Interpretasi"}
         </p>
 
-        {/* Language Toggle: ID | EN */}
-        <div className="flex items-center border border-border divide-x divide-border">
+        {/* Kinetic Sliding Language Toggle (same style as artist discography album switcher) */}
+        <div className="relative inline-flex items-stretch border border-border bg-muted/20 p-1">
           <button
             type="button"
             onClick={() => handleLanguageSwitch("id")}
             aria-label="Bahasa Indonesia"
-            className={`px-2.5 py-1 text-caption uppercase font-mono tracking-wider transition-colors cursor-pointer ${
+            className={`relative z-10 px-4 py-1.5 text-caption uppercase font-mono tracking-wider transition-colors cursor-pointer select-none ${
               lang === "id"
-                ? "bg-foreground text-background font-normal"
-                : "text-muted-foreground hover:text-accent hover:bg-muted/40"
+                ? "text-background font-normal"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            ID
+            <span>ID</span>
+            {lang === "id" && (
+              <motion.div
+                layoutId="activeLyraLanguageTab"
+                className="absolute inset-0 bg-foreground -z-10"
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 32,
+                }}
+              />
+            )}
           </button>
           <button
             type="button"
             onClick={() => handleLanguageSwitch("en")}
             aria-label="English"
-            className={`px-2.5 py-1 text-caption uppercase font-mono tracking-wider transition-colors cursor-pointer ${
+            className={`relative z-10 px-4 py-1.5 text-caption uppercase font-mono tracking-wider transition-colors cursor-pointer select-none ${
               lang === "en"
-                ? "bg-foreground text-background font-normal"
-                : "text-muted-foreground hover:text-accent hover:bg-muted/40"
+                ? "text-background font-normal"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            EN
+            <span>EN</span>
+            {lang === "en" && (
+              <motion.div
+                layoutId="activeLyraLanguageTab"
+                className="absolute inset-0 bg-foreground -z-10"
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 32,
+                }}
+              />
+            )}
           </button>
         </div>
       </div>
