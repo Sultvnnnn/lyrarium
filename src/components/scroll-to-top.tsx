@@ -49,7 +49,7 @@ export function ScrollToTop() {
       type="button"
       onClick={scrollToTop}
       aria-label="Scroll back to top"
-      className={`group fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 flex size-10 sm:size-11 items-center justify-center border border-border bg-background text-foreground transition-[opacity,transform,border-color,color] duration-300 ease-out hover:border-accent hover:text-accent active:scale-95 overflow-hidden ${
+      className={`group fixed bottom-20 md:bottom-8 right-4 md:right-8 z-40 flex size-10 sm:size-11 items-center justify-center border border-border bg-background text-foreground transition-[opacity,transform,border-color,color] duration-300 ease-out hover:border-accent hover:text-accent active:scale-95 overflow-hidden ${
         visible && !menuOpen
           ? "opacity-100 translate-y-0 pointer-events-auto"
           : "opacity-0 translate-y-3 pointer-events-none"
