@@ -5,7 +5,6 @@ import { Feather, RotateCw } from "lucide-react";
 
 export interface CachedInsight {
   content: string;
-  model?: string | null;
   createdAt?: string | Date | null;
 }
 
@@ -24,7 +23,6 @@ type LyraStatus = "idle" | "loading" | "streaming" | "cached" | "error";
 
 interface LyraMeta {
   createdAt?: string | Date | null;
-  model?: string | null;
 }
 
 interface LangState {
@@ -45,33 +43,19 @@ export function AskLyra({
   artist,
   initialInsights,
 }: AskLyraProps) {
-  const [lang, setLang] = useState<"id" | "en">(
-    !initialInsights?.id && initialInsights?.en ? "en" : "id"
-  );
+  // 1. Default to English
+  const [lang, setLang] = useState<"id" | "en">("en");
 
+  // 2. Both languages start in "idle" state on initial render (user must click button first)
   const [langStates, setLangStates] = useState<Record<"id" | "en", LangState>>({
-    id: initialInsights?.id
-      ? {
-          status: "cached",
-          content: cleanEmDashes(initialInsights.id.content),
-          meta: {
-            createdAt: initialInsights.id.createdAt,
-            model: initialInsights.id.model,
-          },
-          errorMessage: null,
-        }
-      : { status: "idle", content: "", meta: null, errorMessage: null },
-    en: initialInsights?.en
-      ? {
-          status: "cached",
-          content: cleanEmDashes(initialInsights.en.content),
-          meta: {
-            createdAt: initialInsights.en.createdAt,
-            model: initialInsights.en.model,
-          },
-          errorMessage: null,
-        }
-      : { status: "idle", content: "", meta: null, errorMessage: null },
+    id: { status: "idle", content: "", meta: null, errorMessage: null },
+    en: { status: "idle", content: "", meta: null, errorMessage: null },
+  });
+
+  // Simpan data cache lokal (dari server hydration atau hasil fetch) untuk streaming cepat tanpa buang token
+  const cachedInsightsRef = useRef<Record<"id" | "en", CachedInsight | null>>({
+    id: initialInsights?.id || null,
+    en: initialInsights?.en || null,
   });
 
   // Track AbortControllers separately per language so switching tabs never kills active stream
@@ -80,32 +64,16 @@ export function AskLyra({
     en: null,
   });
 
-  // Sinkronisasi state saat navigasi antar lagu atau initialInsights berubah
+  // Reset saat navigasi antar lagu
   useEffect(() => {
-    setLang(!initialInsights?.id && initialInsights?.en ? "en" : "id");
+    cachedInsightsRef.current = {
+      id: initialInsights?.id || null,
+      en: initialInsights?.en || null,
+    };
+    setLang("en");
     setLangStates({
-      id: initialInsights?.id
-        ? {
-            status: "cached",
-            content: cleanEmDashes(initialInsights.id.content),
-            meta: {
-              createdAt: initialInsights.id.createdAt,
-              model: initialInsights.id.model,
-            },
-            errorMessage: null,
-          }
-        : { status: "idle", content: "", meta: null, errorMessage: null },
-      en: initialInsights?.en
-        ? {
-            status: "cached",
-            content: cleanEmDashes(initialInsights.en.content),
-            meta: {
-              createdAt: initialInsights.en.createdAt,
-              model: initialInsights.en.model,
-            },
-            errorMessage: null,
-          }
-        : { status: "idle", content: "", meta: null, errorMessage: null },
+      id: { status: "idle", content: "", meta: null, errorMessage: null },
+      en: { status: "idle", content: "", meta: null, errorMessage: null },
     });
   }, [songId, initialInsights?.id?.content, initialInsights?.en?.content]);
 
@@ -119,6 +87,55 @@ export function AskLyra({
 
   const current = langStates[lang];
 
+  // Helper untuk streaming halus token-per-token dari cache (menghasilkan efek typewriter tanpa biaya token API)
+  const streamCachedContent = async (
+    targetLang: "id" | "en",
+    fullContent: string,
+    meta: LyraMeta | null,
+    signal: AbortSignal
+  ) => {
+    setLangStates((prev) => ({
+      ...prev,
+      [targetLang]: {
+        status: "streaming",
+        content: "",
+        meta: null,
+        errorMessage: null,
+      },
+    }));
+
+    const tokens = fullContent.split(/(\s+)/);
+    let accumulated = "";
+    const stepSize = 2; // 2 token per tick untuk ritme editorial yang dinamis
+
+    for (let i = 0; i < tokens.length; i += stepSize) {
+      if (signal.aborted) return;
+      accumulated += tokens.slice(i, i + stepSize).join("");
+
+      setLangStates((prev) => ({
+        ...prev,
+        [targetLang]: {
+          ...prev[targetLang],
+          content: accumulated,
+        },
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 15));
+    }
+
+    if (signal.aborted) return;
+
+    setLangStates((prev) => ({
+      ...prev,
+      [targetLang]: {
+        status: "cached",
+        content: fullContent,
+        meta,
+        errorMessage: null,
+      },
+    }));
+  };
+
   const handleAskLyra = async (targetLang: "id" | "en" = lang) => {
     // Batalkan stream aktif untuk bahasa yang sama jika ada
     if (abortControllersRef.current[targetLang]) {
@@ -128,6 +145,21 @@ export function AskLyra({
     const controller = new AbortController();
     abortControllersRef.current[targetLang] = controller;
 
+    // A. Jika sudah ada di cache lokal (dari server hydration atau fetch sebelumnya), stream langsung tanpa buang token!
+    const existingCache = cachedInsightsRef.current[targetLang];
+    if (existingCache?.content) {
+      await streamCachedContent(
+        targetLang,
+        cleanEmDashes(existingCache.content),
+        {
+          createdAt: existingCache.createdAt,
+        },
+        controller.signal
+      );
+      return;
+    }
+
+    // B. Jika belum ada di cache, panggil /api/lyra (live streaming dari AI provider)
     setLangStates((prev) => ({
       ...prev,
       [targetLang]: {
@@ -163,19 +195,20 @@ export function AskLyra({
           );
         }
 
-        if (data.cached) {
-          setLangStates((prev) => ({
-            ...prev,
-            [targetLang]: {
-              status: "cached",
-              content: cleanEmDashes(data.content),
-              meta: {
-                createdAt: data.createdAt,
-                model: data.model,
-              },
-              errorMessage: null,
+        if (data.cached && data.content) {
+          cachedInsightsRef.current[targetLang] = {
+            content: data.content,
+            createdAt: data.createdAt,
+          };
+
+          await streamCachedContent(
+            targetLang,
+            cleanEmDashes(data.content),
+            {
+              createdAt: data.createdAt,
             },
-          }));
+            controller.signal
+          );
           return;
         }
       }
@@ -196,7 +229,7 @@ export function AskLyra({
         );
       }
 
-      // 3. Tangani live stream reader
+      // 3. Tangani live stream reader dari provider AI
       if (!res.body) {
         throw new Error(
           targetLang === "en"
@@ -234,6 +267,11 @@ export function AskLyra({
         }));
       }
 
+      cachedInsightsRef.current[targetLang] = {
+        content: accumulated,
+        createdAt: new Date().toISOString(),
+      };
+
       setLangStates((prev) => ({
         ...prev,
         [targetLang]: {
@@ -241,7 +279,6 @@ export function AskLyra({
           content: accumulated,
           meta: {
             createdAt: new Date().toISOString(),
-            model: "deepseek-v4.1-flash",
           },
           errorMessage: null,
         },
@@ -249,7 +286,7 @@ export function AskLyra({
     } catch (err: any) {
       if (err.name === "AbortError") {
         setLangStates((prev) => {
-          if (prev[targetLang].status === "loading") {
+          if (prev[targetLang].status === "loading" || prev[targetLang].status === "streaming") {
             return {
               ...prev,
               [targetLang]: {
@@ -388,12 +425,9 @@ export function AskLyra({
           <div className="whitespace-pre-line text-body leading-body text-foreground font-light">
             {cleanEmDashes(current.content)}
           </div>
-          <div className="mt-6 border-t border-border pt-4 flex flex-wrap items-center justify-between gap-3 text-caption uppercase text-muted-foreground select-none">
+          <div className="mt-6 border-t border-border pt-4 text-caption uppercase text-muted-foreground select-none">
             <span>
               Lyra is an AI and can make mistakes. Lyric interpretations are subjective.
-            </span>
-            <span className="font-mono text-[10px] text-muted-foreground/60">
-              {current.meta?.model || "deepseek-v4.1-flash"}
             </span>
           </div>
         </div>

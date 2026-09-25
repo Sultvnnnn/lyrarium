@@ -81,6 +81,27 @@ export default async function LyricsPage({ params, searchParams }: Props) {
   const artistSlug = artistRecord?.slug || artistSlugified;
   const credits = parseCredits(song.credits);
 
+  // Pre-fetch cached Lyra insights (if available) for client cache hydration
+  const existingInsights = await db.query.lyraInsights.findMany({
+    where: eq(lyraInsights.songId, song.id),
+  });
+  const idInsight = existingInsights.find((i) => i.language === "id");
+  const enInsight = existingInsights.find((i) => i.language === "en");
+  const initialInsights = {
+    id: idInsight
+      ? {
+          content: idInsight.content,
+          createdAt: idInsight.createdAt,
+        }
+      : null,
+    en: enInsight
+      ? {
+          content: enInsight.content,
+          createdAt: enInsight.createdAt,
+        }
+      : null,
+  };
+
   // Tentukan scoped artist untuk navigasi prev/next:
   // Termasuk lagu original si artist dan juga lagu featuring (misal Le Sserafim ft. Katseye masuk scope Katseye).
   let targetArtistQuery = queryArtist?.trim() || song.artist.trim();
@@ -357,6 +378,17 @@ export default async function LyricsPage({ params, searchParams }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Lyra Interpretation (Ask Lyra) — scrolls alongside sticky video and about artist sidebar */}
+            <div className="mt-16 pt-16 border-t border-border">
+              <AskLyra
+                songId={song.id}
+                songTitle={song.title}
+                artist={song.artist}
+                lyricsExcerpt={song.lyrics.slice(0, 300)}
+                initialInsights={initialInsights}
+              />
+            </div>
           </div>
 
           {/* Detail sticky di kanan — bersih */}
@@ -420,43 +452,6 @@ export default async function LyricsPage({ params, searchParams }: Props) {
           </aside>
         </div>
       </section>
- 
-      {/* 3 — Lyra Interpretation (Ask Lyra) */}
-      {await (async () => {
-        const existingInsights = await db.query.lyraInsights.findMany({
-          where: eq(lyraInsights.songId, song.id),
-        });
-        const idInsight = existingInsights.find((i) => i.language === "id");
-        const enInsight = existingInsights.find((i) => i.language === "en");
-        const initialInsights = {
-          id: idInsight
-            ? {
-                content: idInsight.content,
-                model: idInsight.model,
-                createdAt: idInsight.createdAt,
-              }
-            : null,
-          en: enInsight
-            ? {
-                content: enInsight.content,
-                model: enInsight.model,
-                createdAt: enInsight.createdAt,
-              }
-            : null,
-        };
-
-        return (
-          <section className="border-t border-border px-8 py-16">
-            <AskLyra
-              songId={song.id}
-              songTitle={song.title}
-              artist={song.artist}
-              lyricsExcerpt={song.lyrics.slice(0, 300)}
-              initialInsights={initialInsights}
-            />
-          </section>
-        );
-      })()}
 
       {/* 4 — Editorial prev/next nav (hanya lagu terkait artis ini) */}
       <nav className="grid grid-cols-1 border-t border-border md:grid-cols-2">
